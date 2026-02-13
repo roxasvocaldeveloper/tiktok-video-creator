@@ -6,7 +6,6 @@
     <title>Video Ads Creator | Soundvertise</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
@@ -361,7 +360,7 @@
                     <label class="text-[9px] font-black uppercase text-zinc-500">File Audio</label>
                     <label for="audio-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-violet-500 transition-all">
                         <i data-lucide="music" class="w-4 h-4 text-violet-400"></i>
-                        <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio</span>
+                        <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Opzionale)</span>
                         <input type="file" id="audio-input" accept="audio/*" class="hidden">
                     </label>
                 </div>
@@ -449,12 +448,12 @@
             </div>
 
             <button id="export-btn" class="w-full btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                <i data-lucide="sparkles" class="w-4 h-4"></i> Esporta Video con Testo
+                <i data-lucide="download" class="w-4 h-4"></i> Scarica Video con Testo
             </button>
             
             <div id="export-status" class="hidden bg-black border border-zinc-800 p-4 rounded-2xl">
                 <div class="flex justify-between text-[10px] mb-2 font-black uppercase text-blue-400">
-                    <span id="status-text">Rendering in corso...</span>
+                    <span id="status-text">Preparazione...</span>
                     <span id="percent-text">0%</span>
                 </div>
                 <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
@@ -464,17 +463,13 @@
         </div>
     </div>
 
-    <audio id="bg-music" crossorigin="anonymous" loop></audio>
+    <audio id="bg-music" crossorigin="anonymous"></audio>
     <canvas id="render-canvas"></canvas>
+    <video id="source-video" style="display: none;"></video>
+    <audio id="source-audio" style="display: none;"></audio>
 
     <script>
         lucide.createIcons();
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ 
-            log: true, 
-            corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
-            logger: ({ message }) => console.log('[FFmpeg]', message)
-        });
 
         const video = document.getElementById('main-video');
         const audio = document.getElementById('bg-music');
@@ -819,93 +814,7 @@
             URL.revokeObjectURL(tempVideo.src);
         }
 
-        // Funzione per creare un frame del video con il testo sovrapposto
-        async function createOverlayFrames() {
-            const tempVideo = document.createElement('video');
-            tempVideo.src = URL.createObjectURL(videoFile);
-            tempVideo.muted = true;
-            await new Promise(r => tempVideo.onloadedmetadata = r);
-
-            const renderCanvas = document.getElementById('render-canvas');
-            const renderCtx = renderCanvas.getContext('2d');
-            
-            // Riduce la risoluzione per velocizzare (720p invece di originale)
-            const maxWidth = 720;
-            const scale = Math.min(1, maxWidth / tempVideo.videoWidth);
-            renderCanvas.width = tempVideo.videoWidth * scale;
-            renderCanvas.height = tempVideo.videoHeight * scale;
-
-            const fps = 15; // Ridotto a 15fps per velocizzare
-            const duration = vEnd - vStart;
-            const totalFrames = Math.ceil(duration * fps);
-            const frameBlobs = [];
-
-            const statusText = document.getElementById('status-text');
-            const percentText = document.getElementById('percent-text');
-            const progressBar = document.getElementById('progress-bar');
-
-            statusText.innerText = 'Generazione frame con testo...';
-
-            for (let i = 0; i < totalFrames; i++) {
-                const frameTime = vStart + (i / fps);
-                tempVideo.currentTime = frameTime;
-                await new Promise(r => tempVideo.onseeked = r);
-
-                // Disegna il frame video
-                renderCtx.drawImage(tempVideo, 0, 0, renderCanvas.width, renderCanvas.height);
-
-                // Calcola posizione e dimensioni del testo
-                const captionText = caption.innerText;
-                if (captionText && captionText !== 'Scrivi il tuo testo') {
-                    const fontSize = parseInt(caption.style.fontSize || '24');
-                    const scaleFactor = (renderCanvas.width / 290) * scale; // Aggiustato per la nuova scala
-                    const scaledFontSize = fontSize * scaleFactor;
-
-                    // Ottieni font family dal caption
-                    let fontFamily = 'Montserrat';
-                    if (caption.classList.contains('font-typewriter')) fontFamily = 'Courier Prime';
-                    else if (caption.classList.contains('font-classic')) fontFamily = 'Inter';
-                    else if (caption.classList.contains('font-handwriting')) fontFamily = 'Dancing Script';
-
-                    renderCtx.font = `800 ${scaledFontSize}px ${fontFamily}`;
-                    renderCtx.textAlign = 'center';
-                    renderCtx.textBaseline = 'top';
-
-                    // Calcola posizione Y del testo
-                    const topPercent = parseFloat(caption.style.top) / 100;
-                    const textY = renderCanvas.height * topPercent;
-
-                    const textColor = caption.style.color || '#ffffff';
-
-                    // Disegna outline se abilitato
-                    if (outlineEnabled) {
-                        const outlineColor = getComputedStyle(caption).getPropertyValue('--outline-color') || '#000000';
-                        renderCtx.strokeStyle = outlineColor;
-                        renderCtx.lineWidth = scaleFactor * 3;
-                        renderCtx.lineJoin = 'round';
-                        renderCtx.miterLimit = 2;
-                        renderCtx.strokeText(captionText, renderCanvas.width / 2, textY);
-                    }
-
-                    // Disegna testo
-                    renderCtx.fillStyle = textColor;
-                    renderCtx.fillText(captionText, renderCanvas.width / 2, textY);
-                }
-
-                // Converti frame in blob
-                const blob = await new Promise(resolve => renderCanvas.toBlob(resolve, 'image/png'));
-                frameBlobs.push(blob);
-
-                // Aggiorna progresso
-                const progress = Math.round((i / totalFrames) * 50); // Prima metà del progresso
-                progressBar.style.width = progress + '%';
-                percentText.innerText = progress + '%';
-            }
-
-            URL.revokeObjectURL(tempVideo.src);
-            return frameBlobs;
-        }
-
+        // Nuova funzione di export usando MediaRecorder
         document.getElementById('export-btn').onclick = async () => {
             if (!videoFile) {
                 alert('Carica un video prima di esportare!');
@@ -923,114 +832,144 @@
             status.classList.remove('hidden');
             progress.style.width = '0%';
             percentText.innerText = '0%';
+            statusText.innerText = 'Preparazione...';
 
             try {
-                console.log('Starting export process...');
-                // Genera i frame con il testo sovrapposto
-                const frameBlobs = await createOverlayFrames();
-                console.log(`Generated ${frameBlobs.length} frames`);
+                // Crea video source per il rendering
+                const sourceVideo = document.getElementById('source-video');
+                const sourceAudio = document.getElementById('source-audio');
+                
+                sourceVideo.src = URL.createObjectURL(videoFile);
+                await new Promise(r => sourceVideo.onloadedmetadata = r);
 
-                statusText.innerText = 'Caricamento FFmpeg...';
-                if (!ffmpeg.isLoaded()) {
-                    console.log('Loading FFmpeg...');
-                    await ffmpeg.load();
-                    console.log('FFmpeg loaded successfully');
-                }
+                // Setup canvas per il rendering
+                const renderCanvas = document.getElementById('render-canvas');
+                const renderCtx = renderCanvas.getContext('2d');
+                
+                renderCanvas.width = sourceVideo.videoWidth;
+                renderCanvas.height = sourceVideo.videoHeight;
 
-                statusText.innerText = 'Preparazione file...';
-                console.log('Writing frames to FFmpeg FS...');
-
-                // Salva tutti i frame come immagini
-                for (let i = 0; i < frameBlobs.length; i++) {
-                    const paddedNum = String(i).padStart(5, '0');
-                    ffmpeg.FS('writeFile', `frame${paddedNum}.png`, await fetchFile(frameBlobs[i]));
-                    if (i % 30 === 0) console.log(`Wrote frame ${i}/${frameBlobs.length}`);
-                }
-                console.log('All frames written to FFmpeg FS');
-
-                const dur = vEnd - vStart;
-                const fps = 15;
-
-                statusText.innerText = 'Encoding video...';
-                console.log('Starting FFmpeg encoding...');
-
-                let cmd;
+                statusText.innerText = 'Rendering video con testo...';
+                
+                // Prepara stream dal canvas
+                const canvasStream = renderCanvas.captureStream(30);
+                
+                // Aggiungi audio se presente
+                let finalStream = canvasStream;
                 if (audioFile) {
-                    // Con audio
-                    console.log('Writing audio file...');
-                    ffmpeg.FS('writeFile', 'a.mp3', await fetchFile(audioFile));
-                    cmd = [
-                        '-framerate', fps.toString(),
-                        '-i', 'frame%05d.png',
-                        '-i', 'a.mp3',
-                        '-ss', aStart.toString(),
-                        '-t', dur.toString(),
-                        '-map', '0:v:0',
-                        '-map', '1:a:0',
-                        '-c:v', 'libx264',
-                        '-preset', 'veryfast',
-                        '-crf', '28',
-                        '-pix_fmt', 'yuv420p',
-                        '-c:a', 'aac',
-                        '-b:a', '128k',
-                        '-shortest',
-                        'out.mp4'
-                    ];
-                } else {
-                    // Senza audio
-                    cmd = [
-                        '-framerate', fps.toString(),
-                        '-i', 'frame%05d.png',
-                        '-c:v', 'libx264',
-                        '-preset', 'veryfast',
-                        '-crf', '28',
-                        '-pix_fmt', 'yuv420p',
-                        '-t', dur.toString(),
-                        'out.mp4'
-                    ];
+                    sourceAudio.src = URL.createObjectURL(audioFile);
+                    await new Promise(r => sourceAudio.onloadedmetadata = r);
+                    
+                    const audioCtx = new AudioContext();
+                    const audioSource = audioCtx.createMediaElementSource(sourceAudio);
+                    const dest = audioCtx.createMediaStreamDestination();
+                    audioSource.connect(dest);
+                    
+                    // Combina video e audio
+                    const audioTrack = dest.stream.getAudioTracks()[0];
+                    finalStream = new MediaStream([...canvasStream.getVideoTracks(), audioTrack]);
                 }
 
-                console.log('FFmpeg command:', cmd.join(' '));
-
-                ffmpeg.setProgress(({ ratio }) => {
-                    const p = Math.round(50 + (ratio * 50)); // Seconda metà del progresso
-                    progress.style.width = p + '%';
-                    percentText.innerText = p + '%';
-                    console.log(`FFmpeg progress: ${p}%`);
+                // Setup MediaRecorder
+                const recorder = new MediaRecorder(finalStream, {
+                    mimeType: 'video/webm;codecs=vp9',
+                    videoBitsPerSecond: 5000000
                 });
 
-                console.log('Running FFmpeg...');
-                await ffmpeg.run(...cmd);
-                console.log('FFmpeg completed successfully');
-
-                statusText.innerText = 'Download...';
-                const data = ffmpeg.FS('readFile', 'out.mp4');
-                console.log(`Output file size: ${data.length} bytes`);
+                const chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
                 
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-                a.download = "TikTok_Clip_With_Text.mp4";
-                a.click();
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'TikTok_Clip_With_Text.webm';
+                    a.click();
+                    
+                    statusText.innerText = 'Completato!';
+                    setTimeout(() => status.classList.add('hidden'), 2000);
+                    exportBtn.disabled = false;
+                };
 
-                // Pulisci i file temporanei
-                console.log('Cleaning up temporary files...');
-                for (let i = 0; i < frameBlobs.length; i++) {
-                    const paddedNum = String(i).padStart(5, '0');
-                    try { ffmpeg.FS('unlink', `frame${paddedNum}.png`); } catch(e) {}
+                // Inizia la registrazione
+                recorder.start();
+                
+                // Setup video per il rendering
+                sourceVideo.currentTime = vStart;
+                if (audioFile) {
+                    sourceAudio.currentTime = aStart;
+                    sourceAudio.play();
                 }
-                try { ffmpeg.FS('unlink', 'out.mp4'); } catch(e) {}
-                try { ffmpeg.FS('unlink', 'a.mp3'); } catch(e) {}
+                
+                sourceVideo.play();
 
-                statusText.innerText = 'Completato!';
-                console.log('Export completed successfully!');
-                setTimeout(() => status.classList.add('hidden'), 2000);
+                const duration = vEnd - vStart;
+                const startTime = performance.now();
+
+                // Render loop
+                function render() {
+                    const elapsed = (performance.now() - startTime) / 1000;
+                    const videoTime = vStart + elapsed;
+
+                    if (videoTime >= vEnd) {
+                        // Fine rendering
+                        recorder.stop();
+                        sourceVideo.pause();
+                        if (audioFile) sourceAudio.pause();
+                        return;
+                    }
+
+                    // Disegna frame video
+                    renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
+
+                    // Disegna testo
+                    const captionText = caption.innerText;
+                    if (captionText && captionText !== 'Scrivi il tuo testo') {
+                        const fontSize = parseInt(caption.style.fontSize || '24');
+                        const scaleFactor = renderCanvas.width / 290;
+                        const scaledFontSize = fontSize * scaleFactor;
+
+                        let fontFamily = 'Montserrat';
+                        if (caption.classList.contains('font-typewriter')) fontFamily = 'Courier Prime';
+                        else if (caption.classList.contains('font-classic')) fontFamily = 'Inter';
+                        else if (caption.classList.contains('font-handwriting')) fontFamily = 'Dancing Script';
+
+                        renderCtx.font = `800 ${scaledFontSize}px ${fontFamily}`;
+                        renderCtx.textAlign = 'center';
+                        renderCtx.textBaseline = 'top';
+
+                        const topPercent = parseFloat(caption.style.top) / 100;
+                        const textY = renderCanvas.height * topPercent;
+                        const textColor = caption.style.color || '#ffffff';
+
+                        if (outlineEnabled) {
+                            const outlineColor = getComputedStyle(caption).getPropertyValue('--outline-color') || '#000000';
+                            renderCtx.strokeStyle = outlineColor;
+                            renderCtx.lineWidth = scaleFactor * 3;
+                            renderCtx.lineJoin = 'round';
+                            renderCtx.strokeText(captionText, renderCanvas.width / 2, textY);
+                        }
+
+                        renderCtx.fillStyle = textColor;
+                        renderCtx.fillText(captionText, renderCanvas.width / 2, textY);
+                    }
+
+                    // Aggiorna progresso
+                    const progressPercent = Math.min(Math.round((elapsed / duration) * 100), 99);
+                    progress.style.width = progressPercent + '%';
+                    percentText.innerText = progressPercent + '%';
+
+                    requestAnimationFrame(render);
+                }
+
+                render();
                 
             } catch (e) {
                 console.error('Errore durante l\'export:', e);
-                statusText.innerText = 'Errore durante l\'export';
+                statusText.innerText = 'Errore: ' + e.message;
                 percentText.innerText = '';
                 setTimeout(() => status.classList.add('hidden'), 3000);
-            } finally {
                 exportBtn.disabled = false;
             }
         };
