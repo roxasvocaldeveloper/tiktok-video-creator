@@ -843,15 +843,29 @@
                 const renderCanvas = document.getElementById('render-canvas');
                 const renderCtx = renderCanvas.getContext('2d');
                 
-                // Mantieni risoluzione originale ma limita a 720p max
-                const maxWidth = 720;
-                const scale = Math.min(1, maxWidth / sourceVideo.videoWidth);
-                renderCanvas.width = Math.floor(sourceVideo.videoWidth * scale);
-                renderCanvas.height = Math.floor(sourceVideo.videoHeight * scale);
-
+                // Limita risoluzione a 480p per compatibilità (formato verticale TikTok)
+                const targetHeight = 854; // 480p verticale (480x854)
+                const targetWidth = 480;
+                
+                const videoAspect = sourceVideo.videoWidth / sourceVideo.videoHeight;
+                let renderWidth, renderHeight;
+                
+                if (videoAspect > 9/16) {
+                    // Video più largo, limita altezza
+                    renderHeight = Math.min(targetHeight, sourceVideo.videoHeight);
+                    renderWidth = Math.floor(renderHeight * videoAspect);
+                } else {
+                    // Video più stretto, limita larghezza
+                    renderWidth = Math.min(targetWidth, sourceVideo.videoWidth);
+                    renderHeight = Math.floor(renderWidth / videoAspect);
+                }
+                
                 // Assicurati che le dimensioni siano pari (richiesto da MP4)
-                if (renderCanvas.width % 2 !== 0) renderCanvas.width--;
-                if (renderCanvas.height % 2 !== 0) renderCanvas.height--;
+                if (renderWidth % 2 !== 0) renderWidth--;
+                if (renderHeight % 2 !== 0) renderHeight--;
+
+                renderCanvas.width = renderWidth;
+                renderCanvas.height = renderHeight;
 
                 const fps = 30;
                 const duration = vEnd - vStart;
@@ -860,13 +874,6 @@
 
                 // Crea MP4 Muxer
                 const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
-                
-                let videoChunks = [];
-                const target = {
-                    addChunk: (chunk) => {
-                        videoChunks.push(chunk);
-                    }
-                };
 
                 const muxer = new Muxer({
                     target: new ArrayBufferTarget(),
@@ -883,15 +890,19 @@
                 
                 const encoder = new VideoEncoder({
                     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-                    error: e => console.error('Encoder error:', e)
+                    error: e => {
+                        console.error('Encoder error:', e);
+                        throw new Error('Errore di codifica video: ' + e.message);
+                    }
                 });
 
                 encoder.configure({
-                    codec: 'avc1.42E01E',
+                    codec: 'avc1.42001E', // AVC Baseline Profile Level 3.0
                     width: renderCanvas.width,
                     height: renderCanvas.height,
-                    bitrate: 3_000_000,
-                    framerate: fps
+                    bitrate: 2_000_000,
+                    framerate: fps,
+                    avc: { format: 'avc' }
                 });
 
                 // Render e encode frames
@@ -913,7 +924,7 @@
                     const captionText = caption.innerText;
                     if (captionText && captionText !== 'Scrivi il tuo testo') {
                         const fontSize = parseInt(caption.style.fontSize || '24');
-                        const scaleFactor = (renderCanvas.width / 290) * scale;
+                        const scaleFactor = renderCanvas.width / 290; // 290 è larghezza iPhone frame
                         const scaledFontSize = fontSize * scaleFactor;
 
                         let fontFamily = 'Montserrat';
