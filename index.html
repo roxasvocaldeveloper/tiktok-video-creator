@@ -227,6 +227,7 @@
             transition: all 0.3s ease;
         }
         .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
+        .btn-sv:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 
         .font-tiktok { font-family: 'Montserrat', sans-serif; font-weight: 800; letter-spacing: -0.5px; }
         .font-typewriter { font-family: 'Courier Prime', monospace; }
@@ -287,6 +288,10 @@
             background: rgba(59, 130, 246, 0.15);
             border-color: var(--sv-blue);
             color: #fff;
+        }
+
+        #render-canvas {
+            display: none;
         }
     </style>
 </head>
@@ -370,7 +375,6 @@
                 </div>
                 <div class="trimmer-track h-[54px]" id="v-trimmer-track">
                     <div class="thumbnail-track" id="v-thumbs"></div>
-                    <!-- Playhead verticale per il video -->
                     <div id="video-playhead" class="playhead-cursor" style="left: 0; display: none;"></div>
                     <div id="video-trim-overlay" class="trim-overlay">
                         <div class="trim-handle handle-left" id="v-handle-l"></div>
@@ -394,7 +398,6 @@
                             <div class="waveform-wrapper">
                                 <canvas id="waveform"></canvas>
                             </div>
-                            <!-- Playhead verticale per l'audio -->
                             <div id="audio-playhead" class="playhead-cursor" style="left: 0; display: none;"></div>
                             <div id="audio-trim-overlay" class="trim-overlay"></div>
                         </div>
@@ -446,7 +449,7 @@
             </div>
 
             <button id="export-btn" class="w-full btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                <i data-lucide="sparkles" class="w-4 h-4"></i> Esporta Video
+                <i data-lucide="sparkles" class="w-4 h-4"></i> Esporta Video con Testo
             </button>
             
             <div id="export-status" class="hidden bg-black border border-zinc-800 p-4 rounded-2xl">
@@ -462,6 +465,7 @@
     </div>
 
     <audio id="bg-music" crossorigin="anonymous" loop></audio>
+    <canvas id="render-canvas"></canvas>
 
     <script>
         lucide.createIcons();
@@ -582,25 +586,16 @@
             const rect = aTrimmerTrack.getBoundingClientRect();
             const clickTime = ((e.clientX - rect.left) / rect.width) * audioDuration;
             
-            // Se clicco dentro l'overlay viola esistente, inizio il trascinamento
             if (e.target.closest('#audio-trim-overlay')) {
                 isDraggingA = true;
                 dragOffsetA = clickTime - aStart;
             } else {
-                // Se clicco FUORI dall'overlay, sposto l'overlay in quel punto
                 const currentVidDur = vEnd - vStart;
-                
-                // Cerchiamo di centrare il range sul punto del click o di farlo partire da lì
                 let newAStart = clickTime - (currentVidDur / 2);
-                
-                // Vincoli di durata
                 if (newAStart < 0) newAStart = 0;
                 if (newAStart + currentVidDur > audioDuration) newAStart = audioDuration - currentVidDur;
-                
                 aStart = newAStart;
                 updateTrimmers();
-                
-                // Spostiamo anche la testina di riproduzione all'inizio del nuovo range per feedback immediato
                 audio.currentTime = aStart;
                 video.currentTime = vStart;
             }
@@ -820,37 +815,194 @@
             URL.revokeObjectURL(tempVideo.src);
         }
 
+        // Funzione per creare un frame del video con il testo sovrapposto
+        async function createOverlayFrames() {
+            const tempVideo = document.createElement('video');
+            tempVideo.src = URL.createObjectURL(videoFile);
+            tempVideo.muted = true;
+            await new Promise(r => tempVideo.onloadedmetadata = r);
+
+            const renderCanvas = document.getElementById('render-canvas');
+            const renderCtx = renderCanvas.getContext('2d');
+            
+            // Imposta dimensioni canvas al video originale
+            renderCanvas.width = tempVideo.videoWidth;
+            renderCanvas.height = tempVideo.videoHeight;
+
+            const fps = 30;
+            const duration = vEnd - vStart;
+            const totalFrames = Math.ceil(duration * fps);
+            const frameBlobs = [];
+
+            const statusText = document.getElementById('status-text');
+            const percentText = document.getElementById('percent-text');
+            const progressBar = document.getElementById('progress-bar');
+
+            statusText.innerText = 'Generazione frame con testo...';
+
+            for (let i = 0; i < totalFrames; i++) {
+                const frameTime = vStart + (i / fps);
+                tempVideo.currentTime = frameTime;
+                await new Promise(r => tempVideo.onseeked = r);
+
+                // Disegna il frame video
+                renderCtx.drawImage(tempVideo, 0, 0, renderCanvas.width, renderCanvas.height);
+
+                // Calcola posizione e dimensioni del testo
+                const captionText = caption.innerText;
+                if (captionText && captionText !== 'Scrivi il tuo testo') {
+                    const fontSize = parseInt(caption.style.fontSize || '24');
+                    const scaleFactor = renderCanvas.width / 290; // 290 è la larghezza dell'iPhone frame
+                    const scaledFontSize = fontSize * scaleFactor;
+
+                    // Ottieni font family dal caption
+                    let fontFamily = 'Montserrat';
+                    if (caption.classList.contains('font-typewriter')) fontFamily = 'Courier Prime';
+                    else if (caption.classList.contains('font-classic')) fontFamily = 'Inter';
+                    else if (caption.classList.contains('font-handwriting')) fontFamily = 'Dancing Script';
+
+                    renderCtx.font = `800 ${scaledFontSize}px ${fontFamily}`;
+                    renderCtx.textAlign = 'center';
+                    renderCtx.textBaseline = 'top';
+
+                    // Calcola posizione Y del testo
+                    const topPercent = parseFloat(caption.style.top) / 100;
+                    const textY = renderCanvas.height * topPercent;
+
+                    const textColor = caption.style.color || '#ffffff';
+
+                    // Disegna outline se abilitato
+                    if (outlineEnabled) {
+                        const outlineColor = getComputedStyle(caption).getPropertyValue('--outline-color') || '#000000';
+                        renderCtx.strokeStyle = outlineColor;
+                        renderCtx.lineWidth = scaleFactor * 3;
+                        renderCtx.lineJoin = 'round';
+                        renderCtx.miterLimit = 2;
+                        renderCtx.strokeText(captionText, renderCanvas.width / 2, textY);
+                    }
+
+                    // Disegna testo
+                    renderCtx.fillStyle = textColor;
+                    renderCtx.fillText(captionText, renderCanvas.width / 2, textY);
+                }
+
+                // Converti frame in blob
+                const blob = await new Promise(resolve => renderCanvas.toBlob(resolve, 'image/png'));
+                frameBlobs.push(blob);
+
+                // Aggiorna progresso
+                const progress = Math.round((i / totalFrames) * 50); // Prima metà del progresso
+                progressBar.style.width = progress + '%';
+                percentText.innerText = progress + '%';
+            }
+
+            URL.revokeObjectURL(tempVideo.src);
+            return frameBlobs;
+        }
+
         document.getElementById('export-btn').onclick = async () => {
-            if (!videoFile) return;
+            if (!videoFile) {
+                alert('Carica un video prima di esportare!');
+                return;
+            }
+
+            const exportBtn = document.getElementById('export-btn');
+            exportBtn.disabled = true;
+            
             const status = document.getElementById('export-status');
             const progress = document.getElementById('progress-bar');
+            const statusText = document.getElementById('status-text');
+            const percentText = document.getElementById('percent-text');
+            
             status.classList.remove('hidden');
+            progress.style.width = '0%';
+            percentText.innerText = '0%';
 
             try {
+                // Genera i frame con il testo sovrapposto
+                const frameBlobs = await createOverlayFrames();
+
+                statusText.innerText = 'Caricamento FFmpeg...';
                 if (!ffmpeg.isLoaded()) await ffmpeg.load();
-                ffmpeg.FS('writeFile', 'v.mp4', await fetchFile(videoFile));
-                const dur = vEnd - vStart;
-                let cmd = [];
-                if (audioFile) {
-                    ffmpeg.FS('writeFile', 'a.mp3', await fetchFile(audioFile));
-                    cmd = ['-i', 'v.mp4', '-ss', vStart.toString(), '-t', dur.toString(), '-i', 'a.mp3', '-ss', aStart.toString(), '-t', dur.toString(), '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', 'out.mp4'];
-                } else {
-                    cmd = ['-i', 'v.mp4', '-ss', vStart.toString(), '-t', dur.toString(), '-c:v', 'copy', '-an', 'out.mp4'];
+
+                statusText.innerText = 'Preparazione file...';
+
+                // Salva tutti i frame come immagini
+                for (let i = 0; i < frameBlobs.length; i++) {
+                    const paddedNum = String(i).padStart(5, '0');
+                    ffmpeg.FS('writeFile', `frame${paddedNum}.png`, await fetchFile(frameBlobs[i]));
                 }
+
+                const dur = vEnd - vStart;
+                const fps = 30;
+
+                statusText.innerText = 'Encoding video...';
+
+                let cmd;
+                if (audioFile) {
+                    // Con audio
+                    ffmpeg.FS('writeFile', 'a.mp3', await fetchFile(audioFile));
+                    cmd = [
+                        '-framerate', fps.toString(),
+                        '-i', 'frame%05d.png',
+                        '-i', 'a.mp3',
+                        '-ss', aStart.toString(),
+                        '-t', dur.toString(),
+                        '-map', '0:v:0',
+                        '-map', '1:a:0',
+                        '-c:v', 'libx264',
+                        '-preset', 'ultrafast',
+                        '-pix_fmt', 'yuv420p',
+                        '-c:a', 'aac',
+                        '-shortest',
+                        'out.mp4'
+                    ];
+                } else {
+                    // Senza audio
+                    cmd = [
+                        '-framerate', fps.toString(),
+                        '-i', 'frame%05d.png',
+                        '-c:v', 'libx264',
+                        '-preset', 'ultrafast',
+                        '-pix_fmt', 'yuv420p',
+                        '-t', dur.toString(),
+                        'out.mp4'
+                    ];
+                }
+
                 ffmpeg.setProgress(({ ratio }) => {
-                    const p = Math.round(ratio * 100);
+                    const p = Math.round(50 + (ratio * 50)); // Seconda metà del progresso
                     progress.style.width = p + '%';
-                    document.getElementById('percent-text').innerText = p + '%';
+                    percentText.innerText = p + '%';
                 });
+
                 await ffmpeg.run(...cmd);
+
+                statusText.innerText = 'Download...';
                 const data = ffmpeg.FS('readFile', 'out.mp4');
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-                a.download = "TikTok_Clip.mp4";
+                a.download = "TikTok_Clip_With_Text.mp4";
                 a.click();
-                status.classList.add('hidden');
+
+                // Pulisci i file temporanei
+                for (let i = 0; i < frameBlobs.length; i++) {
+                    const paddedNum = String(i).padStart(5, '0');
+                    try { ffmpeg.FS('unlink', `frame${paddedNum}.png`); } catch(e) {}
+                }
+                try { ffmpeg.FS('unlink', 'out.mp4'); } catch(e) {}
+                try { ffmpeg.FS('unlink', 'a.mp3'); } catch(e) {}
+
+                statusText.innerText = 'Completato!';
+                setTimeout(() => status.classList.add('hidden'), 2000);
+                
             } catch (e) {
-                status.classList.add('hidden');
+                console.error('Errore durante l\'export:', e);
+                statusText.innerText = 'Errore durante l\'export';
+                percentText.innerText = '';
+                setTimeout(() => status.classList.add('hidden'), 3000);
+            } finally {
+                exportBtn.disabled = false;
             }
         };
 
