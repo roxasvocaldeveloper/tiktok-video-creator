@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/mp4-muxer@latest/build/mp4-muxer.js"></script>
     <style>
         :root {
             --sv-purple: #8B5CF6;
@@ -448,7 +449,7 @@
             </div>
 
             <button id="export-btn" class="w-full btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                <i data-lucide="download" class="w-4 h-4"></i> Scarica Video con Testo
+                <i data-lucide="download" class="w-4 h-4"></i> Scarica Video MP4
             </button>
             
             <div id="export-status" class="hidden bg-black border border-zinc-800 p-4 rounded-2xl">
@@ -466,7 +467,6 @@
     <audio id="bg-music" crossorigin="anonymous"></audio>
     <canvas id="render-canvas"></canvas>
     <video id="source-video" style="display: none;"></video>
-    <audio id="source-audio" style="display: none;"></audio>
 
     <script>
         lucide.createIcons();
@@ -814,7 +814,7 @@
             URL.revokeObjectURL(tempVideo.src);
         }
 
-        // Nuova funzione di export usando MediaRecorder
+        // Export usando mp4-muxer
         document.getElementById('export-btn').onclick = async () => {
             if (!videoFile) {
                 alert('Carica un video prima di esportare!');
@@ -832,102 +832,88 @@
             status.classList.remove('hidden');
             progress.style.width = '0%';
             percentText.innerText = '0%';
-            statusText.innerText = 'Preparazione...';
+            statusText.innerText = 'Inizializzazione...';
 
             try {
-                // Crea video source per il rendering
+                // Setup video source
                 const sourceVideo = document.getElementById('source-video');
-                const sourceAudio = document.getElementById('source-audio');
-                
                 sourceVideo.src = URL.createObjectURL(videoFile);
                 await new Promise(r => sourceVideo.onloadedmetadata = r);
 
-                // Setup canvas per il rendering
                 const renderCanvas = document.getElementById('render-canvas');
                 const renderCtx = renderCanvas.getContext('2d');
                 
-                renderCanvas.width = sourceVideo.videoWidth;
-                renderCanvas.height = sourceVideo.videoHeight;
+                // Mantieni risoluzione originale ma limita a 720p max
+                const maxWidth = 720;
+                const scale = Math.min(1, maxWidth / sourceVideo.videoWidth);
+                renderCanvas.width = Math.floor(sourceVideo.videoWidth * scale);
+                renderCanvas.height = Math.floor(sourceVideo.videoHeight * scale);
 
-                statusText.innerText = 'Rendering video con testo...';
-                
-                // Prepara stream dal canvas
-                const canvasStream = renderCanvas.captureStream(30);
-                
-                // Aggiungi audio se presente
-                let finalStream = canvasStream;
-                if (audioFile) {
-                    sourceAudio.src = URL.createObjectURL(audioFile);
-                    await new Promise(r => sourceAudio.onloadedmetadata = r);
-                    
-                    const audioCtx = new AudioContext();
-                    const audioSource = audioCtx.createMediaElementSource(sourceAudio);
-                    const dest = audioCtx.createMediaStreamDestination();
-                    audioSource.connect(dest);
-                    
-                    // Combina video e audio
-                    const audioTrack = dest.stream.getAudioTracks()[0];
-                    finalStream = new MediaStream([...canvasStream.getVideoTracks(), audioTrack]);
-                }
+                // Assicurati che le dimensioni siano pari (richiesto da MP4)
+                if (renderCanvas.width % 2 !== 0) renderCanvas.width--;
+                if (renderCanvas.height % 2 !== 0) renderCanvas.height--;
 
-                // Setup MediaRecorder
-                const recorder = new MediaRecorder(finalStream, {
-                    mimeType: 'video/webm;codecs=vp9',
-                    videoBitsPerSecond: 5000000
-                });
+                const fps = 30;
+                const duration = vEnd - vStart;
 
-                const chunks = [];
-                recorder.ondataavailable = e => chunks.push(e.data);
+                statusText.innerText = 'Creazione MP4 muxer...';
+
+                // Crea MP4 Muxer
+                const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
                 
-                recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'TikTok_Clip_With_Text.webm';
-                    a.click();
-                    
-                    statusText.innerText = 'Completato!';
-                    setTimeout(() => status.classList.add('hidden'), 2000);
-                    exportBtn.disabled = false;
+                let videoChunks = [];
+                const target = {
+                    addChunk: (chunk) => {
+                        videoChunks.push(chunk);
+                    }
                 };
 
-                // Inizia la registrazione
-                recorder.start();
+                const muxer = new Muxer({
+                    target: new ArrayBufferTarget(),
+                    video: {
+                        codec: 'avc',
+                        width: renderCanvas.width,
+                        height: renderCanvas.height
+                    },
+                    fastStart: 'in-memory'
+                });
+
+                // Setup VideoEncoder
+                statusText.innerText = 'Codifica video...';
                 
-                // Setup video per il rendering
+                const encoder = new VideoEncoder({
+                    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                    error: e => console.error('Encoder error:', e)
+                });
+
+                encoder.configure({
+                    codec: 'avc1.42E01E',
+                    width: renderCanvas.width,
+                    height: renderCanvas.height,
+                    bitrate: 3_000_000,
+                    framerate: fps
+                });
+
+                // Render e encode frames
                 sourceVideo.currentTime = vStart;
-                if (audioFile) {
-                    sourceAudio.currentTime = aStart;
-                    sourceAudio.play();
-                }
-                
-                sourceVideo.play();
+                await new Promise(r => sourceVideo.onseeked = r);
 
-                const duration = vEnd - vStart;
-                const startTime = performance.now();
+                const totalFrames = Math.ceil(duration * fps);
+                let frameCount = 0;
 
-                // Render loop
-                function render() {
-                    const elapsed = (performance.now() - startTime) / 1000;
-                    const videoTime = vStart + elapsed;
+                for (let i = 0; i < totalFrames; i++) {
+                    const timestamp = i / fps;
+                    sourceVideo.currentTime = vStart + timestamp;
+                    await new Promise(r => sourceVideo.onseeked = r);
 
-                    if (videoTime >= vEnd) {
-                        // Fine rendering
-                        recorder.stop();
-                        sourceVideo.pause();
-                        if (audioFile) sourceAudio.pause();
-                        return;
-                    }
-
-                    // Disegna frame video
+                    // Draw video frame
                     renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
 
-                    // Disegna testo
+                    // Draw text overlay
                     const captionText = caption.innerText;
                     if (captionText && captionText !== 'Scrivi il tuo testo') {
                         const fontSize = parseInt(caption.style.fontSize || '24');
-                        const scaleFactor = renderCanvas.width / 290;
+                        const scaleFactor = (renderCanvas.width / 290) * scale;
                         const scaledFontSize = fontSize * scaleFactor;
 
                         let fontFamily = 'Montserrat';
@@ -955,19 +941,52 @@
                         renderCtx.fillText(captionText, renderCanvas.width / 2, textY);
                     }
 
-                    // Aggiorna progresso
-                    const progressPercent = Math.min(Math.round((elapsed / duration) * 100), 99);
+                    // Create VideoFrame and encode
+                    const frame = new VideoFrame(renderCanvas, {
+                        timestamp: (i * 1_000_000) / fps
+                    });
+
+                    encoder.encode(frame, { keyFrame: i % 30 === 0 });
+                    frame.close();
+
+                    frameCount++;
+                    const progressPercent = Math.round((frameCount / totalFrames) * 100);
                     progress.style.width = progressPercent + '%';
                     percentText.innerText = progressPercent + '%';
 
-                    requestAnimationFrame(render);
+                    // Yield ogni 10 frame per non bloccare UI
+                    if (i % 10 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
                 }
 
-                render();
+                statusText.innerText = 'Finalizzazione MP4...';
+                await encoder.flush();
+                muxer.finalize();
+
+                const buffer = muxer.target.buffer;
+                const blob = new Blob([buffer], { type: 'video/mp4' });
                 
+                statusText.innerText = 'Download...';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'TikTok_Clip.mp4';
+                a.click();
+
+                statusText.innerText = 'Completato!';
+                percentText.innerText = '100%';
+                progress.style.width = '100%';
+                
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                    exportBtn.disabled = false;
+                }, 2000);
+
             } catch (e) {
                 console.error('Errore durante l\'export:', e);
                 statusText.innerText = 'Errore: ' + e.message;
+                alert('Errore durante l\'export. Il tuo browser potrebbe non supportare questa funzionalità. Prova con Chrome o Edge aggiornati.');
                 percentText.innerText = '';
                 setTimeout(() => status.classList.add('hidden'), 3000);
                 exportBtn.disabled = false;
