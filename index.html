@@ -37,7 +37,7 @@
 
         .iphone-frame {
             width: 290px;
-            aspect-ratio: 9 / 16;
+            height: 515px; /* Aspect ratio 9:16 preciso: 290/515 ≈ 0.563 */
             border: 10px solid #1A1A1A;
             border-radius: 42px;
             position: relative;
@@ -89,8 +89,11 @@
             left: 50%;
             transform: translateX(-50%);
             --outline-color: #000000;
-            transition: text-shadow 0.2s, color 0.2s;
             paint-order: stroke fill;
+        }
+        
+        #caption-overlay:not(.dragging) {
+            transition: top 0.1s ease-out;
         }
 
         .text-bold-outline {
@@ -781,16 +784,39 @@
             };
         });
 
-        let dragText = false, startY;
-        caption.onmousedown = (e) => { dragText = true; startY = e.clientY - caption.offsetTop; };
+        let dragText = false, dragStartY, dragStartTop;
+        
+        caption.onmousedown = (e) => { 
+            dragText = true; 
+            dragStartY = e.clientY;
+            dragStartTop = caption.offsetTop;
+            caption.style.cursor = 'grabbing';
+            caption.classList.add('dragging');
+            e.preventDefault();
+        };
+        
         window.addEventListener('mousemove', (e) => {
             if (dragText) {
                 const rect = document.getElementById('drop-zone').getBoundingClientRect();
-                let y = e.clientY - rect.top - startY;
-                caption.style.top = Math.max(10, Math.min(y, rect.height - 40)) + 'px';
+                const deltaY = e.clientY - dragStartY;
+                let newTop = dragStartTop + deltaY;
+                
+                // Limita il movimento inside il container
+                const minTop = 10;
+                const maxTop = rect.height - caption.offsetHeight - 10;
+                newTop = Math.max(minTop, Math.min(newTop, maxTop));
+                
+                caption.style.top = newTop + 'px';
             }
         });
-        window.addEventListener('mouseup', () => dragText = false);
+        
+        window.addEventListener('mouseup', () => {
+            if (dragText) {
+                dragText = false;
+                caption.style.cursor = 'move';
+                caption.classList.remove('dragging');
+            }
+        });
 
         async function generateThumbnails(file) {
             const container = document.getElementById('v-thumbs');
@@ -911,7 +937,7 @@
                     codec: 'avc1.42001E', // AVC Baseline Profile Level 3.0
                     width: renderCanvas.width,
                     height: renderCanvas.height,
-                    bitrate: 3_500_000, // Aumentato per migliore qualità
+                    bitrate: 5_000_000, // Aumentato per migliore qualità video
                     framerate: fps,
                     avc: { format: 'avc' }
                 });
@@ -1004,8 +1030,12 @@
                         renderCtx.textAlign = 'center';
                         renderCtx.textBaseline = 'top';
 
-                        const topPercent = parseFloat(caption.style.top) / 100;
-                        const textY = renderCanvas.height * topPercent;
+                        // Usa la posizione esatta in pixel del caption, scalata proporzionalmente
+                        const dropZoneHeight = document.getElementById('drop-zone').offsetHeight;
+                        const captionTopPx = parseFloat(caption.style.top) || (dropZoneHeight * 0.35);
+                        const topRatio = captionTopPx / dropZoneHeight;
+                        const textY = renderCanvas.height * topRatio;
+                        
                         const textColor = caption.style.color || '#ffffff';
 
                         if (outlineEnabled) {
