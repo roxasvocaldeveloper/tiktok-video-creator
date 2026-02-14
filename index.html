@@ -293,6 +293,28 @@
             color: #fff;
         }
 
+        .caption-cat-btn {
+            background: #000;
+            border: 1px solid #333;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            color: #666;
+            cursor: pointer;
+        }
+        .caption-cat-btn.active {
+            border-color: var(--sv-purple);
+            background: rgba(139, 92, 246, 0.15);
+            color: #fff;
+        }
+        .caption-cat-btn:hover {
+            border-color: var(--sv-purple);
+            color: #fff;
+        }
+
         #render-canvas {
             display: none;
         }
@@ -410,6 +432,25 @@
 
             <!-- Content Editor -->
             <div class="p-5 bg-zinc-900/60 rounded-3xl border border-zinc-800 space-y-4">
+                <!-- Viral Captions Generator -->
+                <div class="space-y-3 p-4 bg-gradient-to-br from-violet-950/30 to-blue-950/30 rounded-2xl border border-violet-800/30">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-black uppercase text-violet-300 tracking-widest">✨ Caption Virali</span>
+                        <button id="random-caption-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
+                            <i data-lucide="shuffle" class="w-3 h-3"></i>
+                            Random
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="caption-cat-btn active" data-category="pov">POV</button>
+                        <button class="caption-cat-btn" data-category="amore">Amore</button>
+                        <button class="caption-cat-btn" data-category="gym">Gym</button>
+                        <button class="caption-cat-btn" data-category="motivazione">Motivazione</button>
+                        <button class="caption-cat-btn" data-category="humor">Humor</button>
+                        <button class="caption-cat-btn" data-category="lifestyle">Lifestyle</button>
+                    </div>
+                </div>
+
                 <textarea id="caption-input" rows="2" placeholder="Scrivi il testo qui..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none font-semibold"></textarea>
                 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1128,6 +1169,119 @@
         document.getElementById('toggle-guide').onclick = () => {
             const g = document.getElementById('safe-guide');
             g.style.display = g.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Viral Captions System
+        const viralCaptions = {
+            pov: [
+                "POV: stai scrollando prima di dormire",
+                "POV: è venerdì alle 17:00",
+                "POV: hai detto solo una bugia",
+                "POV: ti hanno lasciato in visto",
+                "POV: finalmente weekend",
+                "POV: lunedì mattina",
+                "POV: quando arriva lo stipendio",
+                "POV: lui/lei non ti ha risposto",
+                "POV: hai finito la serie",
+                "POV: hai dimenticato qualcosa",
+                "POV: quando realizzi che",
+                "POV: 3 di notte pensieri random"
+            ],
+            amore: [
+                "Quando ti guarda così",
+                "L'amore vero esiste",
+                "Non è amore se non è così",
+                "Piccoli gesti che contano",
+                "Innamorarsi ogni giorno",
+                "Tu sei la mia persona",
+                "L'amore è nelle piccole cose",
+                "Quando trovi la tua metà",
+                "Insieme è meglio",
+                "Il mio posto preferito? Tra le tue braccia",
+                "Amore fatto di sguardi",
+                "Tu e io contro il mondo"
+            ],
+            gym: [
+                "No pain no gain",
+                "Chest day best day",
+                "Leg day = pay day",
+                "Quando senti il pump",
+                "Un altro set, sempre",
+                "Mindset over everything",
+                "Trasformazione in corso",
+                "Niente scuse solo risultati",
+                "Beast mode activated",
+                "Il dolore è temporaneo",
+                "Allenarsi quando non hai voglia",
+                "Sudore = successo"
+            ],
+            motivazione: [
+                "Oggi è il tuo giorno",
+                "Credi in te stesso",
+                "Impossibile = possibile",
+                "Il successo inizia qui",
+                "Ogni giorno è una opportunità",
+                "La tua unica limitazione sei tu",
+                "Sogna in grande lavora duro",
+                "Fai accadere le cose",
+                "Non mollare mai",
+                "La disciplina batte il talento",
+                "Il momento è adesso",
+                "Diventa la tua migliore versione"
+            ],
+            humor: [
+                "Io nella vita reale vs io su TikTok",
+                "Aspettative vs realtà",
+                "Quando fingi di capire",
+                "Plot twist inaspettato",
+                "Questo sono letteralmente io",
+                "Nessuno: | Io:",
+                "Il mio cervello alle 3 di notte",
+                "Quando capisci troppo tardi",
+                "Situazione imbarazzante incoming",
+                "Energy di oggi",
+                "Mood del giorno",
+                "Mi rappresenta troppo"
+            ],
+            lifestyle: [
+                "Vivere il momento",
+                "La mia routine quotidiana",
+                "Piccole gioie quotidiane",
+                "Self care is not selfish",
+                "Godersi le piccole cose",
+                "Energy check",
+                "Vibes di oggi",
+                "La vita è bella",
+                "Crea la tua realtà",
+                "Vivi semplice sogna grande",
+                "Gratitudine ogni giorno",
+                "Il mio tipo di energia"
+            ]
+        };
+
+        let selectedCategory = 'pov';
+
+        // Category selection
+        document.querySelectorAll('.caption-cat-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedCategory = btn.dataset.category;
+            };
+        });
+
+        // Random caption generator
+        document.getElementById('random-caption-btn').onclick = () => {
+            const captions = viralCaptions[selectedCategory];
+            const randomCaption = captions[Math.floor(Math.random() * captions.length)];
+            
+            document.getElementById('caption-input').value = randomCaption;
+            caption.innerText = randomCaption;
+            
+            // Animazione di feedback
+            const btn = document.getElementById('random-caption-btn');
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 100);
         };
     </script>
 </body>
