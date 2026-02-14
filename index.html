@@ -875,7 +875,7 @@
                 // Crea MP4 Muxer
                 const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
 
-                const muxer = new Muxer({
+                const muxerConfig = {
                     target: new ArrayBufferTarget(),
                     video: {
                         codec: 'avc',
@@ -883,27 +883,87 @@
                         height: renderCanvas.height
                     },
                     fastStart: 'in-memory'
-                });
+                };
+
+                // Aggiungi audio se presente
+                if (audioFile) {
+                    muxerConfig.audio = {
+                        codec: 'aac',
+                        numberOfChannels: 2,
+                        sampleRate: 48000
+                    };
+                }
+
+                const muxer = new Muxer(muxerConfig);
 
                 // Setup VideoEncoder
                 statusText.innerText = 'Codifica video...';
                 
-                const encoder = new VideoEncoder({
+                const videoEncoder = new VideoEncoder({
                     output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
                     error: e => {
-                        console.error('Encoder error:', e);
+                        console.error('Video encoder error:', e);
                         throw new Error('Errore di codifica video: ' + e.message);
                     }
                 });
 
-                encoder.configure({
+                videoEncoder.configure({
                     codec: 'avc1.42001E', // AVC Baseline Profile Level 3.0
                     width: renderCanvas.width,
                     height: renderCanvas.height,
-                    bitrate: 2_000_000,
+                    bitrate: 3_500_000, // Aumentato per migliore qualità
                     framerate: fps,
                     avc: { format: 'avc' }
                 });
+
+                // Setup AudioEncoder se c'è audio
+                let audioEncoder = null;
+                let audioContext = null;
+                let audioSource = null;
+                let audioData = null;
+
+                if (audioFile) {
+                    statusText.innerText = 'Preparazione audio...';
+                    
+                    // Leggi e decodifica audio
+                    audioContext = new AudioContext({ sampleRate: 48000 });
+                    const audioBuffer = await audioFile.arrayBuffer();
+                    const decodedAudio = await audioContext.decodeAudioData(audioBuffer);
+                    
+                    // Estrai dati audio dalla porzione selezionata
+                    const startSample = Math.floor(aStart * decodedAudio.sampleRate);
+                    const endSample = Math.floor((aStart + duration) * decodedAudio.sampleRate);
+                    const sampleCount = endSample - startSample;
+                    
+                    // Crea buffer per stereo
+                    audioData = {
+                        left: new Float32Array(sampleCount),
+                        right: new Float32Array(sampleCount)
+                    };
+                    
+                    const leftChannel = decodedAudio.getChannelData(0);
+                    const rightChannel = decodedAudio.numberOfChannels > 1 ? decodedAudio.getChannelData(1) : leftChannel;
+                    
+                    for (let i = 0; i < sampleCount; i++) {
+                        audioData.left[i] = leftChannel[startSample + i] || 0;
+                        audioData.right[i] = rightChannel[startSample + i] || 0;
+                    }
+
+                    audioEncoder = new AudioEncoder({
+                        output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                        error: e => {
+                            console.error('Audio encoder error:', e);
+                            throw new Error('Errore di codifica audio: ' + e.message);
+                        }
+                    });
+
+                    audioEncoder.configure({
+                        codec: 'mp4a.40.2', // AAC-LC
+                        sampleRate: 48000,
+                        numberOfChannels: 2,
+                        bitrate: 128000
+                    });
+                }
 
                 // Render e encode frames
                 sourceVideo.currentTime = vStart;
@@ -911,6 +971,10 @@
 
                 const totalFrames = Math.ceil(duration * fps);
                 let frameCount = 0;
+
+                // Per l'audio, calcoliamo quanti campioni per frame
+                const samplesPerFrame = audioData ? Math.floor(48000 / fps) : 0;
+                let audioSampleOffset = 0;
 
                 for (let i = 0; i < totalFrames; i++) {
                     const timestamp = i / fps;
@@ -953,12 +1017,41 @@
                     }
 
                     // Create VideoFrame and encode
-                    const frame = new VideoFrame(renderCanvas, {
+                    const videoFrame = new VideoFrame(renderCanvas, {
                         timestamp: (i * 1_000_000) / fps
                     });
 
-                    encoder.encode(frame, { keyFrame: i % 30 === 0 });
-                    frame.close();
+                    videoEncoder.encode(videoFrame, { keyFrame: i % 30 === 0 });
+                    videoFrame.close();
+
+                    // Encode audio se presente
+                    if (audioEncoder && audioData) {
+                        const audioFrameData = new Float32Array(samplesPerFrame * 2); // stereo interleaved
+                        
+                        for (let j = 0; j < samplesPerFrame; j++) {
+                            const sampleIndex = audioSampleOffset + j;
+                            if (sampleIndex < audioData.left.length) {
+                                audioFrameData[j * 2] = audioData.left[sampleIndex];
+                                audioFrameData[j * 2 + 1] = audioData.right[sampleIndex];
+                            } else {
+                                audioFrameData[j * 2] = 0;
+                                audioFrameData[j * 2 + 1] = 0;
+                            }
+                        }
+
+                        const audioFrame = new AudioData({
+                            format: 'f32-planar',
+                            sampleRate: 48000,
+                            numberOfFrames: samplesPerFrame,
+                            numberOfChannels: 2,
+                            timestamp: (i * 1_000_000) / fps,
+                            data: audioFrameData
+                        });
+
+                        audioEncoder.encode(audioFrame);
+                        audioFrame.close();
+                        audioSampleOffset += samplesPerFrame;
+                    }
 
                     frameCount++;
                     const progressPercent = Math.round((frameCount / totalFrames) * 100);
@@ -972,7 +1065,8 @@
                 }
 
                 statusText.innerText = 'Finalizzazione MP4...';
-                await encoder.flush();
+                await videoEncoder.flush();
+                if (audioEncoder) await audioEncoder.flush();
                 muxer.finalize();
 
                 const buffer = muxer.target.buffer;
