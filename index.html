@@ -364,22 +364,6 @@
                         <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Opzionale)</span>
                         <input type="file" id="audio-input" accept="audio/*" class="hidden">
                     </label>
-                    
-                    <!-- Spotify Search -->
-                    <div class="mt-2 space-y-2">
-                        <div class="relative">
-                            <input 
-                                type="text" 
-                                id="spotify-search" 
-                                placeholder="Oppure cerca su Spotify..."
-                                class="w-full bg-black border border-zinc-800 rounded-xl p-3 pl-10 text-[11px] focus:ring-1 focus:ring-violet-500 outline-none"
-                            >
-                            <i data-lucide="search" class="w-4 h-4 text-zinc-600 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                        </div>
-                        
-                        <!-- Search Results -->
-                        <div id="spotify-results" class="hidden space-y-2 max-h-64 overflow-y-auto bg-zinc-950 rounded-xl border border-zinc-800 p-2"></div>
-                    </div>
                 </div>
             </div>
 
@@ -951,10 +935,11 @@
                     const endSample = Math.floor((aStart + duration) * decodedAudio.sampleRate);
                     const sampleCount = endSample - startSample;
                     
-                    // Crea buffer per stereo
+                    // Crea buffer per stereo (planar format - canali separati)
                     audioData = {
                         left: new Float32Array(sampleCount),
-                        right: new Float32Array(sampleCount)
+                        right: new Float32Array(sampleCount),
+                        sampleRate: decodedAudio.sampleRate
                     };
                     
                     const leftChannel = decodedAudio.getChannelData(0);
@@ -989,7 +974,10 @@
                 let frameCount = 0;
 
                 // Per l'audio, calcoliamo quanti campioni per frame
-                const samplesPerFrame = audioData ? Math.floor(48000 / fps) : 0;
+                // Dobbiamo resampolare se necessario
+                const targetSampleRate = 48000;
+                const sourceSampleRate = audioData ? audioData.sampleRate : 48000;
+                const samplesPerFrame = Math.floor(targetSampleRate / fps);
                 let audioSampleOffset = 0;
 
                 for (let i = 0; i < totalFrames; i++) {
@@ -1042,31 +1030,40 @@
 
                     // Encode audio se presente
                     if (audioEncoder && audioData) {
-                        const audioFrameData = new Float32Array(samplesPerFrame * 2); // stereo interleaved
+                        // Calcola il sample offset corretto considerando il resampling
+                        const resampleRatio = sourceSampleRate / targetSampleRate;
+                        const sourceSamplesNeeded = Math.floor(samplesPerFrame * resampleRatio);
                         
+                        // Crea buffer planar (canali separati)
+                        const leftChannel = new Float32Array(samplesPerFrame);
+                        const rightChannel = new Float32Array(samplesPerFrame);
+                        
+                        // Semplice resampling (nearest neighbor per semplicità)
                         for (let j = 0; j < samplesPerFrame; j++) {
-                            const sampleIndex = audioSampleOffset + j;
-                            if (sampleIndex < audioData.left.length) {
-                                audioFrameData[j * 2] = audioData.left[sampleIndex];
-                                audioFrameData[j * 2 + 1] = audioData.right[sampleIndex];
+                            const sourceIndex = Math.floor(audioSampleOffset + (j * resampleRatio));
+                            if (sourceIndex < audioData.left.length) {
+                                leftChannel[j] = audioData.left[sourceIndex];
+                                rightChannel[j] = audioData.right[sourceIndex];
                             } else {
-                                audioFrameData[j * 2] = 0;
-                                audioFrameData[j * 2 + 1] = 0;
+                                leftChannel[j] = 0;
+                                rightChannel[j] = 0;
                             }
                         }
 
+                        // Crea AudioData con formato planar corretto
                         const audioFrame = new AudioData({
                             format: 'f32-planar',
-                            sampleRate: 48000,
+                            sampleRate: targetSampleRate,
                             numberOfFrames: samplesPerFrame,
                             numberOfChannels: 2,
                             timestamp: (i * 1_000_000) / fps,
-                            data: audioFrameData
+                            data: new Float32Array([...leftChannel, ...rightChannel])
                         });
 
                         audioEncoder.encode(audioFrame);
                         audioFrame.close();
-                        audioSampleOffset += samplesPerFrame;
+                        
+                        audioSampleOffset += sourceSamplesNeeded;
                     }
 
                     frameCount++;
@@ -1118,166 +1115,6 @@
             const g = document.getElementById('safe-guide');
             g.style.display = g.style.display === 'none' ? 'block' : 'none';
         };
-
-        // Spotify Search Implementation con API ufficiale
-        const SPOTIFY_CLIENT_ID = '604a543cbf76408d9d85df0ca2f15031';
-        const SPOTIFY_CLIENT_SECRET = '01df5cc569fc457c8418d63f5d7b1c7d';
-        let spotifyAccessToken = null;
-
-        // Ottieni token di accesso Spotify
-        async function getSpotifyToken() {
-            if (spotifyAccessToken) return spotifyAccessToken;
-
-            try {
-                const response = await fetch('https://accounts.spotify.com/api/token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Authorization': 'Basic ' + btoa(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET)
-                    },
-                    body: 'grant_type=client_credentials'
-                });
-
-                const data = await response.json();
-                spotifyAccessToken = data.access_token;
-                
-                // Rinnova token prima della scadenza
-                setTimeout(() => {
-                    spotifyAccessToken = null;
-                }, (data.expires_in - 60) * 1000);
-
-                return spotifyAccessToken;
-            } catch (error) {
-                console.error('Errore nell\'ottenere il token Spotify:', error);
-                throw error;
-            }
-        }
-
-        let searchTimeout;
-        const spotifySearch = document.getElementById('spotify-search');
-        const spotifyResults = document.getElementById('spotify-results');
-
-        spotifySearch.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim();
-            
-            if (query.length < 2) {
-                spotifyResults.classList.add('hidden');
-                spotifyResults.innerHTML = '';
-                return;
-            }
-
-            searchTimeout = setTimeout(() => searchSpotify(query), 500);
-        });
-
-        async function searchSpotify(query) {
-            try {
-                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-zinc-500">Ricerca in corso...</div>';
-                spotifyResults.classList.remove('hidden');
-
-                const token = await getSpotifyToken();
-
-                const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=8&market=IT`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Errore nella ricerca');
-                }
-
-                const data = await response.json();
-                displaySpotifyResults(data.tracks.items);
-
-            } catch (error) {
-                console.error('Spotify search error:', error);
-                spotifyResults.innerHTML = `
-                    <div class="text-center py-4 text-[10px] text-red-400">
-                        Errore nella ricerca. Riprova tra poco.
-                    </div>
-                `;
-            }
-        }
-
-        function displaySpotifyResults(tracks) {
-            if (tracks.length === 0) {
-                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-zinc-500">Nessun risultato trovato</div>';
-                return;
-            }
-
-            spotifyResults.innerHTML = tracks.map(track => {
-                const previewUrl = track.preview_url;
-                const artistNames = track.artists.map(a => a.name).join(', ');
-                const albumImage = track.album.images[2]?.url || track.album.images[0]?.url || '';
-                const trackName = track.name.replace(/'/g, "&#39;");
-                const artistName = artistNames.replace(/'/g, "&#39;");
-                const duration = Math.floor(track.duration_ms / 1000);
-                
-                return `
-                    <div class="flex items-center gap-3 p-2 bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-all cursor-pointer ${!previewUrl ? 'opacity-50 cursor-not-allowed' : ''}" 
-                         ${previewUrl ? `onclick='selectSpotifyTrack("${previewUrl}", "${trackName}", "${artistName}")'` : ''}>
-                        <img src="${albumImage}" alt="Album" class="w-12 h-12 rounded object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23333%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E'">
-                        <div class="flex-1 min-w-0">
-                            <div class="text-[11px] font-bold text-white truncate">${track.name}</div>
-                            <div class="text-[9px] text-zinc-400 truncate">${artistNames}</div>
-                            <div class="text-[8px] text-zinc-600 mt-0.5">${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}</div>
-                        </div>
-                        ${previewUrl 
-                            ? '<div class="shrink-0"><i data-lucide="play-circle" class="w-6 h-6 text-violet-400"></i></div>' 
-                            : '<span class="text-[8px] text-zinc-600 shrink-0">Anteprima non disponibile</span>'}
-                    </div>
-                `;
-            }).join('');
-
-            lucide.createIcons();
-        }
-
-        async function selectSpotifyTrack(previewUrl, trackName, artistName) {
-            try {
-                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-violet-400"><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline-block mr-2"></i>Caricamento audio...</div>';
-                lucide.createIcons();
-                
-                // Scarica l'audio
-                const response = await fetch(previewUrl);
-                if (!response.ok) throw new Error('Download fallito');
-                
-                const blob = await response.blob();
-                
-                // Crea un file dall'audio
-                const file = new File([blob], `${trackName} - ${artistName}.mp3`, { type: 'audio/mpeg' });
-                
-                // Imposta come audio file
-                audioFile = file;
-                audio.src = URL.createObjectURL(file);
-                document.getElementById('audio-label').innerText = `🎵 ${trackName.substring(0, 25)}${trackName.length > 25 ? '...' : ''}`;
-                
-                audio.onloadedmetadata = () => {
-                    audioDuration = audio.duration;
-                    drawWaveform(file);
-                    updateTrimmers();
-                    audio.currentTime = aStart;
-                };
-
-                // Nascondi risultati e pulisci campo
-                setTimeout(() => {
-                    spotifyResults.classList.add('hidden');
-                    spotifySearch.value = '';
-                }, 500);
-                
-                console.log('✓ Audio Spotify caricato:', trackName, '-', artistName);
-                
-            } catch (error) {
-                console.error('Errore nel caricamento dell\'audio:', error);
-                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-red-400">Errore nel caricamento. Riprova.</div>';
-                setTimeout(() => {
-                    spotifyResults.classList.add('hidden');
-                }, 2000);
-            }
-        }
-
-        // Rendi la funzione globale
-        window.selectSpotifyTrack = selectSpotifyTrack;
     </script>
 </body>
 </html>
