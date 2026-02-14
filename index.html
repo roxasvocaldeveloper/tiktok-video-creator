@@ -37,7 +37,7 @@
 
         .iphone-frame {
             width: 290px;
-            height: 515px; /* Aspect ratio 9:16 preciso: 290/515 ≈ 0.563 */
+            height: calc(290px * 16 / 9); /* Esattamente 9:16 = 515.56px arrotondato */
             border: 10px solid #1A1A1A;
             border-radius: 42px;
             position: relative;
@@ -869,29 +869,12 @@
                 const renderCanvas = document.getElementById('render-canvas');
                 const renderCtx = renderCanvas.getContext('2d');
                 
-                // Limita risoluzione a 480p per compatibilità (formato verticale TikTok)
-                const targetHeight = 854; // 480p verticale (480x854)
-                const targetWidth = 480;
+                // Imposta risoluzione a 720x1280 (HD verticale)
+                const targetWidth = 720;
+                const targetHeight = 1280;
                 
-                const videoAspect = sourceVideo.videoWidth / sourceVideo.videoHeight;
-                let renderWidth, renderHeight;
-                
-                if (videoAspect > 9/16) {
-                    // Video più largo, limita altezza
-                    renderHeight = Math.min(targetHeight, sourceVideo.videoHeight);
-                    renderWidth = Math.floor(renderHeight * videoAspect);
-                } else {
-                    // Video più stretto, limita larghezza
-                    renderWidth = Math.min(targetWidth, sourceVideo.videoWidth);
-                    renderHeight = Math.floor(renderWidth / videoAspect);
-                }
-                
-                // Assicurati che le dimensioni siano pari (richiesto da MP4)
-                if (renderWidth % 2 !== 0) renderWidth--;
-                if (renderHeight % 2 !== 0) renderHeight--;
-
-                renderCanvas.width = renderWidth;
-                renderCanvas.height = renderHeight;
+                renderCanvas.width = targetWidth;
+                renderCanvas.height = targetHeight;
 
                 const fps = 30;
                 const duration = vEnd - vStart;
@@ -934,10 +917,10 @@
                 });
 
                 videoEncoder.configure({
-                    codec: 'avc1.42001E', // AVC Baseline Profile Level 3.0
+                    codec: 'avc1.42001F', // AVC Baseline Profile Level 3.1 (supporta fino a 1280x720)
                     width: renderCanvas.width,
                     height: renderCanvas.height,
-                    bitrate: 5_000_000, // Aumentato per migliore qualità video
+                    bitrate: 8_000_000, // 8 Mbps per 720p HD
                     framerate: fps,
                     avc: { format: 'avc' }
                 });
@@ -1018,7 +1001,7 @@
                     const captionText = caption.innerText;
                     if (captionText && captionText !== 'Scrivi il tuo testo') {
                         const fontSize = parseInt(caption.style.fontSize || '24');
-                        const scaleFactor = renderCanvas.width / 290; // 290 è larghezza iPhone frame
+                        const scaleFactor = renderCanvas.width / 290; // 720/290 = 2.48x
                         const scaledFontSize = fontSize * scaleFactor;
 
                         let fontFamily = 'Montserrat';
@@ -1041,8 +1024,9 @@
                         if (outlineEnabled) {
                             const outlineColor = getComputedStyle(caption).getPropertyValue('--outline-color') || '#000000';
                             renderCtx.strokeStyle = outlineColor;
-                            renderCtx.lineWidth = scaleFactor * 3;
+                            renderCtx.lineWidth = Math.max(scaleFactor * 3, 4); // Outline più spesso per 720p
                             renderCtx.lineJoin = 'round';
+                            renderCtx.miterLimit = 2;
                             renderCtx.strokeText(captionText, renderCanvas.width / 2, textY);
                         }
 
