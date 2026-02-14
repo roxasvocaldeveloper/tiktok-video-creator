@@ -364,6 +364,22 @@
                         <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Opzionale)</span>
                         <input type="file" id="audio-input" accept="audio/*" class="hidden">
                     </label>
+                    
+                    <!-- Spotify Search -->
+                    <div class="mt-2 space-y-2">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="spotify-search" 
+                                placeholder="Oppure cerca su Spotify..."
+                                class="w-full bg-black border border-zinc-800 rounded-xl p-3 pl-10 text-[11px] focus:ring-1 focus:ring-violet-500 outline-none"
+                            >
+                            <i data-lucide="search" class="w-4 h-4 text-zinc-600 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        </div>
+                        
+                        <!-- Search Results -->
+                        <div id="spotify-results" class="hidden space-y-2 max-h-64 overflow-y-auto bg-zinc-950 rounded-xl border border-zinc-800 p-2"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1102,6 +1118,136 @@
             const g = document.getElementById('safe-guide');
             g.style.display = g.style.display === 'none' ? 'block' : 'none';
         };
+
+        // Spotify Search Implementation
+        let searchTimeout;
+        const spotifySearch = document.getElementById('spotify-search');
+        const spotifyResults = document.getElementById('spotify-results');
+
+        spotifySearch.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                spotifyResults.classList.add('hidden');
+                spotifyResults.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => searchSpotify(query), 500);
+        });
+
+        async function searchSpotify(query) {
+            try {
+                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-zinc-500">Ricerca in corso...</div>';
+                spotifyResults.classList.remove('hidden');
+
+                // Usa API non ufficiale di Spotify
+                const response = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=5`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    // Fallback: usa un proxy CORS-friendly
+                    const proxyUrl = `https://spotify23.p.rapidapi.com/search/?q=${encodeURIComponent(query)}&type=tracks&offset=0&limit=5&numberOfTopResults=5`;
+                    
+                    const proxyResponse = await fetch(proxyUrl, {
+                        headers: {
+                            'X-RapidAPI-Key': 'demo', // Questa è una chiave demo pubblica, potrebbe non funzionare sempre
+                            'X-RapidAPI-Host': 'spotify23.p.rapidapi.com'
+                        }
+                    });
+
+                    if (!proxyResponse.ok) {
+                        throw new Error('Ricerca non disponibile');
+                    }
+
+                    const data = await proxyResponse.json();
+                    displaySpotifyResults(data.tracks?.items || []);
+                    return;
+                }
+
+                const data = await response.json();
+                displaySpotifyResults(data.tracks?.items || []);
+
+            } catch (error) {
+                console.error('Spotify search error:', error);
+                spotifyResults.innerHTML = `
+                    <div class="text-center py-4 text-[10px] text-red-400">
+                        Errore nella ricerca. Prova a caricare l'audio manualmente.
+                    </div>
+                `;
+            }
+        }
+
+        function displaySpotifyResults(tracks) {
+            if (tracks.length === 0) {
+                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-zinc-500">Nessun risultato trovato</div>';
+                return;
+            }
+
+            spotifyResults.innerHTML = tracks.map(track => {
+                const previewUrl = track.preview_url;
+                const artistNames = track.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
+                const albumImage = track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || '';
+                
+                return `
+                    <div class="flex items-center gap-3 p-2 bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-all cursor-pointer ${!previewUrl ? 'opacity-50' : ''}" 
+                         onclick='${previewUrl ? `selectSpotifyTrack("${previewUrl}", "${track.name.replace(/'/g, "\\\'")}", "${artistNames.replace(/'/g, "\\\'")}")` : ''}'>
+                        <img src="${albumImage}" alt="Album" class="w-10 h-10 rounded" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect fill=%22%23333%22 width=%2240%22 height=%2240%22/%3E%3C/svg%3E'">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[11px] font-bold text-white truncate">${track.name}</div>
+                            <div class="text-[9px] text-zinc-400 truncate">${artistNames}</div>
+                        </div>
+                        ${previewUrl ? '<i data-lucide="play-circle" class="w-5 h-5 text-violet-400 shrink-0"></i>' : '<span class="text-[8px] text-zinc-600 shrink-0">No preview</span>'}
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        async function selectSpotifyTrack(previewUrl, trackName, artistName) {
+            try {
+                spotifyResults.innerHTML = '<div class="text-center py-4 text-[10px] text-zinc-500">Caricamento audio...</div>';
+                
+                // Scarica l'audio
+                const response = await fetch(previewUrl);
+                const blob = await response.blob();
+                
+                // Crea un file dall'audio
+                const file = new File([blob], `${trackName} - ${artistName}.mp3`, { type: 'audio/mpeg' });
+                
+                // Imposta come audio file
+                audioFile = file;
+                audio.src = URL.createObjectURL(file);
+                document.getElementById('audio-label').innerText = `${trackName} - ${artistName}`;
+                
+                audio.onloadedmetadata = () => {
+                    audioDuration = audio.duration;
+                    drawWaveform(file);
+                    updateTrimmers();
+                    audio.currentTime = aStart;
+                };
+
+                // Nascondi risultati
+                spotifyResults.classList.add('hidden');
+                spotifySearch.value = '';
+                
+                console.log('Audio Spotify caricato:', trackName);
+                
+            } catch (error) {
+                console.error('Errore nel caricamento dell\'audio:', error);
+                alert('Impossibile caricare l\'anteprima. Prova con un altro brano.');
+                spotifyResults.classList.add('hidden');
+            }
+        }
+
+        // Rendi la funzione globale
+        window.selectSpotifyTrack = selectSpotifyTrack;
     </script>
 </body>
 </html>
