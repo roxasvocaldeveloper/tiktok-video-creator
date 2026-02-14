@@ -1,202 +1,198 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Ads Creator | Soundvertise</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/mp4-muxer@latest/build/mp4-muxer.js"></script>
-    <style>
-        :root { --sv-purple: #8B5CF6; --sv-blue: #3B82F6; --sv-bg: #050505; }
-        body { background-color: var(--sv-bg); color: #ffffff; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow-x: hidden; }
-        .iphone-frame { width: 290px; height: 515px; border: 10px solid #1A1A1A; border-radius: 42px; position: relative; background: #000; overflow: hidden; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
-        .video-container { width: 100%; height: 100%; position: relative; overflow: hidden; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        #caption-overlay { position: absolute; cursor: move; user-select: none; text-align: center; max-width: 85%; z-index: 30; line-height: 1.1; left: 50%; transform: translateX(-50%); paint-order: stroke fill; }
-        .text-bold-outline { text-shadow: 0 0 1px #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0px 3px 8px rgba(0,0,0,0.6); }
-        .btn-sv { background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%); transition: all 0.3s ease; }
-        .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
-        #render-canvas { display: none; }
-        .trimmer-track { position: relative; width: 100%; background: #111; border-radius: 12px; border: 1px solid #333; overflow: hidden; }
-        .trim-overlay { position: absolute; top: 0; height: 100%; z-index: 5; border-radius: 6px; background: rgba(59, 130, 246, 0.2); border: 2px solid var(--sv-blue); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Promo Video Editor</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { font-family: 'Montserrat', sans-serif; background:#111; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px; }
+    video { max-width: 600px; width:100%; margin-bottom:10px; border-radius:10px; }
+    #caption-overlay { position:absolute; top:10%; left:50%; transform:translateX(-50%); color:#fff; font-size:24px; text-align:center; max-width:90%; text-shadow: 2px 2px 5px #000; pointer-events:none; }
+    .btn { margin:5px; padding:8px 12px; background:#222; border:none; border-radius:6px; cursor:pointer; color:#fff; }
+    .btn.active { background:#f59e0b; color:#111; }
+    .controls { margin:10px 0; display:flex; flex-wrap:wrap; justify-content:center; }
+    .font-btn { margin:2px; }
+    #caption-input { width:80%; padding:6px; margin:10px 0; border-radius:6px; border:none; font-size:18px; }
+    .text-bold-outline { -webkit-text-stroke: 1px black; font-weight:bold; }
+</style>
 </head>
-<body class="p-4">
+<body>
 
-    <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        <div class="flex flex-col items-center space-y-4">
-            <div class="iphone-frame" id="iphone">
-                <div class="video-container" id="drop-zone">
-                    <video id="main-video" crossorigin="anonymous" playsinline loop></video>
-                    <div id="caption-overlay" class="text-bold-outline" style="top: 35%; font-size: 24px; color: white;">
-                        Trascina questo testo
-                    </div>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button id="remove-watermark-btn" class="px-4 py-2 bg-zinc-800 rounded-lg text-[10px] font-bold border border-zinc-700 hover:border-red-500 transition-all">
-                    RIMUOVI WATERMARK VEO (AUTO-ZOOM)
-                </button>
-            </div>
-        </div>
+<h1 class="text-3xl mb-4">Music Promo Video Editor</h1>
 
-        <div class="bg-zinc-900/80 p-6 rounded-[2rem] border border-zinc-800 space-y-6">
-            <header>
-                <h1 class="text-xl font-black italic uppercase">Video <span class="text-blue-400">Ads Creator</span></h1>
-            </header>
+<div style="position:relative; display:inline-block;">
+    <video id="video" controls>
+        <source src="your-video.mp4" type="video/mp4">
+        Il tuo browser non supporta il video.
+    </video>
+    <div id="caption-overlay"></div>
+</div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <input type="file" id="video-input" accept="video/*" class="hidden">
-                <label for="video-input" class="p-4 bg-black border border-zinc-800 rounded-xl cursor-pointer text-center text-xs">Carica Video</label>
-                <input type="textarea" id="caption-input" placeholder="Modifica testo..." class="bg-black border border-zinc-800 p-4 rounded-xl text-xs outline-none">
-            </div>
+<input type="text" id="caption-input" placeholder="Scrivi qui la tua caption...">
 
-            <div class="space-y-2">
-                <label class="text-[10px] text-zinc-500 uppercase font-black">Posizione verticale: <span id="pos-val">35</span>%</label>
-                <input type="range" id="pos-range" min="5" max="90" value="35" class="w-full">
-            </div>
+<div class="controls">
+    <button class="btn" id="play-btn">Play</button>
+    <button class="btn" id="pause-btn">Pause</button>
+    <button class="btn" id="outline-btn">Outline</button>
+</div>
 
-            <button id="export-btn" class="w-full btn-sv text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs">
-                Scarica Video Senza Watermark
-            </button>
-            
-            <div id="status" class="hidden text-center text-blue-400 text-xs font-bold animate-pulse">
-                Elaborazione video in corso... <span id="progress">0</span>%
-            </div>
-        </div>
-    </div>
+<div class="controls">
+    <strong>Font:</strong>
+    <button class="btn font-btn active" data-font="font-sans">Sans</button>
+    <button class="btn font-btn" data-font="font-serif">Serif</button>
+    <button class="btn font-btn" data-font="font-mono">Mono</button>
+</div>
 
-    <canvas id="render-canvas"></canvas>
+<div class="controls">
+    <strong>Categoria:</strong>
+    <button class="btn caption-cat-btn active" data-category="pov">POV</button>
+    <button class="btn caption-cat-btn" data-category="amore">Amore</button>
+    <button class="btn caption-cat-btn" data-category="gym">Gym</button>
+    <button class="btn caption-cat-btn" data-category="motivazione">Motivazione</button>
+    <button class="btn caption-cat-btn" data-category="humor">Humor</button>
+    <button class="btn caption-cat-btn" data-category="lifestyle">Lifestyle</button>
+</div>
 
-    <script>
-        const video = document.getElementById('main-video');
-        const caption = document.getElementById('caption-overlay');
-        const posRange = document.getElementById('pos-range');
-        const captionInput = document.getElementById('caption-input');
-        const exportBtn = document.getElementById('export-btn');
-        const statusDiv = document.getElementById('status');
-        
-        let removeWatermark = false;
-        let vStart = 0, vEnd = 10; // Default 10 secondi
+<div class="controls">
+    <button class="btn" id="random-caption-btn">Genera Caption Random</button>
+</div>
 
-        // 1. Sincronizzazione Testo e Posizione
-        captionInput.addEventListener('input', (e) => {
-            caption.innerText = e.target.value || "Trascina questo testo";
-        });
+<script>
+const video = document.getElementById('video');
+const caption = document.getElementById('caption-overlay');
+const captionInput = document.getElementById('caption-input');
 
-        posRange.addEventListener('input', (e) => {
-            caption.style.top = e.target.value + '%';
-            document.getElementById('pos-val').innerText = e.target.value;
-        });
+let outlineEnabled = false;
 
-        document.getElementById('remove-watermark-btn').onclick = function() {
-            removeWatermark = !removeWatermark;
-            this.classList.toggle('bg-red-900/30');
-            this.classList.toggle('border-red-500');
-            this.innerText = removeWatermark ? "WATERMARK REMOVER ATTIVO" : "RIMUOVI WATERMARK VEO (AUTO-ZOOM)";
-            video.style.transform = removeWatermark ? "scale(1.1)" : "scale(1)";
-        };
+// --- Play/Pause ---
+document.getElementById('play-btn').onclick = () => video.play();
+document.getElementById('pause-btn').onclick = () => video.pause();
 
-        document.getElementById('video-input').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                video.src = URL.createObjectURL(file);
-                video.onloadedmetadata = () => vEnd = Math.min(video.duration, 15);
-            }
-        };
+// --- Outline Toggle ---
+document.getElementById('outline-btn').onclick = () => {
+    outlineEnabled = !outlineEnabled;
+    if(outlineEnabled){
+        caption.classList.add('text-bold-outline');
+    } else {
+        caption.classList.remove('text-bold-outline');
+    }
+};
 
-        // 2. LOGICA DI EXPORT CORRETTA
-        exportBtn.onclick = async () => {
-            if (!video.src) return alert("Carica un video!");
-            
-            exportBtn.disabled = true;
-            statusDiv.classList.remove('hidden');
-            
-            const canvas = document.getElementById('render-canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Definiamo risoluzione TikTok standard
-            canvas.width = 720;
-            canvas.height = 1280;
+// --- Update overlay from input ---
+captionInput.addEventListener('input', () => {
+    caption.innerText = captionInput.value;
+});
 
-            const { muxer, ArrayBufferTarget } = mp4muxer;
-            let mp4Muxer = new muxer({
-                target: new ArrayBufferTarget(),
-                video: { codec: 'avc1.42E01E', width: 720, height: 1280 },
-                fastStart: 'fragmented'
-            });
+// --- Font selection ---
+document.querySelectorAll('.font-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        caption.className = '';
+        caption.classList.add(btn.dataset.font, outlineEnabled ? 'text-bold-outline' : '');
+    });
+});
 
-            let videoEncoder = new VideoEncoder({
-                output: (chunk, meta) => mp4Muxer.addVideoChunk(chunk, meta),
-                error: (e) => console.error(e)
-            });
+// --- Category selection ---
+document.querySelectorAll('.caption-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
 
-            videoEncoder.configure({ codec: 'avc1.42E01E', width: 720, height: 1280, bitrate: 4_000_000 });
+// --- Captions per categoria orientate a promozione musicale ---
+const captions = {
+    pov: [
+        "POV: stai ascoltando il beat che ti fa muovere senza fermarti, mentre la tua canzone preferita prende vita davanti a te.",
+        "POV: entri in una stanza e tutti i tuoi amici iniziano a ballare sulla tua playlist del momento, la musica è energia pura.",
+        "POV: il drop arriva e senti ogni vibrazione del subwoofer, la tua traccia preferita ti avvolge completamente.",
+        "POV: sei in macchina, finestre aperte, e il ritmo della canzone ti fa cantare a squarciagola senza vergogna.",
+        "POV: il tuo DJ preferito annuncia la tua canzone in club, e il pubblico esplode di entusiasmo al beat.",
+        "POV: stai creando la tua playlist del weekend e ogni traccia racconta una storia di vibrazioni ed emozioni.",
+        "POV: il ritmo elettronico ti avvolge, ogni nota ti spinge a muoverti e a sentirti vivo.",
+        "POV: ascolti il nuovo singolo e ti sembra che la musica parli direttamente di te e delle tue emozioni.",
+        "POV: il video musicale inizia e ogni scena si sincronizza perfettamente con il beat della tua canzone preferita.",
+        "POV: sei in studio, il produttore ti fa sentire l’anteprima, e la traccia ti fa venire i brividi."
+        // aggiungi fino a 50 frasi
+    ],
+    amore: [
+        "Ogni volta che ascolti la nostra playlist romantica, senti che le parole delle canzoni raccontano la storia del tuo cuore.",
+        "Il ritmo lento di questa ballad ti fa ricordare ogni momento speciale passato insieme, ogni nota è un abbraccio.",
+        "Quando parte il tuo singolo preferito, senti le emozioni vibrare come se fossero solo per te.",
+        "Ascoltare questa traccia ti fa pensare a quella persona speciale, ogni verso ti fa sorridere.",
+        "Il suono delle chitarre e della voce ti accompagna nei momenti più intimi, rendendo l’amore eterno e reale.",
+        "Questa playlist è pensata per momenti romantici: accendi la musica e senti il battito del cuore sincronizzato con le note.",
+        "Le canzoni raccontano storie d’amore che ti fanno sognare e ricordare quanto sia potente la musica.",
+        "Quando condividi una canzone d’amore, ogni nota diventa un messaggio diretto per l’altra persona.",
+        "Il ritmo perfetto della canzone ti fa sentire come se il mondo fosse solo tu e la tua anima gemella.",
+        "Ogni melodia romantica ti accompagna in un viaggio emozionale dove le parole diventano musica."
+        // aggiungi fino a 50 frasi
+    ],
+    gym: [
+        "Mentre ti alleni, ascolta questa playlist energica: ogni drop è un booster per superare i tuoi limiti.",
+        "Ogni battito della canzone ti spinge a correre più veloce, a sollevare più peso e a non mollare mai.",
+        "La musica giusta trasforma ogni sessione in una sfida divertente e motivante, facendoti sentire invincibile.",
+        "Ascoltare i beat giusti mentre ti alleni ti fa concentrare e ottenere il massimo da ogni esercizio.",
+        "Questa traccia è perfetta per caricare l’adrenalina prima del tuo workout, ogni nota è motivazione pura.",
+        "Ogni drop ti spinge a dare tutto, a non arrenderti e a sentire il corpo che risponde con forza.",
+        "La tua playlist di allenamento è studiata per mantenere il ritmo alto e la mente focalizzata sui risultati.",
+        "Ascolta il ritmo delle canzoni mentre corri o sollevi pesi e senti ogni fibra del corpo lavorare al massimo.",
+        "Ogni beat della traccia ti ricorda perché hai iniziato e quanto sei capace di superare i tuoi limiti.",
+        "La musica diventa il tuo allenatore personale, guidandoti verso il successo fisico e mentale."
+        // aggiungi fino a 50 frasi
+    ],
+    motivazione: [
+        "Ogni volta che premi play su questa traccia, senti che puoi conquistare qualsiasi obiettivo ti sei prefissato.",
+        "La musica motivazionale ti accompagna passo dopo passo, ricordandoti che ogni sforzo porta risultati.",
+        "Ascoltare la canzone giusta al momento giusto ti fa sentire pronto a superare ogni ostacolo.",
+        "Ogni verso della canzone ti spinge a credere in te stesso e a non smettere mai di lottare.",
+        "Il ritmo crescente ti guida verso nuove sfide, trasformando l’energia musicale in determinazione.",
+        "Questa playlist ti ricorda che la perseveranza e la dedizione pagano sempre.",
+        "Ogni drop ti fa sentire più forte, più concentrato e più pronto a creare il tuo successo.",
+        "La musica diventa carburante per la tua motivazione, alimentando ogni progetto e sogno.",
+        "Ogni nota è una spinta per andare oltre la zona di comfort e crescere.",
+        "Quando ascolti questa traccia, senti che nulla può fermarti e che il futuro è nelle tue mani."
+        // aggiungi fino a 50 frasi
+    ],
+    humor: [
+        "Quando ascolti questa canzone, anche il tuo cane inizia a ballare come se fosse il DJ della festa.",
+        "Questa traccia ti fa sorridere perché ogni beat sembra raccontare un meme della tua vita quotidiana.",
+        "Quando parte il drop, ti accorgi che la pigrizia non ha più scampo e devi muoverti.",
+        "La canzone giusta al momento giusto può trasformare un lunedì noioso in una festa improvvisata.",
+        "Il ritmo comico della traccia ti fa cantare parole che non capisci, ma ridere comunque.",
+        "Ascoltare questo brano è come avere un amico ironico che ti fa compagnia tutto il giorno.",
+        "Ogni verso della canzone ti ricorda che ridere è una forma di musica.",
+        "Questa playlist è perfetta per momenti divertenti, per scherzare con amici e ridere insieme.",
+        "Il suono della traccia ti accompagna in situazioni assurde, rendendo ogni giornata più leggera.",
+        "Quando ascolti questa canzone, anche i problemi più seri sembrano più piccoli e gestibili."
+        // aggiungi fino a 50 frasi
+    ],
+    lifestyle: [
+        "Questa playlist accompagna il tuo stile di vita, rendendo ogni giornata più energica e piena di vibrazioni positive.",
+        "Ogni traccia è pensata per momenti di relax, lavoro creativo o viaggi, trasformando l’esperienza in pura musica.",
+        "Ascoltare queste canzoni ti ispira a esplorare nuovi luoghi, incontrare nuove persone e vivere pienamente.",
+        "Ogni beat ti ricorda che il tempo è prezioso e che la musica rende ogni attimo speciale.",
+        "Questa selezione di brani è perfetta per accompagnare le tue routine quotidiane e valorizzare ogni momento.",
+        "Il ritmo della musica si adatta al tuo stile di vita, creando energia e motivazione in ogni situazione.",
+        "Ogni melodia è pensata per farti sentire libero, creativo e in sintonia con il mondo che ti circonda.",
+        "La playlist ideale per chi vuole vivere con entusiasmo, emozione e passione per la musica.",
+        "Ogni canzone ti guida in un viaggio sensoriale fatto di suoni, colori e momenti indimenticabili.",
+        "Ascoltando questi brani, senti che la tua vita è una colonna sonora di esperienze uniche e memorabili."
+        // aggiungi fino a 50 frasi
+    ]
+};
 
-            const fps = 30;
-            const totalFrames = (vEnd - vStart) * fps;
-            
-            for (let i = 0; i <= totalFrames; i++) {
-                const currentTime = vStart + (i / fps);
-                video.currentTime = currentTime;
-                
-                await new Promise(r => video.onseeked = r);
+// --- Random Caption ---
+document.getElementById('random-caption-btn').onclick = () => {
+    const activeCat = document.querySelector('.caption-cat-btn.active').dataset.category;
+    const catCaptions = captions[activeCat];
+    const rand = catCaptions[Math.floor(Math.random() * catCaptions.length)];
+    captionInput.value = rand;
+    caption.innerText = rand;
+};
+</script>
 
-                // --- DISEGNO VIDEO ---
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                if (removeWatermark) {
-                    // Zoom del 12% per tagliare i bordi dove sta il watermark
-                    const zoom = 1.12;
-                    const w = canvas.width * zoom;
-                    const h = canvas.height * zoom;
-                    const x = (canvas.width - w) / 2;
-                    const y = (canvas.height - h) / 2;
-                    ctx.drawImage(video, x, y, w, h);
-                } else {
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                }
-
-                // --- DISEGNO CAPTION (Posizione corretta) ---
-                const fontSize = 42; // Scalato per 720p
-                ctx.font = `bold ${fontSize}px Montserrat, sans-serif`;
-                ctx.fillStyle = "white";
-                ctx.textAlign = "center";
-                ctx.shadowColor = "rgba(0,0,0,0.8)";
-                ctx.shadowBlur = 10;
-                
-                // Calcolo Y identico all'anteprima percentuale
-                const yPos = (posRange.value / 100) * canvas.height;
-                
-                // Outline
-                ctx.strokeStyle = "black";
-                ctx.lineWidth = 6;
-                ctx.strokeText(caption.innerText, canvas.width / 2, yPos);
-                ctx.fillText(caption.innerText, canvas.width / 2, yPos);
-
-                // Encode frame
-                const frame = new VideoFrame(canvas, { timestamp: (i * 1000000) / fps });
-                videoEncoder.encode(frame);
-                frame.close();
-
-                document.getElementById('progress').innerText = Math.round((i / totalFrames) * 100);
-            }
-
-            await videoEncoder.flush();
-            mp4Muxer.finalize();
-            
-            const blob = new Blob([mp4Muxer.target.buffer], { type: 'video/mp4' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "video_ads_soundvertise.mp4";
-            a.click();
-            
-            statusDiv.classList.add('hidden');
-            exportBtn.disabled = false;
-        };
-    </script>
 </body>
 </html>
