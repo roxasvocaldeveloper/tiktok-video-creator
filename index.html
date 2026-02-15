@@ -821,6 +821,71 @@
                 updateOutlineUI();
             }
         };
+
+        document.querySelectorAll('.font-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const hasOutline = caption.classList.contains('text-bold-outline');
+                caption.className = btn.dataset.font + (hasOutline ? ' text-bold-outline' : '');
+            };
+        });
+
+        let dragText = false, dragStartY, dragStartTop;
+        
+        caption.onmousedown = (e) => { 
+            dragText = true; 
+            dragStartY = e.clientY;
+            dragStartTop = caption.offsetTop;
+            caption.style.cursor = 'grabbing';
+            caption.classList.add('dragging');
+            e.preventDefault();
+        };
+        
+        window.addEventListener('mousemove', (e) => {
+            if (dragText) {
+                const rect = document.getElementById('drop-zone').getBoundingClientRect();
+                const deltaY = e.clientY - dragStartY;
+                let newTop = dragStartTop + deltaY;
+                
+                // Limita il movimento inside il container
+                const minTop = 10;
+                const maxTop = rect.height - caption.offsetHeight - 10;
+                newTop = Math.max(minTop, Math.min(newTop, maxTop));
+                
+                caption.style.top = newTop + 'px';
+            }
+        });
+        
+        window.addEventListener('mouseup', () => {
+            if (dragText) {
+                dragText = false;
+                caption.style.cursor = 'move';
+                caption.classList.remove('dragging');
+            }
+        });
+
+        async function generateThumbnails(file) {
+            const container = document.getElementById('v-thumbs');
+            container.innerHTML = '';
+            const tempVideo = document.createElement('video');
+            tempVideo.src = URL.createObjectURL(file);
+            tempVideo.muted = true;
+            tempVideo.playsInline = true;
+            await new Promise(r => tempVideo.onloadedmetadata = r);
+            const count = 10;
+            const interval = tempVideo.duration / count;
+            for (let i = 0; i < count; i++) {
+                tempVideo.currentTime = i * interval;
+                await new Promise(r => tempVideo.onseeked = r);
+                const c = document.createElement('canvas');
+                const ratio = tempVideo.videoWidth / tempVideo.videoHeight;
+                c.width = 100; c.height = 100 / ratio;
+                c.getContext('2d').drawImage(tempVideo, 0, 0, c.width, c.height);
+                container.appendChild(c);
+            }
+            URL.revokeObjectURL(tempVideo.src);
+        }
         
         const outlineBtn = document.getElementById('outline-toggle');
         const outlineColorInput = document.getElementById('outline-color');
