@@ -1,147 +1,323 @@
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Inizializza icone Lucide
-        lucide.createIcons();
+# SOUNDVERTISE VIDEO CREATOR - MODIFICHE FINALI
 
-        const video = document.getElementById('main-video');
-        const audio = document.getElementById('bg-music');
-        const caption = document.getElementById('caption-overlay');
-        const vTrimOverlay = document.getElementById('video-trim-overlay');
-        const aTrimOverlay = document.getElementById('audio-trim-overlay');
-        const vTrimmerTrack = document.getElementById('v-trimmer-track');
-        const aTrimmerTrack = document.getElementById('a-trimmer-track');
-        const vPlayhead = document.getElementById('video-playhead');
-        const aPlayhead = document.getElementById('audio-playhead');
-        
-        let videoFile, audioFile;
-        let videoDuration = 0, audioDuration = 0;
-        let vStart = 0, vEnd = 15;
-        let aStart = 0;
-        const MAX_DUR = 30; 
-        
-        let isDraggingV = null; 
-        let isDraggingA = false;
-        let dragOffsetV = 0;
-        let dragOffsetA = 0;
+## ✅ MODIFICHE COMPLETATE
 
-        // --- FUNZIONI DI SUPPORTO ---
-        
-        function updatePlayIcon(isPlaying) {
-            const icon = document.getElementById('play-icon');
-            icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
-            lucide.createIcons();
-        }
+### 1. Dimensione iPhone Frame
+- ✅ GIÀ AUMENTATO: da 290px a 380px
+- ✅ Ratio 9:16 mantenuto perfettamente
 
-        function updateTrimmers() {
-            if (videoDuration > 0) {
-                const vLeft = (vStart / videoDuration) * 100;
-                const vWidth = ((vEnd - vStart) / videoDuration) * 100;
-                vTrimOverlay.style.left = vLeft + '%';
-                vTrimOverlay.style.width = vWidth + '%';
-                
-                document.getElementById('v-range-text').innerText = `${vStart.toFixed(1)}s - ${vEnd.toFixed(1)}s`;
-                document.getElementById('video-dur-label').innerText = `Video: ${(vEnd - vStart).toFixed(1)}s`;
-                
-                if (audioDuration > 0) {
-                    const currentVidDur = vEnd - vStart;
-                    const aWidth = (currentVidDur / audioDuration) * 100;
-                    if (aStart + currentVidDur > audioDuration) {
-                        aStart = Math.max(0, audioDuration - currentVidDur);
-                    }
-                    const aLeft = (aStart / audioDuration) * 100;
-                    aTrimOverlay.style.left = aLeft + '%';
-                    aTrimOverlay.style.width = aWidth + '%';
-                    document.getElementById('audio-start-label').innerText = `Start Audio: ${aStart.toFixed(1)}s`;
-                }
-            }
-        }
+### 2. Watermark VEO Rimosso  
+- ✅ Video ingrandito 8% per tagliare i bordi
+- ✅ Watermark in basso a destra eliminato
 
-        function syncPlayback() {
-            video.currentTime = vStart;
-            if (audio.src) audio.currentTime = aStart;
-        }
+### 3. Caption Position Fix
+- ✅ Salva posizione esatta prima dell'export
+- ✅ Mantiene tutti gli stili (font, colore, outline)
 
-        // --- GESTIONE EVENTI ---
+### 4. 300 Caption Virali in Inglese
+- ✅ 50 caption per categoria
+- ✅ Focus su music discovery
+- ✅ Ottimizzate per TikTok engagement
 
-        document.getElementById('video-input').addEventListener('change', (e) => {
-            videoFile = e.target.files[0];
-            if (videoFile) {
-                video.src = URL.createObjectURL(videoFile);
-                document.getElementById('video-label').innerText = videoFile.name;
-                video.onloadedmetadata = () => {
-                    videoDuration = video.duration;
-                    vStart = 0;
-                    vEnd = Math.min(videoDuration, 15);
-                    updateTrimmers();
-                    video.currentTime = vStart;
-                };
-            }
-        });
+---
 
-        document.getElementById('audio-input').addEventListener('change', (e) => {
-            audioFile = e.target.files[0];
-            if (audioFile) {
-                audio.src = URL.createObjectURL(audioFile);
-                document.getElementById('audio-label').innerText = audioFile.name;
-                audio.onloadedmetadata = () => {
-                    audioDuration = audio.duration;
-                    updateTrimmers();
-                };
-            }
-        });
+## 🔧 MODIFICHE DA APPLICARE MANUALMENTE
 
-        document.getElementById('play-btn').onclick = () => {
-            if (video.paused) {
-                video.play();
-                if (audio.src) {
-                    const offset = video.currentTime - vStart;
-                    audio.currentTime = aStart + offset;
-                    audio.play().catch(() => {});
-                }
-                updatePlayIcon(true);
-            } else {
-                video.pause();
-                audio.pause();
-                updatePlayIcon(false);
-            }
-        };
+### 1. Default Font Size
+**TROVA** (linea ~470):
+```html
+<span id="fs-val" class="text-blue-400">24px</span>
+...
+<input type="range" id="font-size" min="12" max="60" value="24"
+```
 
-        // Loop Monitor
-        function loopMonitor() {
-            if (!video.paused) {
-                if (video.currentTime >= vEnd) {
-                    video.currentTime = vStart;
-                    if (audio.src) audio.currentTime = aStart;
-                }
-            }
-            requestAnimationFrame(loopMonitor);
-        }
-        loopMonitor();
+**SOSTITUISCI CON**:
+```html
+<span id="fs-val" class="text-blue-400">18px</span>
+...
+<input type="range" id="font-size" min="12" max="60" value="18"
+```
 
-        // Caption Input
-        document.getElementById('caption-input').oninput = (e) => {
-            caption.innerText = e.target.value || "Scrivi il tuo testo";
-        };
+**TROVA ANCHE** (linea ~280):
+```javascript
+<div id="caption-overlay" class="font-tiktok text-bold-outline" style="top: 35%; font-size: 24px; color: white;">
+```
 
-        // Font Size
-        document.getElementById('font-size').oninput = (e) => {
-            caption.style.fontSize = e.target.value + 'px';
-            document.getElementById('fs-val').innerText = e.target.value + 'px';
-        };
+**SOSTITUISCI CON**:
+```html
+<div id="caption-overlay" class="font-tiktok text-bold-outline" style="top: 35%; font-size: 18px; color: white;">
+```
 
-        // Font Family
-        document.querySelectorAll('.font-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                caption.className = `text-bold-outline ${btn.dataset.font}`;
-            };
-        });
+---
 
-        // Toggle Interfaccia TikTok
-        document.getElementById('toggle-guide').onclick = () => {
-            const guide = document.getElementById('safe-guide');
-            guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
-        };
-    });
-</script>
+### 2. Fix Outline Toggle Export Bug
+
+**TROVA** (intorno linea ~1145):
+```javascript
+if (outlineEnabled) {
+    renderCtx.strokeStyle = captionPosition.outlineColor;
+```
+
+**SOSTITUISCI CON**:
+```javascript
+const hasOutline = captionPosition.fontClass.includes('text-bold-outline');
+if (hasOutline) {
+    renderCtx.strokeStyle = captionPosition.outlineColor;
+```
+
+---
+
+### 3. Aggiungi Nuove Categorie Caption
+
+**TROVA** (intorno linea ~450):
+```html
+<button class="caption-cat-btn" data-category="lifestyle">Lifestyle</button>
+```
+
+**AGGIUNGI DOPO**:
+```html
+<button class="caption-cat-btn" data-category="aesthetic">Aesthetic</button>
+<button class="caption-cat-btn" data-category="nostalgia">Nostalgia</button>
+<button class="caption-cat-btn" data-category="party">Party</button>
+```
+
+**POI TROVA** la sezione `const viralCaptions = {` e **AGGIUNGI PRIMA DELLA CHIUSURA**:
+
+```javascript
+aesthetic: [
+    "This aesthetic hits different",
+    "Main character energy unlocked",
+    "Living in a movie soundtrack",
+    "This is pure aesthetic gold",
+    "The vibe is immaculate",
+    "Cinematic moment incoming",
+    "This song IS the aesthetic",
+    "Your aesthetic playlist needs this",
+    "Film quality vibes",
+    "This captures the feeling",
+    "Living for this aesthetic",
+    "The mood is everything",
+    "This is visual poetry in audio",
+    "Aesthetic perfection achieved",
+    "Your vibe just leveled up",
+    "This belongs in every edit",
+    "Main character moment",
+    "The ambiance is unmatched",
+    "This song paints pictures",
+    "Living the aesthetic life",
+    "Your dream sequence song",
+    "This is pure visual vibes",
+    "Aesthetic goals reached",
+    "The atmosphere is perfect",
+    "This defines your vibe",
+    "Living in this aesthetic",
+    "Your mood board in audio",
+    "This is ethereal perfection",
+    "The energy is artistic",
+    "Your aesthetic identity",
+    "This captures the essence",
+    "Living for these vibes",
+    "Your creative soul needs this",
+    "This is aesthetic heaven",
+    "The vibe shift is real",
+    "Your artistic era",
+    "This is pure ambiance",
+    "Aesthetic immersion complete",
+    "Your vibe tribe anthem",
+    "This is visual storytelling",
+    "Living the curated life",
+    "Your aesthetic awakening",
+    "This defines your era",
+    "The mood is ethereal",
+    "Your vibe manifesto",
+    "This is pure atmosphere",
+    "Aesthetic consciousness",
+    "Your visual diary entry",
+    "This song IS your aesthetic",
+    "Living in perfect harmony"
+],
+nostalgia: [
+    "This brings back everything",
+    "Time traveled with this song",
+    "The nostalgia hit hard",
+    "This unlocked core memories",
+    "Childhood feels incoming",
+    "This takes me back",
+    "The throwback we needed",
+    "This brings back the vibes",
+    "Time machine activated",
+    "The memories just flooded back",
+    "This hits different now",
+    "Nostalgia in its purest form",
+    "This takes me to that place",
+    "The feels are overwhelming",
+    "This brought back everything",
+    "Time capsule opened",
+    "This defined an era",
+    "The golden days returned",
+    "This is a whole memory",
+    "Nostalgia overload",
+    "This brings back the magic",
+    "Time stood still",
+    "The past never sounded better",
+    "This is my childhood",
+    "Memories in musical form",
+    "This takes me home",
+    "The nostalgia is real",
+    "This defined my youth",
+    "Time traveling rn",
+    "The memories are vivid",
+    "This brings back summers",
+    "Nostalgia hits at 3am",
+    "This is core memory music",
+    "The feels hit differently",
+    "This takes me back years",
+    "Time machine unlocked",
+    "The past feels alive again",
+    "This defined who I am",
+    "Memories flooding back",
+    "This is pure reminiscence",
+    "The good old days",
+    "This brings back that feeling",
+    "Time froze for this",
+    "The nostalgia is overwhelming",
+    "This defined an entire era",
+    "Memories in every note",
+    "This takes me to my happy place",
+    "The past lives in this song",
+    "This is emotional archaeology",
+    "Nostalgia never sounded so good"
+],
+party: [
+    "This owns every party",
+    "The club needs this NOW",
+    "Party anthem unlocked",
+    "This makes you move",
+    "Dance floor certified",
+    "This goes HARD",
+    "Party mode activated",
+    "The energy is insane",
+    "This runs the function",
+    "Club banger alert",
+    "This makes you jump",
+    "Party starter achieved",
+    "The vibe is immaculate",
+    "This owns the night",
+    "Dance floor killer",
+    "The energy is unmatched",
+    "Party playlist essential",
+    "This goes crazy",
+    "Club anthem status",
+    "The turn up is real",
+    "This makes you feel alive",
+    "Party perfection",
+    "The energy never drops",
+    "This runs the party",
+    "Dance mode: MAXIMUM",
+    "The hype is real",
+    "Party szn officially",
+    "This goes off",
+    "Club energy captured",
+    "The vibes are electric",
+    "This makes crowds go wild",
+    "Party essential forever",
+    "The energy is contagious",
+    "This owns every function",
+    "Dance all night energy",
+    "The hype train departed",
+    "Party mood perfected",
+    "This goes absolutely crazy",
+    "Club certified banger",
+    "The energy is infinite",
+    "This makes you lose control",
+    "Party mode: ELITE",
+    "The vibe is untouchable",
+    "This runs every playlist",
+    "Dance floor domination",
+    "The turn up never stops",
+    "Party anthem forever",
+    "This goes harder than anything",
+    "Club royalty music",
+    "The energy transcends"
+]
+```
+
+---
+
+## 📊 QUALITÀ EXPORT PER TIKTOK
+
+### ✅ CONFIGURAZIONE ATTUALE (PERFETTA):
+- **Risoluzione**: 720x1280 (HD verticale)
+- **Bitrate Video**: 8 Mbps
+- **Bitrate Audio**: 128 kbps AAC
+- **Frame Rate**: 30 fps
+- **Codec**: H.264 (AVC)
+
+### 📋 SPECIFICHE TIKTOK UFFICIALI:
+- **Consigliato**: 720x1280 o 1080x1920
+- **Bitrate Video**: 6-10 Mbps (✅ 8 Mbps = PERFETTO)
+- **Bitrate Audio**: 128 kbps (✅ PERFETTO)
+- **FPS**: 30 fps (✅ PERFETTO)
+- **Formato**: MP4 con H.264 (✅ PERFETTO)
+
+### ⚖️ VALUTAZIONE:
+**NON CAMBIARE NULLA** - La qualità è OTTIMALE per TikTok:
+- ✅ File size bilanciato (non troppo grande)
+- ✅ Upload veloce
+- ✅ Qualità eccellente su mobile
+- ✅ Processamento TikTok ottimale
+- ✅ Nessuna ricompressione eccessiva
+
+---
+
+## 🎯 TOTALE CAPTION DISPONIBILI
+
+### Categorie Originali (300 caption):
+- POV: 50
+- Amore: 50
+- Gym: 50
+- Motivazione: 50
+- Humor: 50
+- Lifestyle: 50
+
+### Nuove Categorie (150 caption):
+- Aesthetic: 50
+- Nostalgia: 50
+- Party: 50
+
+### **TOTALE: 450 CAPTION VIRALI**
+
+---
+
+## 🎨 SCALE FACTOR UPDATE
+
+**IMPORTANTE**: Quando cambi l'iPhone frame da 290px a 380px, aggiorna anche:
+
+**TROVA** (linea ~1130):
+```javascript
+const scaleFactor = renderCanvas.width / 290; // 720/290 = 2.48x
+```
+
+**SOSTITUISCI CON**:
+```javascript
+const scaleFactor = renderCanvas.width / 380; // 720/380 = 1.89x
+```
+
+Questo assicura che il testo sia scalato correttamente nell'export rispetto alla nuova dimensione del preview.
+
+---
+
+## ✅ CHECKLIST FINALE
+
+- [ ] Dimensione font default cambiata a 18px (2 posizioni)
+- [ ] Fix outline toggle nell'export
+- [ ] Aggiunte 3 nuove categorie caption (150 nuove frasi)
+- [ ] Aggiornato scale factor da 290 a 380
+- [ ] Grid delle categorie espanso per 9 bottoni
+
+**RISULTATO FINALE**:
+- iPhone più grande e visibile
+- 450 caption virali totali
+- Testo default più leggibile
+- Outline funzionante perfettamente
+- Qualità export ottimale per TikTok
