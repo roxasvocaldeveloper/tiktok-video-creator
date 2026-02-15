@@ -36,10 +36,10 @@
         }
 
         .iphone-frame {
-            width: 290px;
-            height: calc(290px * 16 / 9); /* Esattamente 9:16 = 515.56px arrotondato */
-            border: 10px solid #1A1A1A;
-            border-radius: 42px;
+            width: 380px; /* Aumentato da 290px */
+            height: calc(380px * 16 / 9); /* Mantiene ratio 9:16 */
+            border: 12px solid #1A1A1A;
+            border-radius: 50px;
             position: relative;
             background: #000;
             overflow: hidden;
@@ -50,11 +50,11 @@
 
         .notch {
             position: absolute;
-            top: 12px;
+            top: 14px;
             left: 50%;
             transform: translateX(-50%);
-            width: 75px;
-            height: 22px;
+            width: 90px;
+            height: 26px;
             background: #000;
             border-radius: 20px;
             z-index: 50;
@@ -74,6 +74,11 @@
             height: 100%;
             object-fit: cover;
             display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .video-container.remove-watermark video {
+            transform: scale(1.08);
         }
 
         #caption-overlay {
@@ -330,7 +335,7 @@
                 <div class="notch"></div>
                 <div class="video-container" id="drop-zone">
                     <video id="main-video" crossorigin="anonymous" playsinline loop></video>
-                    <div id="caption-overlay" class="font-tiktok text-bold-outline" style="top: 35%; font-size: 24px; color: white;">
+                    <div id="caption-overlay" class="font-tiktok text-bold-outline" style="top: 35%; font-size: 16px; color: white;">
                         Scrivi il tuo testo
                     </div>
                     <div id="safe-guide" class="tiktok-ui-overlay">
@@ -356,9 +361,14 @@
                     </div>
                 </div>
             </div>
-            <button id="toggle-guide" class="px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">
-               Anteprima Interfaccia TikTok
-            </button>
+            <div class="flex gap-3">
+                <button id="toggle-guide" class="flex-1 px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">
+                   Anteprima TikTok UI
+                </button>
+                <button id="toggle-watermark" class="flex-1 px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-red-500 transition-all text-zinc-400 hover:text-white active">
+                   <span class="watermark-text">Remove VEO Logo</span>
+                </button>
+            </div>
         </div>
 
         <!-- Editor Controls -->
@@ -443,11 +453,17 @@
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <button class="caption-cat-btn active" data-category="pov">POV</button>
-                        <button class="caption-cat-btn" data-category="amore">Amore</button>
+                        <button class="caption-cat-btn" data-category="amore">Love</button>
                         <button class="caption-cat-btn" data-category="gym">Gym</button>
-                        <button class="caption-cat-btn" data-category="motivazione">Motivazione</button>
+                        <button class="caption-cat-btn" data-category="motivazione">Motivation</button>
                         <button class="caption-cat-btn" data-category="humor">Humor</button>
                         <button class="caption-cat-btn" data-category="lifestyle">Lifestyle</button>
+                        <button class="caption-cat-btn" data-category="party">Party</button>
+                        <button class="caption-cat-btn" data-category="nostalgia">Nostalgia</button>
+                        <button class="caption-cat-btn" data-category="relatable">Relatable</button>
+                        <button class="caption-cat-btn" data-category="aesthetic">Aesthetic</button>
+                        <button class="caption-cat-btn" data-category="confidence">Confidence</button>
+                        <button class="caption-cat-btn" data-category="vibes">Vibes</button>
                     </div>
                 </div>
 
@@ -464,9 +480,9 @@
                     <div class="flex-1 space-y-2">
                         <div class="flex justify-between text-[9px] font-black text-zinc-500 uppercase tracking-widest">
                             <span>Dimensione Carattere</span>
-                            <span id="fs-val" class="text-blue-400">24px</span>
+                            <span id="fs-val" class="text-blue-400">16px</span>
                         </div>
-                        <input type="range" id="font-size" min="12" max="60" value="24" class="w-full accent-blue-500 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
+                        <input type="range" id="font-size" min="12" max="60" value="16" class="w-full accent-blue-500 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
                     </div>
                     
                     <div class="flex flex-col gap-4 p-4 bg-black/40 rounded-2xl border border-zinc-800/50">
@@ -513,6 +529,7 @@
     <video id="source-video" style="display: none;"></video>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
 
         const video = document.getElementById('main-video');
@@ -688,11 +705,14 @@
         };
 
         document.getElementById('video-input').onchange = async (e) => {
+            console.log('Video input changed');
             videoFile = e.target.files[0];
             if (videoFile) {
+                console.log('Video file selected:', videoFile.name);
                 video.src = URL.createObjectURL(videoFile);
                 document.getElementById('video-label').innerText = videoFile.name;
                 video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded, duration:', video.duration);
                     videoDuration = video.duration;
                     vStart = 0;
                     vEnd = Math.min(videoDuration, 15);
@@ -704,11 +724,14 @@
         };
 
         document.getElementById('audio-input').onchange = (e) => {
+            console.log('Audio input changed');
             audioFile = e.target.files[0];
             if (audioFile) {
+                console.log('Audio file selected:', audioFile.name);
                 audio.src = URL.createObjectURL(audioFile);
                 document.getElementById('audio-label').innerText = audioFile.name;
                 audio.onloadedmetadata = () => {
+                    console.log('Audio metadata loaded, duration:', audio.duration);
                     audioDuration = audio.duration;
                     drawWaveform(audioFile);
                     updateTrimmers();
@@ -786,6 +809,100 @@
             document.getElementById('fs-val').innerText = e.target.value + 'px';
         };
         document.getElementById('text-color').oninput = (e) => caption.style.color = e.target.value;
+        
+        const outlineBtn = document.getElementById('outline-toggle');
+        const outlineColorInput = document.getElementById('outline-color');
+
+        function updateOutlineUI() {
+            if (outlineEnabled) {
+                caption.classList.add('text-bold-outline');
+                outlineBtn.classList.add('active');
+                outlineBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Stile Contorno Attivo';
+            } else {
+                caption.classList.remove('text-bold-outline');
+                outlineBtn.classList.remove('active');
+                outlineBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Stile Contorno Spento';
+            }
+            lucide.createIcons();
+        }
+
+        outlineBtn.onclick = () => {
+            outlineEnabled = !outlineEnabled;
+            updateOutlineUI();
+        };
+
+        outlineColorInput.oninput = (e) => {
+            caption.style.setProperty('--outline-color', e.target.value);
+            if (!outlineEnabled) {
+                outlineEnabled = true;
+                updateOutlineUI();
+            }
+        };
+
+        document.querySelectorAll('.font-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const hasOutline = caption.classList.contains('text-bold-outline');
+                caption.className = btn.dataset.font + (hasOutline ? ' text-bold-outline' : '');
+            };
+        });
+
+        let dragText = false, dragStartY, dragStartTop;
+        
+        caption.onmousedown = (e) => { 
+            dragText = true; 
+            dragStartY = e.clientY;
+            dragStartTop = caption.offsetTop;
+            caption.style.cursor = 'grabbing';
+            caption.classList.add('dragging');
+            e.preventDefault();
+        };
+        
+        window.addEventListener('mousemove', (e) => {
+            if (dragText) {
+                const rect = document.getElementById('drop-zone').getBoundingClientRect();
+                const deltaY = e.clientY - dragStartY;
+                let newTop = dragStartTop + deltaY;
+                
+                // Limita il movimento inside il container
+                const minTop = 10;
+                const maxTop = rect.height - caption.offsetHeight - 10;
+                newTop = Math.max(minTop, Math.min(newTop, maxTop));
+                
+                caption.style.top = newTop + 'px';
+            }
+        });
+        
+        window.addEventListener('mouseup', () => {
+            if (dragText) {
+                dragText = false;
+                caption.style.cursor = 'move';
+                caption.classList.remove('dragging');
+            }
+        });
+
+        async function generateThumbnails(file) {
+            const container = document.getElementById('v-thumbs');
+            container.innerHTML = '';
+            const tempVideo = document.createElement('video');
+            tempVideo.src = URL.createObjectURL(file);
+            tempVideo.muted = true;
+            tempVideo.playsInline = true;
+            await new Promise(r => tempVideo.onloadedmetadata = r);
+            const count = 10;
+            const interval = tempVideo.duration / count;
+            for (let i = 0; i < count; i++) {
+                tempVideo.currentTime = i * interval;
+                await new Promise(r => tempVideo.onseeked = r);
+                const c = document.createElement('canvas');
+                const ratio = tempVideo.videoWidth / tempVideo.videoHeight;
+                c.width = 100; c.height = 100 / ratio;
+                c.getContext('2d').drawImage(tempVideo, 0, 0, c.width, c.height);
+                container.appendChild(c);
+            }
+            URL.revokeObjectURL(tempVideo.src);
+        }
         
         const outlineBtn = document.getElementById('outline-toggle');
         const outlineColorInput = document.getElementById('outline-color');
@@ -1047,25 +1164,30 @@
                     sourceVideo.currentTime = vStart + timestamp;
                     await new Promise(r => sourceVideo.onseeked = r);
 
-                    // Draw video frame - scala leggermente per rimuovere watermark VEO in basso a destra
-                    // Ingrandisce del 8% e centra per tagliare i bordi
-                    const scale = 1.08;
-                    const scaledWidth = sourceVideo.videoWidth * scale;
-                    const scaledHeight = sourceVideo.videoHeight * scale;
-                    const offsetX = -(scaledWidth - renderCanvas.width) / 2;
-                    const offsetY = -(scaledHeight - renderCanvas.height) / 2;
-                    
-                    renderCtx.drawImage(
-                        sourceVideo,
-                        offsetX,
-                        offsetY,
-                        scaledWidth,
-                        scaledHeight
-                    );
+                    // Draw video frame - applica zoom solo se removeWatermark è attivo
+                    if (removeWatermark) {
+                        // Ingrandisce del 8% e centra per tagliare i bordi (rimuove watermark VEO)
+                        const scale = 1.08;
+                        const scaledWidth = sourceVideo.videoWidth * scale;
+                        const scaledHeight = sourceVideo.videoHeight * scale;
+                        const offsetX = -(scaledWidth - renderCanvas.width) / 2;
+                        const offsetY = -(scaledHeight - renderCanvas.height) / 2;
+                        
+                        renderCtx.drawImage(
+                            sourceVideo,
+                            offsetX,
+                            offsetY,
+                            scaledWidth,
+                            scaledHeight
+                        );
+                    } else {
+                        // Video normale senza zoom
+                        renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
+                    }
 
                     // Draw text overlay usando la posizione salvata
                     if (captionPosition.text && captionPosition.text !== 'Scrivi il tuo testo') {
-                        const scaleFactor = renderCanvas.width / 290; // 720/290 = 2.48x
+                        const scaleFactor = renderCanvas.width / 380; // 720/380 = 1.89x (aggiornato per nuovo size)
                         const scaledFontSize = captionPosition.fontSize * scaleFactor;
 
                         let fontFamily = 'Montserrat';
@@ -1081,9 +1203,11 @@
                         const topRatio = captionPosition.topPx / dropZone.offsetHeight;
                         const textY = renderCanvas.height * topRatio;
 
-                        if (outlineEnabled) {
+                        // Verifica se l'outline è abilitato dalla classe salvata
+                        const hasOutline = captionPosition.fontClass.includes('text-bold-outline');
+                        if (hasOutline) {
                             renderCtx.strokeStyle = captionPosition.outlineColor;
-                            renderCtx.lineWidth = Math.max(scaleFactor * 3, 4); // Outline più spesso per 720p
+                            renderCtx.lineWidth = Math.max(scaleFactor * 3, 4);
                             renderCtx.lineJoin = 'round';
                             renderCtx.miterLimit = 2;
                             renderCtx.strokeText(captionPosition.text, renderCanvas.width / 2, textY);
@@ -1187,6 +1311,32 @@
         document.getElementById('toggle-guide').onclick = () => {
             const g = document.getElementById('safe-guide');
             g.style.display = g.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // VEO Watermark Removal Toggle
+        let removeWatermark = true; // Attivo di default
+        const watermarkBtn = document.getElementById('toggle-watermark');
+        const videoContainer = document.getElementById('drop-zone');
+        
+        // Applica lo zoom iniziale
+        videoContainer.classList.add('remove-watermark');
+
+        watermarkBtn.onclick = () => {
+            removeWatermark = !removeWatermark;
+            
+            if (removeWatermark) {
+                videoContainer.classList.add('remove-watermark');
+                watermarkBtn.classList.add('active');
+                watermarkBtn.querySelector('.watermark-text').innerText = 'Remove VEO Logo';
+                watermarkBtn.style.borderColor = '';
+                watermarkBtn.style.color = '';
+            } else {
+                videoContainer.classList.remove('remove-watermark');
+                watermarkBtn.classList.remove('active');
+                watermarkBtn.querySelector('.watermark-text').innerText = 'Show Original';
+                watermarkBtn.style.borderColor = '#ef4444';
+                watermarkBtn.style.color = '#ef4444';
+            }
         };
 
         // Viral Captions System - Music Discovery Focus
@@ -1502,6 +1652,318 @@
                 "This is positive energy only",
                 "The gratitude anthem",
                 "Your best self soundtrack"
+            ],
+            party: [
+                "Pre-game anthem activated",
+                "This song owns the club",
+                "Party mode: MAXIMUM",
+                "The energy is unmatched",
+                "This is how legends party",
+                "Weekend anthem unlocked",
+                "Turn this UP right now",
+                "The party doesn't start without this",
+                "Club banger confirmed",
+                "This song raises the roof",
+                "Dance floor destroyer",
+                "Your new party starter",
+                "The crowd goes crazy for this",
+                "Nightlife essential",
+                "This is pure euphoria",
+                "Saturday night energy",
+                "The drop hits different",
+                "Party animal approved",
+                "This song IS the party",
+                "Lights down bass up",
+                "Your new festival anthem",
+                "The ultimate hype song",
+                "This makes crowds move",
+                "Party playlist champion",
+                "The energy is electric",
+                "This song brings the chaos",
+                "Weekend warrior anthem",
+                "The vibe is immaculate",
+                "This owns the aux cord",
+                "Party till sunrise song",
+                "The ultimate celebration track",
+                "This is legendary energy",
+                "Dance like nobody's watching",
+                "The perfect party mix",
+                "This song radiates fun",
+                "Your new go-to banger",
+                "The crowd favorite",
+                "This is certified heat",
+                "Party mode engaged",
+                "The weekend starts here",
+                "This song brings everyone together",
+                "Pure celebration vibes",
+                "The ultimate mood lifter",
+                "This makes memories",
+                "Party playlist essential",
+                "The energy never stops",
+                "This is straight fire",
+                "Your new anthem",
+                "The vibe is infectious",
+                "This song rules the night"
+            ],
+            nostalgia: [
+                "This unlocked a core memory",
+                "Time machine in audio form",
+                "The nostalgia hit hard",
+                "This takes me back",
+                "Throwback vibes activated",
+                "Memory lane sounds like this",
+                "This song aged like wine",
+                "The good old days anthem",
+                "Instant nostalgia trip",
+                "This never gets old",
+                "Classic for a reason",
+                "The memories came flooding back",
+                "This is timeless perfection",
+                "Remember when life was simple",
+                "The song that never left",
+                "This brings back everything",
+                "Vintage vibes only",
+                "The nostalgia is real",
+                "This defined an era",
+                "Memory unlocked instantly",
+                "The classics hit different",
+                "This is eternal",
+                "Throwback Thursday energy",
+                "The song we grew up with",
+                "This never stopped being good",
+                "Nostalgia in its purest form",
+                "The golden era anthem",
+                "This is certified timeless",
+                "Remember this masterpiece",
+                "The song that shaped us",
+                "This brings back the feels",
+                "Vintage gold forever",
+                "The memories attached to this",
+                "This is a whole mood",
+                "Simpler times anthem",
+                "The throwback we needed",
+                "This defined our childhood",
+                "Memory lane essential",
+                "The nostalgia is overwhelming",
+                "This never loses its magic",
+                "Throwback perfection",
+                "The song of our generation",
+                "This is pure nostalgia",
+                "Remember where you were",
+                "The classic that endures",
+                "This brings back the best times",
+                "Vintage vibes eternal",
+                "The memories this holds",
+                "This is history in music",
+                "The throwback anthem"
+            ],
+            relatable: [
+                "This is literally my life",
+                "Too real right now",
+                "This called me out personally",
+                "Me in song form",
+                "This understands my struggle",
+                "Actually so relatable",
+                "This song gets it",
+                "My daily experience summarized",
+                "This is uncomfortably accurate",
+                "They really wrote this about me",
+                "This speaks to my soul",
+                "My entire personality explained",
+                "This is painfully relatable",
+                "Caught in 4K by this song",
+                "This knows me too well",
+                "My exact vibe captured",
+                "This is my story honestly",
+                "Could not be more relatable",
+                "This song read my mind",
+                "Actually me though",
+                "This hits way too close",
+                "My life in 3 minutes",
+                "This is scarily accurate",
+                "They really understand",
+                "This captures the feeling perfectly",
+                "Me every single day",
+                "This song is my therapist",
+                "Too accurate to be comfortable",
+                "This describes me entirely",
+                "My personality in audio",
+                "This gets the struggle",
+                "Relating way too hard",
+                "This is my autobiography",
+                "Could this BE more me",
+                "This song sees me",
+                "My entire mood explained",
+                "This is universally relatable",
+                "We all felt this",
+                "This captures the experience",
+                "Actually living this rn",
+                "This song knows what's up",
+                "My existence summarized",
+                "This is my reality",
+                "Relate on every level",
+                "This describes us all",
+                "My daily thoughts captured",
+                "This is therapeutic honestly",
+                "They get us completely",
+                "This is my entire vibe",
+                "Relatable to the core"
+            ],
+            aesthetic: [
+                "Pure aesthetic energy",
+                "This matches my vibe perfectly",
+                "The aesthetic is immaculate",
+                "This IS the aesthetic",
+                "Visual album material",
+                "Pinterest board anthem",
+                "This song has a color palette",
+                "The vibe is art",
+                "Aesthetic goals achieved",
+                "This belongs in a movie",
+                "The mood is everything",
+                "This is visually stunning sonically",
+                "Your aesthetic in audio",
+                "This creates atmospheres",
+                "The vibe is cinematic",
+                "Aesthetic perfection reached",
+                "This paints pictures",
+                "The mood is immaculate",
+                "This is art in motion",
+                "Your feed needs this energy",
+                "The aesthetic matches exactly",
+                "This song has layers",
+                "Visual masterpiece vibes",
+                "The atmosphere is everything",
+                "This belongs in galleries",
+                "Aesthetic excellence unlocked",
+                "This creates worlds",
+                "The vibe transcends",
+                "This is sensory perfection",
+                "Your aesthetic soundtrack",
+                "The mood is ethereal",
+                "This is visually audible",
+                "Aesthetic dream achieved",
+                "This crafts experiences",
+                "The vibe is otherworldly",
+                "This belongs in films",
+                "Aesthetic nirvana reached",
+                "This paints emotions",
+                "The atmosphere is perfect",
+                "This is curated excellence",
+                "Your vibe library essential",
+                "The aesthetic is next level",
+                "This creates ambiance",
+                "Visual poetry in sound",
+                "The mood is transcendent",
+                "This is aesthetic heaven",
+                "Your Pinterest soundtrack",
+                "The vibe is untouchable",
+                "This is pure artistry",
+                "Aesthetic goals embodied"
+            ],
+            confidence: [
+                "Main character energy unlocked",
+                "This is power in audio form",
+                "Boss energy activated",
+                "This makes you unstoppable",
+                "Confidence level: MAXIMUM",
+                "This is your theme song",
+                "Walk in like you own it",
+                "This radiates power",
+                "Your confidence anthem",
+                "This makes you feel invincible",
+                "CEO mindset activated",
+                "This is pure swagger",
+                "Your power song arrived",
+                "This boosts confidence instantly",
+                "Walk tall to this",
+                "This is liquid confidence",
+                "Your badass anthem",
+                "This makes you feel iconic",
+                "Power moves only",
+                "This is self-assurance in audio",
+                "Your winning energy",
+                "This makes you feel unstoppable",
+                "Confidence boosted 1000%",
+                "This is your moment",
+                "Walk in owning everything",
+                "This radiates strength",
+                "Your power playlist essential",
+                "This makes you feel legendary",
+                "Boss mode engaged",
+                "This is pure empowerment",
+                "Your confidence soundtrack",
+                "This makes you feel fearless",
+                "Walk like the legend you are",
+                "This is strength personified",
+                "Your power-up song",
+                "This boosts self-belief",
+                "Confidence through the roof",
+                "This is your victory lap",
+                "Walk in with this energy",
+                "This makes you unshakeable",
+                "Your bold move anthem",
+                "This radiates self-assurance",
+                "Confidence unlocked forever",
+                "This is your power source",
+                "Walk tall walk proud",
+                "This makes you feel powerful",
+                "Your throne music",
+                "This is pure self-belief",
+                "Confidence eternal",
+                "This is your empire song"
+            ],
+            vibes: [
+                "The vibe is immaculate",
+                "Pure vibes only",
+                "This is a whole mood",
+                "The energy is perfect",
+                "Vibe check: PASSED",
+                "This captures the feeling",
+                "The mood is everything",
+                "This is vibe perfection",
+                "Your energy matchmaker",
+                "This sets the tone",
+                "The vibe is unmatched",
+                "This creates atmospheres",
+                "Your mood in audio",
+                "This is pure energy",
+                "The vibe speaks volumes",
+                "This matches your frequency",
+                "Your energy anthem",
+                "This is mood music",
+                "The vibe is therapeutic",
+                "This captures moments",
+                "Your frequency in sound",
+                "This is energy in motion",
+                "The mood is transcendent",
+                "This creates feelings",
+                "Your vibe translator",
+                "This is emotional intelligence",
+                "The energy is magnetic",
+                "This speaks your language",
+                "Your mood curator",
+                "This is vibrational medicine",
+                "The vibe is infectious",
+                "This channels energy",
+                "Your frequency match",
+                "This is mood elevation",
+                "The energy is electric",
+                "This resonates deeply",
+                "Your vibe architect",
+                "This is frequency alignment",
+                "The mood is perfect",
+                "This creates resonance",
+                "Your energy signature",
+                "This is vibe medicine",
+                "The feeling is everything",
+                "This matches your soul",
+                "Your mood enhancer",
+                "This is pure frequency",
+                "The vibe is healing",
+                "This speaks to energy",
+                "Your resonance song",
+                "This is mood perfection"
             ]
         };
 
@@ -1529,6 +1991,7 @@
             btn.style.transform = 'scale(0.95)';
             setTimeout(() => btn.style.transform = 'scale(1)', 100);
         };
+        }); // End DOMContentLoaded
     </script>
 </body>
 </html>
