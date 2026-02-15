@@ -519,6 +519,7 @@
     <video id="source-video" style="display: none;"></video>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
 
         const video = document.getElementById('main-video');
@@ -1947,6 +1948,7 @@
             btn.style.transform = 'scale(0.95)';
             setTimeout(() => btn.style.transform = 'scale(1)', 100);
         };
+        }); // End DOMContentLoaded
     </script>
 </body>
 </html>
