@@ -694,11 +694,14 @@
         };
 
         document.getElementById('video-input').onchange = async (e) => {
+            console.log('Video input changed');
             videoFile = e.target.files[0];
             if (videoFile) {
+                console.log('Video file selected:', videoFile.name);
                 video.src = URL.createObjectURL(videoFile);
                 document.getElementById('video-label').innerText = videoFile.name;
                 video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded, duration:', video.duration);
                     videoDuration = video.duration;
                     vStart = 0;
                     vEnd = Math.min(videoDuration, 15);
@@ -710,11 +713,14 @@
         };
 
         document.getElementById('audio-input').onchange = (e) => {
+            console.log('Audio input changed');
             audioFile = e.target.files[0];
             if (audioFile) {
+                console.log('Audio file selected:', audioFile.name);
                 audio.src = URL.createObjectURL(audioFile);
                 document.getElementById('audio-label').innerText = audioFile.name;
                 audio.onloadedmetadata = () => {
+                    console.log('Audio metadata loaded, duration:', audio.duration);
                     audioDuration = audio.duration;
                     drawWaveform(audioFile);
                     updateTrimmers();
