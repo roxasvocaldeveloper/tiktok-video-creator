@@ -1,198 +1,1534 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Promo Video Editor</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-    body { font-family: 'Montserrat', sans-serif; background:#111; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px; }
-    video { max-width: 600px; width:100%; margin-bottom:10px; border-radius:10px; }
-    #caption-overlay { position:absolute; top:10%; left:50%; transform:translateX(-50%); color:#fff; font-size:24px; text-align:center; max-width:90%; text-shadow: 2px 2px 5px #000; pointer-events:none; }
-    .btn { margin:5px; padding:8px 12px; background:#222; border:none; border-radius:6px; cursor:pointer; color:#fff; }
-    .btn.active { background:#f59e0b; color:#111; }
-    .controls { margin:10px 0; display:flex; flex-wrap:wrap; justify-content:center; }
-    .font-btn { margin:2px; }
-    #caption-input { width:80%; padding:6px; margin:10px 0; border-radius:6px; border:none; font-size:18px; }
-    .text-bold-outline { -webkit-text-stroke: 1px black; font-weight:bold; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Ads Creator | Soundvertise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/mp4-muxer@latest/build/mp4-muxer.js"></script>
+    <style>
+        :root {
+            --sv-purple: #8B5CF6;
+            --sv-blue: #3B82F6;
+            --sv-bg: #050505;
+            --sv-card: #0F0F0F;
+        }
+
+        body {
+            background-color: var(--sv-bg);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .preview-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+
+        .iphone-frame {
+            width: 290px;
+            height: calc(290px * 16 / 9); /* Esattamente 9:16 = 515.56px arrotondato */
+            border: 10px solid #1A1A1A;
+            border-radius: 42px;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            box-shadow: 0 0 0 2px #000, 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notch {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 75px;
+            height: 22px;
+            background: #000;
+            border-radius: 20px;
+            z-index: 50;
+            border: 1px solid #222;
+        }
+
+        .video-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        #caption-overlay {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            text-align: center;
+            max-width: 85%;
+            word-wrap: break-word;
+            z-index: 30;
+            display: block;
+            line-height: 1.1;
+            left: 50%;
+            transform: translateX(-50%);
+            --outline-color: #000000;
+            paint-order: stroke fill;
+        }
+        
+        #caption-overlay:not(.dragging) {
+            transition: top 0.1s ease-out;
+        }
+
+        .text-bold-outline {
+            text-shadow: 
+                0 0 1px var(--outline-color),
+                -1.5px -1.5px 0 var(--outline-color),  
+                 1.5px -1.5px 0 var(--outline-color),
+                -1.5px  1.5px 0 var(--outline-color),
+                 1.5px  1.5px 0 var(--outline-color),
+                 0px 3px 8px rgba(0,0,0,0.6);
+        }
+
+        .tiktok-ui-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            display: block;
+            background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%);
+        }
+
+        .right-actions {
+            position: absolute;
+            right: 8px;
+            bottom: 85px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .action-text { font-size: 8px; font-weight: 600; }
+
+        .bottom-info {
+            position: absolute;
+            left: 12px;
+            bottom: 20px;
+            max-width: 190px;
+        }
+
+        .trimmer-track {
+            position: relative;
+            width: 100%;
+            background: #111;
+            border-radius: 12px;
+            border: 1px solid #333;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .thumbnail-track {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .thumbnail-track canvas {
+            height: 100%;
+            flex: 1;
+            object-fit: cover;
+        }
+
+        .trim-overlay {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            z-index: 5;
+            cursor: grab;
+            border-radius: 6px;
+        }
+
+        #video-trim-overlay {
+            background: rgba(59, 130, 246, 0.2);
+            border: 3px solid var(--sv-blue);
+        }
+
+        #audio-trim-overlay {
+            background: rgba(139, 92, 246, 0.15);
+            border: 3px solid var(--sv-purple);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .playhead-cursor {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #ffffff;
+            z-index: 20;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        .trim-handle {
+            position: absolute;
+            top: 0;
+            width: 16px;
+            height: 100%;
+            background: inherit;
+            cursor: ew-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        #video-trim-overlay .trim-handle { background-color: var(--sv-blue); }
+        #audio-trim-overlay .trim-handle { display: none; }
+
+        .trim-handle::after {
+            content: '';
+            width: 2px;
+            height: 14px;
+            background: white;
+            border-radius: 1px;
+        }
+        .handle-left { left: -8px; border-radius: 6px 0 0 6px; }
+        .handle-right { right: -8px; border-radius: 0 6px 6px 0; }
+
+        .waveform-wrapper {
+            position: relative;
+            width: 100%;
+            height: 70px;
+            background: #000;
+        }
+
+        #waveform { width: 100%; height: 100%; pointer-events: none; }
+
+        .btn-sv {
+            background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
+        .btn-sv:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+        .font-tiktok { font-family: 'Montserrat', sans-serif; font-weight: 800; letter-spacing: -0.5px; }
+        .font-typewriter { font-family: 'Courier Prime', monospace; }
+        .font-classic { font-family: 'Inter', sans-serif; font-weight: 800; }
+        .font-handwriting { font-family: 'Dancing Script', cursive; font-weight: 700; }
+
+        .font-btn {
+            background: #000;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 10px;
+            transition: all 0.2s;
+            color: #666;
+        }
+        .font-btn.active {
+            border-color: var(--sv-blue);
+            background: rgba(59, 130, 246, 0.1);
+            color: #fff;
+        }
+
+        .color-wrapper {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            overflow: hidden;
+            background: #000;
+            flex-shrink: 0;
+        }
+        
+        .color-input {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            cursor: pointer;
+        }
+
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: #111;
+            border: 1px solid #333;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            color: #666;
+            cursor: pointer;
+        }
+        .toggle-btn.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--sv-blue);
+            color: #fff;
+        }
+
+        .caption-cat-btn {
+            background: #000;
+            border: 1px solid #333;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            color: #666;
+            cursor: pointer;
+        }
+        .caption-cat-btn.active {
+            border-color: var(--sv-purple);
+            background: rgba(139, 92, 246, 0.15);
+            color: #fff;
+        }
+        .caption-cat-btn:hover {
+            border-color: var(--sv-purple);
+            color: #fff;
+        }
+
+        #render-canvas {
+            display: none;
+        }
+    </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
 
-<h1 class="text-3xl mb-4">Music Promo Video Editor</h1>
+    <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        
+        <!-- Preview Column -->
+        <div class="preview-column space-y-6 order-2 lg:order-1">
+            <div class="iphone-frame" id="iphone">
+                <div class="notch"></div>
+                <div class="video-container" id="drop-zone">
+                    <video id="main-video" crossorigin="anonymous" playsinline loop></video>
+                    <div id="caption-overlay" class="font-tiktok text-bold-outline" style="top: 35%; font-size: 24px; color: white;">
+                        Scrivi il tuo testo
+                    </div>
+                    <div id="safe-guide" class="tiktok-ui-overlay">
+                        <div class="right-actions">
+                            <div class="action-item flex flex-col items-center">
+                                <div class="w-9 h-9 rounded-full border border-white bg-zinc-800 mb-1 overflow-hidden">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=SV" alt="avatar">
+                                </div>
+                            </div>
+                            <div class="action-item flex flex-col items-center">
+                                <i data-lucide="heart" class="text-white fill-white w-7 h-7"></i>
+                                <span class="action-text text-white">580K</span>
+                            </div>
+                            <div class="action-item flex flex-col items-center">
+                                <i data-lucide="message-circle" class="text-white fill-white w-7 h-7"></i>
+                                <span class="action-text text-white">2.4K</span>
+                            </div>
+                        </div>
+                        <div class="bottom-info space-y-0.5">
+                            <p class="font-bold text-[11px]">@soundvertise.co</p>
+                            <p class="text-[10px] opacity-90 leading-tight">Video creato con Soundvertise.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="toggle-guide" class="px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">
+               Anteprima Interfaccia TikTok
+            </button>
+        </div>
 
-<div style="position:relative; display:inline-block;">
-    <video id="video" controls>
-        <source src="your-video.mp4" type="video/mp4">
-        Il tuo browser non supporta il video.
-    </video>
-    <div id="caption-overlay"></div>
-</div>
+        <!-- Editor Controls -->
+        <div class="bg-zinc-900/40 border border-zinc-800 p-6 md:p-8 rounded-[2.5rem] space-y-6 backdrop-blur-xl order-1 lg:order-2">
+            <header class="flex justify-between items-end border-b border-zinc-800/50 pb-4">
+                <div>
+                    <h1 class="text-xl font-black italic uppercase">Video <span class="text-blue-400">Ads Creator</span></h1>
+                    <p class="text-[9px] font-bold tracking-widest text-zinc-600">SOUNDVERTISE</p>
+                </div>
+                <div class="text-right">
+                    <span id="video-dur-label" class="text-blue-400 font-mono text-xs font-bold uppercase">Video: 15.0s</span>
+                </div>
+            </header>
 
-<input type="text" id="caption-input" placeholder="Scrivi qui la tua caption...">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black uppercase text-zinc-500">File Video</label>
+                    <label for="video-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                        <i data-lucide="video" class="w-4 h-4 text-blue-400"></i>
+                        <span class="text-[11px] text-zinc-400 truncate" id="video-label">Carica Video</span>
+                        <input type="file" id="video-input" accept="video/*" class="hidden">
+                    </label>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black uppercase text-zinc-500">File Audio</label>
+                    <label for="audio-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-violet-500 transition-all">
+                        <i data-lucide="music" class="w-4 h-4 text-violet-400"></i>
+                        <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Opzionale)</span>
+                        <input type="file" id="audio-input" accept="audio/*" class="hidden">
+                    </label>
+                </div>
+            </div>
 
-<div class="controls">
-    <button class="btn" id="play-btn">Play</button>
-    <button class="btn" id="pause-btn">Pause</button>
-    <button class="btn" id="outline-btn">Outline</button>
-</div>
+            <!-- Video Trimmer -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
+                    <span>Ritaglia Clip Video (Max 30s)</span>
+                    <span id="v-range-text">0.0s - 15.0s</span>
+                </div>
+                <div class="trimmer-track h-[54px]" id="v-trimmer-track">
+                    <div class="thumbnail-track" id="v-thumbs"></div>
+                    <div id="video-playhead" class="playhead-cursor" style="left: 0; display: none;"></div>
+                    <div id="video-trim-overlay" class="trim-overlay">
+                        <div class="trim-handle handle-left" id="v-handle-l"></div>
+                        <div class="trim-handle handle-right" id="v-handle-r"></div>
+                    </div>
+                </div>
+            </div>
 
-<div class="controls">
-    <strong>Font:</strong>
-    <button class="btn font-btn active" data-font="font-sans">Sans</button>
-    <button class="btn font-btn" data-font="font-serif">Serif</button>
-    <button class="btn font-btn" data-font="font-mono">Mono</button>
-</div>
+            <!-- Audio Waveform Trimmer -->
+            <div class="space-y-3 bg-black p-4 rounded-3xl border border-zinc-800/50">
+                <div class="flex items-center gap-4">
+                    <button id="play-btn" class="w-12 h-12 rounded-xl btn-sv text-white flex items-center justify-center shadow-lg shrink-0">
+                        <i data-lucide="play" id="play-icon" class="w-5 h-5 fill-white"></i>
+                    </button>
+                    <div class="flex-1 space-y-1">
+                        <div class="flex justify-between text-[9px] font-black uppercase text-zinc-500">
+                            <span>Onda Sonora (Loop Anteprima)</span>
+                            <span id="audio-start-label">Start Audio: 0.0s</span>
+                        </div>
+                        <div class="trimmer-track h-[70px]" id="a-trimmer-track">
+                            <div class="waveform-wrapper">
+                                <canvas id="waveform"></canvas>
+                            </div>
+                            <div id="audio-playhead" class="playhead-cursor" style="left: 0; display: none;"></div>
+                            <div id="audio-trim-overlay" class="trim-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<div class="controls">
-    <strong>Categoria:</strong>
-    <button class="btn caption-cat-btn active" data-category="pov">POV</button>
-    <button class="btn caption-cat-btn" data-category="amore">Amore</button>
-    <button class="btn caption-cat-btn" data-category="gym">Gym</button>
-    <button class="btn caption-cat-btn" data-category="motivazione">Motivazione</button>
-    <button class="btn caption-cat-btn" data-category="humor">Humor</button>
-    <button class="btn caption-cat-btn" data-category="lifestyle">Lifestyle</button>
-</div>
+            <!-- Content Editor -->
+            <div class="p-5 bg-zinc-900/60 rounded-3xl border border-zinc-800 space-y-4">
+                <!-- Viral Captions Generator -->
+                <div class="space-y-3 p-4 bg-gradient-to-br from-violet-950/30 to-blue-950/30 rounded-2xl border border-violet-800/30">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-black uppercase text-violet-300 tracking-widest">✨ Caption Virali</span>
+                        <button id="random-caption-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
+                            <i data-lucide="shuffle" class="w-3 h-3"></i>
+                            Random
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="caption-cat-btn active" data-category="pov">POV</button>
+                        <button class="caption-cat-btn" data-category="amore">Amore</button>
+                        <button class="caption-cat-btn" data-category="gym">Gym</button>
+                        <button class="caption-cat-btn" data-category="motivazione">Motivazione</button>
+                        <button class="caption-cat-btn" data-category="humor">Humor</button>
+                        <button class="caption-cat-btn" data-category="lifestyle">Lifestyle</button>
+                    </div>
+                </div>
 
-<div class="controls">
-    <button class="btn" id="random-caption-btn">Genera Caption Random</button>
-</div>
+                <textarea id="caption-input" rows="2" placeholder="Scrivi il testo qui..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none font-semibold"></textarea>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button class="font-btn active" data-font="font-tiktok">TIKTOK</button>
+                    <button class="font-btn" data-font="font-typewriter">RETRO</button>
+                    <button class="font-btn" data-font="font-classic">BOLD</button>
+                    <button class="font-btn" data-font="font-handwriting">SCRIPT</button>
+                </div>
 
-<script>
-const video = document.getElementById('video');
-const caption = document.getElementById('caption-overlay');
-const captionInput = document.getElementById('caption-input');
+                <div class="space-y-4 pt-2">
+                    <div class="flex-1 space-y-2">
+                        <div class="flex justify-between text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                            <span>Dimensione Carattere</span>
+                            <span id="fs-val" class="text-blue-400">24px</span>
+                        </div>
+                        <input type="range" id="font-size" min="12" max="60" value="24" class="w-full accent-blue-500 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div class="flex flex-col gap-4 p-4 bg-black/40 rounded-2xl border border-zinc-800/50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="color-wrapper shadow-lg"><input type="color" id="text-color" value="#ffffff" class="color-input"></div>
+                                <span class="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Colore Testo</span>
+                            </div>
 
-let outlineEnabled = false;
+                            <div class="h-6 w-[1px] bg-zinc-800"></div>
 
-// --- Play/Pause ---
-document.getElementById('play-btn').onclick = () => video.play();
-document.getElementById('pause-btn').onclick = () => video.pause();
+                            <div class="flex items-center gap-3">
+                                <span class="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Contorno</span>
+                                <div class="color-wrapper shadow-lg"><input type="color" id="outline-color" value="#000000" class="color-input"></div>
+                            </div>
+                        </div>
 
-// --- Outline Toggle ---
-document.getElementById('outline-btn').onclick = () => {
-    outlineEnabled = !outlineEnabled;
-    if(outlineEnabled){
-        caption.classList.add('text-bold-outline');
-    } else {
-        caption.classList.remove('text-bold-outline');
-    }
-};
+                        <button id="outline-toggle" class="toggle-btn active justify-center w-full">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            Stile Contorno Attivo
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-// --- Update overlay from input ---
-captionInput.addEventListener('input', () => {
-    caption.innerText = captionInput.value;
-});
+            <button id="export-btn" class="w-full btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
+                <i data-lucide="download" class="w-4 h-4"></i> Scarica Video MP4
+            </button>
+            
+            <div id="export-status" class="hidden bg-black border border-zinc-800 p-4 rounded-2xl">
+                <div class="flex justify-between text-[10px] mb-2 font-black uppercase text-blue-400">
+                    <span id="status-text">Preparazione...</span>
+                    <span id="percent-text">0%</span>
+                </div>
+                <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-500 h-full w-0 transition-all"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// --- Font selection ---
-document.querySelectorAll('.font-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        caption.className = '';
-        caption.classList.add(btn.dataset.font, outlineEnabled ? 'text-bold-outline' : '');
-    });
-});
+    <audio id="bg-music" crossorigin="anonymous"></audio>
+    <canvas id="render-canvas"></canvas>
+    <video id="source-video" style="display: none;"></video>
 
-// --- Category selection ---
-document.querySelectorAll('.caption-cat-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    });
-});
+    <script>
+        lucide.createIcons();
 
-// --- Captions per categoria orientate a promozione musicale ---
-const captions = {
-    pov: [
-        "POV: stai ascoltando il beat che ti fa muovere senza fermarti, mentre la tua canzone preferita prende vita davanti a te.",
-        "POV: entri in una stanza e tutti i tuoi amici iniziano a ballare sulla tua playlist del momento, la musica è energia pura.",
-        "POV: il drop arriva e senti ogni vibrazione del subwoofer, la tua traccia preferita ti avvolge completamente.",
-        "POV: sei in macchina, finestre aperte, e il ritmo della canzone ti fa cantare a squarciagola senza vergogna.",
-        "POV: il tuo DJ preferito annuncia la tua canzone in club, e il pubblico esplode di entusiasmo al beat.",
-        "POV: stai creando la tua playlist del weekend e ogni traccia racconta una storia di vibrazioni ed emozioni.",
-        "POV: il ritmo elettronico ti avvolge, ogni nota ti spinge a muoverti e a sentirti vivo.",
-        "POV: ascolti il nuovo singolo e ti sembra che la musica parli direttamente di te e delle tue emozioni.",
-        "POV: il video musicale inizia e ogni scena si sincronizza perfettamente con il beat della tua canzone preferita.",
-        "POV: sei in studio, il produttore ti fa sentire l’anteprima, e la traccia ti fa venire i brividi."
-        // aggiungi fino a 50 frasi
-    ],
-    amore: [
-        "Ogni volta che ascolti la nostra playlist romantica, senti che le parole delle canzoni raccontano la storia del tuo cuore.",
-        "Il ritmo lento di questa ballad ti fa ricordare ogni momento speciale passato insieme, ogni nota è un abbraccio.",
-        "Quando parte il tuo singolo preferito, senti le emozioni vibrare come se fossero solo per te.",
-        "Ascoltare questa traccia ti fa pensare a quella persona speciale, ogni verso ti fa sorridere.",
-        "Il suono delle chitarre e della voce ti accompagna nei momenti più intimi, rendendo l’amore eterno e reale.",
-        "Questa playlist è pensata per momenti romantici: accendi la musica e senti il battito del cuore sincronizzato con le note.",
-        "Le canzoni raccontano storie d’amore che ti fanno sognare e ricordare quanto sia potente la musica.",
-        "Quando condividi una canzone d’amore, ogni nota diventa un messaggio diretto per l’altra persona.",
-        "Il ritmo perfetto della canzone ti fa sentire come se il mondo fosse solo tu e la tua anima gemella.",
-        "Ogni melodia romantica ti accompagna in un viaggio emozionale dove le parole diventano musica."
-        // aggiungi fino a 50 frasi
-    ],
-    gym: [
-        "Mentre ti alleni, ascolta questa playlist energica: ogni drop è un booster per superare i tuoi limiti.",
-        "Ogni battito della canzone ti spinge a correre più veloce, a sollevare più peso e a non mollare mai.",
-        "La musica giusta trasforma ogni sessione in una sfida divertente e motivante, facendoti sentire invincibile.",
-        "Ascoltare i beat giusti mentre ti alleni ti fa concentrare e ottenere il massimo da ogni esercizio.",
-        "Questa traccia è perfetta per caricare l’adrenalina prima del tuo workout, ogni nota è motivazione pura.",
-        "Ogni drop ti spinge a dare tutto, a non arrenderti e a sentire il corpo che risponde con forza.",
-        "La tua playlist di allenamento è studiata per mantenere il ritmo alto e la mente focalizzata sui risultati.",
-        "Ascolta il ritmo delle canzoni mentre corri o sollevi pesi e senti ogni fibra del corpo lavorare al massimo.",
-        "Ogni beat della traccia ti ricorda perché hai iniziato e quanto sei capace di superare i tuoi limiti.",
-        "La musica diventa il tuo allenatore personale, guidandoti verso il successo fisico e mentale."
-        // aggiungi fino a 50 frasi
-    ],
-    motivazione: [
-        "Ogni volta che premi play su questa traccia, senti che puoi conquistare qualsiasi obiettivo ti sei prefissato.",
-        "La musica motivazionale ti accompagna passo dopo passo, ricordandoti che ogni sforzo porta risultati.",
-        "Ascoltare la canzone giusta al momento giusto ti fa sentire pronto a superare ogni ostacolo.",
-        "Ogni verso della canzone ti spinge a credere in te stesso e a non smettere mai di lottare.",
-        "Il ritmo crescente ti guida verso nuove sfide, trasformando l’energia musicale in determinazione.",
-        "Questa playlist ti ricorda che la perseveranza e la dedizione pagano sempre.",
-        "Ogni drop ti fa sentire più forte, più concentrato e più pronto a creare il tuo successo.",
-        "La musica diventa carburante per la tua motivazione, alimentando ogni progetto e sogno.",
-        "Ogni nota è una spinta per andare oltre la zona di comfort e crescere.",
-        "Quando ascolti questa traccia, senti che nulla può fermarti e che il futuro è nelle tue mani."
-        // aggiungi fino a 50 frasi
-    ],
-    humor: [
-        "Quando ascolti questa canzone, anche il tuo cane inizia a ballare come se fosse il DJ della festa.",
-        "Questa traccia ti fa sorridere perché ogni beat sembra raccontare un meme della tua vita quotidiana.",
-        "Quando parte il drop, ti accorgi che la pigrizia non ha più scampo e devi muoverti.",
-        "La canzone giusta al momento giusto può trasformare un lunedì noioso in una festa improvvisata.",
-        "Il ritmo comico della traccia ti fa cantare parole che non capisci, ma ridere comunque.",
-        "Ascoltare questo brano è come avere un amico ironico che ti fa compagnia tutto il giorno.",
-        "Ogni verso della canzone ti ricorda che ridere è una forma di musica.",
-        "Questa playlist è perfetta per momenti divertenti, per scherzare con amici e ridere insieme.",
-        "Il suono della traccia ti accompagna in situazioni assurde, rendendo ogni giornata più leggera.",
-        "Quando ascolti questa canzone, anche i problemi più seri sembrano più piccoli e gestibili."
-        // aggiungi fino a 50 frasi
-    ],
-    lifestyle: [
-        "Questa playlist accompagna il tuo stile di vita, rendendo ogni giornata più energica e piena di vibrazioni positive.",
-        "Ogni traccia è pensata per momenti di relax, lavoro creativo o viaggi, trasformando l’esperienza in pura musica.",
-        "Ascoltare queste canzoni ti ispira a esplorare nuovi luoghi, incontrare nuove persone e vivere pienamente.",
-        "Ogni beat ti ricorda che il tempo è prezioso e che la musica rende ogni attimo speciale.",
-        "Questa selezione di brani è perfetta per accompagnare le tue routine quotidiane e valorizzare ogni momento.",
-        "Il ritmo della musica si adatta al tuo stile di vita, creando energia e motivazione in ogni situazione.",
-        "Ogni melodia è pensata per farti sentire libero, creativo e in sintonia con il mondo che ti circonda.",
-        "La playlist ideale per chi vuole vivere con entusiasmo, emozione e passione per la musica.",
-        "Ogni canzone ti guida in un viaggio sensoriale fatto di suoni, colori e momenti indimenticabili.",
-        "Ascoltando questi brani, senti che la tua vita è una colonna sonora di esperienze uniche e memorabili."
-        // aggiungi fino a 50 frasi
-    ]
-};
+        const video = document.getElementById('main-video');
+        const audio = document.getElementById('bg-music');
+        const caption = document.getElementById('caption-overlay');
+        const vTrimOverlay = document.getElementById('video-trim-overlay');
+        const aTrimOverlay = document.getElementById('audio-trim-overlay');
+        const vTrimmerTrack = document.getElementById('v-trimmer-track');
+        const aTrimmerTrack = document.getElementById('a-trimmer-track');
+        const vPlayhead = document.getElementById('video-playhead');
+        const aPlayhead = document.getElementById('audio-playhead');
+        const canvas = document.getElementById('waveform');
+        const ctx = canvas.getContext('2d');
 
-// --- Random Caption ---
-document.getElementById('random-caption-btn').onclick = () => {
-    const activeCat = document.querySelector('.caption-cat-btn.active').dataset.category;
-    const catCaptions = captions[activeCat];
-    const rand = catCaptions[Math.floor(Math.random() * catCaptions.length)];
-    captionInput.value = rand;
-    caption.innerText = rand;
-};
-</script>
+        let videoFile, audioFile;
+        let videoDuration = 0, audioDuration = 0;
+        let vStart = 0, vEnd = 15;
+        let aStart = 0;
+        
+        const MAX_DUR = 30; 
+        
+        let outlineEnabled = true;
+        let isDraggingV = null; 
+        let isDraggingA = false;
+        let dragOffsetV = 0;
+        let dragOffsetA = 0;
 
+        function updateTrimmers() {
+            if (videoDuration > 0) {
+                const vLeft = (vStart / videoDuration) * 100;
+                const vWidth = ((vEnd - vStart) / videoDuration) * 100;
+                vTrimOverlay.style.left = vLeft + '%';
+                vTrimOverlay.style.width = vWidth + '%';
+                
+                document.getElementById('v-range-text').innerText = `${vStart.toFixed(1)}s - ${vEnd.toFixed(1)}s`;
+                document.getElementById('video-dur-label').innerText = `Video: ${(vEnd - vStart).toFixed(1)}s`;
+                
+                if (audioDuration > 0) {
+                    const currentVidDur = vEnd - vStart;
+                    const aWidth = (currentVidDur / audioDuration) * 100;
+                    
+                    if (aStart + currentVidDur > audioDuration) {
+                        aStart = Math.max(0, audioDuration - currentVidDur);
+                    }
+                    
+                    const aLeft = (aStart / audioDuration) * 100;
+                    aTrimOverlay.style.left = aLeft + '%';
+                    aTrimOverlay.style.width = aWidth + '%';
+                    document.getElementById('audio-start-label').innerText = `Start Audio: ${aStart.toFixed(1)}s`;
+                }
+            }
+        }
+
+        function loopMonitor() {
+            if (!video.paused) {
+                if (videoDuration > 0) {
+                    const vPerc = (video.currentTime / videoDuration) * 100;
+                    vPlayhead.style.left = vPerc + '%';
+                    vPlayhead.style.display = 'block';
+                }
+
+                if (audio.src && audioDuration > 0) {
+                    const aPerc = (audio.currentTime / audioDuration) * 100;
+                    aPlayhead.style.left = aPerc + '%';
+                    aPlayhead.style.display = 'block';
+                }
+
+                if (video.currentTime >= vEnd - 0.05) {
+                    video.currentTime = vStart;
+                    if (audio.src) {
+                        audio.currentTime = aStart;
+                        audio.play().catch(() => {});
+                    }
+                }
+
+                if (audio.src && !audio.paused) {
+                    const videoOffset = video.currentTime - vStart;
+                    const expectedAudioTime = aStart + videoOffset;
+                    if (Math.abs(audio.currentTime - expectedAudioTime) > 0.2) {
+                        audio.currentTime = expectedAudioTime;
+                    }
+                }
+            } else {
+                vPlayhead.style.display = 'none';
+                aPlayhead.style.display = 'none';
+            }
+            requestAnimationFrame(loopMonitor);
+        }
+        requestAnimationFrame(loopMonitor);
+
+        vTrimmerTrack.onmousedown = (e) => {
+            if (videoDuration === 0) return;
+            const rect = vTrimmerTrack.getBoundingClientRect();
+            const clickTime = ((e.clientX - rect.left) / rect.width) * videoDuration;
+            
+            if (e.target.id === 'v-handle-l') {
+                isDraggingV = 'left';
+            } else if (e.target.id === 'v-handle-r') {
+                isDraggingV = 'right';
+            } else if (e.target.closest('#video-trim-overlay')) {
+                isDraggingV = 'center';
+                dragOffsetV = clickTime - vStart;
+            } else {
+                video.currentTime = clickTime;
+                if (audio.src) {
+                    const offset = clickTime - vStart;
+                    audio.currentTime = Math.max(0, aStart + offset);
+                }
+            }
+        };
+
+        aTrimmerTrack.onmousedown = (e) => {
+            if (audioDuration === 0) return;
+            const rect = aTrimmerTrack.getBoundingClientRect();
+            const clickTime = ((e.clientX - rect.left) / rect.width) * audioDuration;
+            
+            if (e.target.closest('#audio-trim-overlay')) {
+                isDraggingA = true;
+                dragOffsetA = clickTime - aStart;
+            } else {
+                const currentVidDur = vEnd - vStart;
+                let newAStart = clickTime - (currentVidDur / 2);
+                if (newAStart < 0) newAStart = 0;
+                if (newAStart + currentVidDur > audioDuration) newAStart = audioDuration - currentVidDur;
+                aStart = newAStart;
+                updateTrimmers();
+                audio.currentTime = aStart;
+                video.currentTime = vStart;
+            }
+        };
+
+        window.onmousemove = (e) => {
+            if (isDraggingV && videoDuration > 0) {
+                const rect = vTrimmerTrack.getBoundingClientRect();
+                const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+                const currentTime = (x / rect.width) * videoDuration;
+
+                if (isDraggingV === 'left') {
+                    if (currentTime < vEnd && vEnd - currentTime <= MAX_DUR) vStart = currentTime;
+                    else if (vEnd - currentTime > MAX_DUR) vStart = vEnd - MAX_DUR;
+                } else if (isDraggingV === 'right') {
+                    if (currentTime > vStart && currentTime - vStart <= MAX_DUR) vEnd = currentTime;
+                    else if (currentTime - vStart > MAX_DUR) vEnd = vStart + MAX_DUR;
+                } else if (isDraggingV === 'center') {
+                    let dur = vEnd - vStart;
+                    let newStart = currentTime - dragOffsetV;
+                    if (newStart >= 0 && newStart + dur <= videoDuration) {
+                        vStart = newStart;
+                        vEnd = newStart + dur;
+                    }
+                }
+                updateTrimmers();
+                syncPlayback();
+            }
+
+            if (isDraggingA && audioDuration > 0) {
+                const rect = aTrimmerTrack.getBoundingClientRect();
+                const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+                const currentTime = (x / rect.width) * audioDuration;
+                const currentVidDur = vEnd - vStart;
+                let newAStart = currentTime - dragOffsetA;
+                if (newAStart >= 0 && newAStart + currentVidDur <= audioDuration) {
+                    aStart = newAStart;
+                }
+                updateTrimmers();
+                syncPlayback();
+            }
+        };
+
+        window.onmouseup = () => {
+            isDraggingV = null;
+            isDraggingA = false;
+        };
+
+        document.getElementById('video-input').onchange = async (e) => {
+            videoFile = e.target.files[0];
+            if (videoFile) {
+                video.src = URL.createObjectURL(videoFile);
+                document.getElementById('video-label').innerText = videoFile.name;
+                video.onloadedmetadata = () => {
+                    videoDuration = video.duration;
+                    vStart = 0;
+                    vEnd = Math.min(videoDuration, 15);
+                    updateTrimmers();
+                    video.currentTime = vStart;
+                };
+                generateThumbnails(videoFile);
+            }
+        };
+
+        document.getElementById('audio-input').onchange = (e) => {
+            audioFile = e.target.files[0];
+            if (audioFile) {
+                audio.src = URL.createObjectURL(audioFile);
+                document.getElementById('audio-label').innerText = audioFile.name;
+                audio.onloadedmetadata = () => {
+                    audioDuration = audio.duration;
+                    drawWaveform(audioFile);
+                    updateTrimmers();
+                    audio.currentTime = aStart;
+                };
+            }
+        };
+
+        document.getElementById('play-btn').onclick = () => {
+            if (video.paused) {
+                video.play();
+                if (audio.src) {
+                    const videoOffset = video.currentTime - vStart;
+                    audio.currentTime = aStart + videoOffset;
+                    audio.play().catch(() => {});
+                }
+                updatePlayIcon(true);
+            } else {
+                video.pause();
+                audio.pause();
+                updatePlayIcon(false);
+            }
+        };
+
+        function syncPlayback() {
+            video.currentTime = vStart;
+            if (audio.src) audio.currentTime = aStart;
+            if (!video.paused) {
+                video.play();
+                if (audio.src) audio.play().catch(() => {});
+            }
+        }
+
+        function updatePlayIcon(isPlaying) {
+            const icon = document.getElementById('play-icon');
+            icon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+            lucide.createIcons();
+        }
+
+        async function drawWaveform(file) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const buffer = await file.arrayBuffer();
+            const decoded = await audioCtx.decodeAudioData(buffer);
+            const rawData = decoded.getChannelData(0);
+            const samples = 120;
+            const blockSize = Math.floor(rawData.length / samples);
+            const data = [];
+            for (let i = 0; i < samples; i++) {
+                let sum = 0;
+                for (let j = 0; j < blockSize; j++) sum += Math.abs(rawData[i * blockSize + j]);
+                data.push(sum / blockSize);
+            }
+            const max = Math.max(...data);
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            const step = canvas.width / samples;
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            grad.addColorStop(0, '#3B82F6');
+            grad.addColorStop(1, '#8B5CF6');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = grad;
+            data.forEach((val, i) => {
+                const h = (val / max) * canvas.height * 0.8;
+                const x = i * step;
+                const y = (canvas.height - h) / 2;
+                ctx.beginPath();
+                ctx.roundRect(x, y, step - 3, h, 2);
+                ctx.fill();
+            });
+        }
+
+        document.getElementById('caption-input').oninput = (e) => caption.innerText = e.target.value || 'Scrivi il tuo testo';
+        document.getElementById('font-size').oninput = (e) => {
+            caption.style.fontSize = e.target.value + 'px';
+            document.getElementById('fs-val').innerText = e.target.value + 'px';
+        };
+        document.getElementById('text-color').oninput = (e) => caption.style.color = e.target.value;
+        
+        const outlineBtn = document.getElementById('outline-toggle');
+        const outlineColorInput = document.getElementById('outline-color');
+
+        function updateOutlineUI() {
+            if (outlineEnabled) {
+                caption.classList.add('text-bold-outline');
+                outlineBtn.classList.add('active');
+                outlineBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Stile Contorno Attivo';
+            } else {
+                caption.classList.remove('text-bold-outline');
+                outlineBtn.classList.remove('active');
+                outlineBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Stile Contorno Spento';
+            }
+            lucide.createIcons();
+        }
+
+        outlineBtn.onclick = () => {
+            outlineEnabled = !outlineEnabled;
+            updateOutlineUI();
+        };
+
+        outlineColorInput.oninput = (e) => {
+            caption.style.setProperty('--outline-color', e.target.value);
+            if (!outlineEnabled) {
+                outlineEnabled = true;
+                updateOutlineUI();
+            }
+        };
+
+        document.querySelectorAll('.font-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const hasOutline = caption.classList.contains('text-bold-outline');
+                caption.className = btn.dataset.font + (hasOutline ? ' text-bold-outline' : '');
+            };
+        });
+
+        let dragText = false, dragStartY, dragStartTop;
+        
+        caption.onmousedown = (e) => { 
+            dragText = true; 
+            dragStartY = e.clientY;
+            dragStartTop = caption.offsetTop;
+            caption.style.cursor = 'grabbing';
+            caption.classList.add('dragging');
+            e.preventDefault();
+        };
+        
+        window.addEventListener('mousemove', (e) => {
+            if (dragText) {
+                const rect = document.getElementById('drop-zone').getBoundingClientRect();
+                const deltaY = e.clientY - dragStartY;
+                let newTop = dragStartTop + deltaY;
+                
+                // Limita il movimento inside il container
+                const minTop = 10;
+                const maxTop = rect.height - caption.offsetHeight - 10;
+                newTop = Math.max(minTop, Math.min(newTop, maxTop));
+                
+                caption.style.top = newTop + 'px';
+            }
+        });
+        
+        window.addEventListener('mouseup', () => {
+            if (dragText) {
+                dragText = false;
+                caption.style.cursor = 'move';
+                caption.classList.remove('dragging');
+            }
+        });
+
+        async function generateThumbnails(file) {
+            const container = document.getElementById('v-thumbs');
+            container.innerHTML = '';
+            const tempVideo = document.createElement('video');
+            tempVideo.src = URL.createObjectURL(file);
+            tempVideo.muted = true;
+            tempVideo.playsInline = true;
+            await new Promise(r => tempVideo.onloadedmetadata = r);
+            const count = 10;
+            const interval = tempVideo.duration / count;
+            for (let i = 0; i < count; i++) {
+                tempVideo.currentTime = i * interval;
+                await new Promise(r => tempVideo.onseeked = r);
+                const c = document.createElement('canvas');
+                const ratio = tempVideo.videoWidth / tempVideo.videoHeight;
+                c.width = 100; c.height = 100 / ratio;
+                c.getContext('2d').drawImage(tempVideo, 0, 0, c.width, c.height);
+                container.appendChild(c);
+            }
+            URL.revokeObjectURL(tempVideo.src);
+        }
+
+        // Export usando mp4-muxer
+        document.getElementById('export-btn').onclick = async () => {
+            if (!videoFile) {
+                alert('Carica un video prima di esportare!');
+                return;
+            }
+
+            const exportBtn = document.getElementById('export-btn');
+            exportBtn.disabled = true;
+            
+            const status = document.getElementById('export-status');
+            const progress = document.getElementById('progress-bar');
+            const statusText = document.getElementById('status-text');
+            const percentText = document.getElementById('percent-text');
+            
+            status.classList.remove('hidden');
+            progress.style.width = '0%';
+            percentText.innerText = '0%';
+            statusText.innerText = 'Inizializzazione...';
+
+            try {
+                // Setup video source
+                const sourceVideo = document.getElementById('source-video');
+                sourceVideo.src = URL.createObjectURL(videoFile);
+                await new Promise(r => sourceVideo.onloadedmetadata = r);
+
+                const renderCanvas = document.getElementById('render-canvas');
+                const renderCtx = renderCanvas.getContext('2d');
+                
+                // Imposta risoluzione a 720x1280 (HD verticale)
+                const targetWidth = 720;
+                const targetHeight = 1280;
+                
+                renderCanvas.width = targetWidth;
+                renderCanvas.height = targetHeight;
+
+                const fps = 30;
+                const duration = vEnd - vStart;
+
+                statusText.innerText = 'Creazione MP4 muxer...';
+
+                // Crea MP4 Muxer
+                const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
+
+                const muxerConfig = {
+                    target: new ArrayBufferTarget(),
+                    video: {
+                        codec: 'avc',
+                        width: renderCanvas.width,
+                        height: renderCanvas.height
+                    },
+                    fastStart: 'in-memory'
+                };
+
+                // Aggiungi audio se presente
+                if (audioFile) {
+                    muxerConfig.audio = {
+                        codec: 'aac',
+                        numberOfChannels: 2,
+                        sampleRate: 48000
+                    };
+                }
+
+                const muxer = new Muxer(muxerConfig);
+
+                // Setup VideoEncoder
+                statusText.innerText = 'Codifica video...';
+                
+                const videoEncoder = new VideoEncoder({
+                    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                    error: e => {
+                        console.error('Video encoder error:', e);
+                        throw new Error('Errore di codifica video: ' + e.message);
+                    }
+                });
+
+                videoEncoder.configure({
+                    codec: 'avc1.42001F', // AVC Baseline Profile Level 3.1 (supporta fino a 1280x720)
+                    width: renderCanvas.width,
+                    height: renderCanvas.height,
+                    bitrate: 8_000_000, // 8 Mbps per 720p HD
+                    framerate: fps,
+                    avc: { format: 'avc' }
+                });
+
+                // Setup AudioEncoder se c'è audio
+                let audioEncoder = null;
+                let audioContext = null;
+                let audioSource = null;
+                let audioData = null;
+
+                if (audioFile) {
+                    statusText.innerText = 'Preparazione audio...';
+                    
+                    // Leggi e decodifica audio
+                    audioContext = new AudioContext({ sampleRate: 48000 });
+                    const audioBuffer = await audioFile.arrayBuffer();
+                    const decodedAudio = await audioContext.decodeAudioData(audioBuffer);
+                    
+                    // Estrai dati audio dalla porzione selezionata
+                    const startSample = Math.floor(aStart * decodedAudio.sampleRate);
+                    const endSample = Math.floor((aStart + duration) * decodedAudio.sampleRate);
+                    const sampleCount = endSample - startSample;
+                    
+                    // Crea buffer per stereo (planar format - canali separati)
+                    audioData = {
+                        left: new Float32Array(sampleCount),
+                        right: new Float32Array(sampleCount),
+                        sampleRate: decodedAudio.sampleRate
+                    };
+                    
+                    const leftChannel = decodedAudio.getChannelData(0);
+                    const rightChannel = decodedAudio.numberOfChannels > 1 ? decodedAudio.getChannelData(1) : leftChannel;
+                    
+                    for (let i = 0; i < sampleCount; i++) {
+                        audioData.left[i] = leftChannel[startSample + i] || 0;
+                        audioData.right[i] = rightChannel[startSample + i] || 0;
+                    }
+
+                    audioEncoder = new AudioEncoder({
+                        output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                        error: e => {
+                            console.error('Audio encoder error:', e);
+                            throw new Error('Errore di codifica audio: ' + e.message);
+                        }
+                    });
+
+                    audioEncoder.configure({
+                        codec: 'mp4a.40.2', // AAC-LC
+                        sampleRate: 48000,
+                        numberOfChannels: 2,
+                        bitrate: 128000
+                    });
+                }
+
+                // Render e encode frames
+                sourceVideo.currentTime = vStart;
+                await new Promise(r => sourceVideo.onseeked = r);
+
+                const totalFrames = Math.ceil(duration * fps);
+                let frameCount = 0;
+
+                // Per l'audio, calcoliamo quanti campioni per frame
+                // Dobbiamo resampolare se necessario
+                const targetSampleRate = 48000;
+                const sourceSampleRate = audioData ? audioData.sampleRate : 48000;
+                const samplesPerFrame = Math.floor(targetSampleRate / fps);
+                let audioSampleOffset = 0;
+
+                // Salva la posizione corrente del caption per l'export
+                const captionElement = document.getElementById('caption-overlay');
+                const dropZone = document.getElementById('drop-zone');
+                const captionPosition = {
+                    text: captionElement.innerText,
+                    topPx: parseFloat(captionElement.style.top) || (dropZone.offsetHeight * 0.35),
+                    fontSize: parseInt(captionElement.style.fontSize || '24'),
+                    color: captionElement.style.color || '#ffffff',
+                    outlineColor: getComputedStyle(captionElement).getPropertyValue('--outline-color') || '#000000',
+                    fontClass: captionElement.className
+                };
+
+                for (let i = 0; i < totalFrames; i++) {
+                    const timestamp = i / fps;
+                    sourceVideo.currentTime = vStart + timestamp;
+                    await new Promise(r => sourceVideo.onseeked = r);
+
+                    // Draw video frame - scala leggermente per rimuovere watermark VEO in basso a destra
+                    // Ingrandisce del 8% e centra per tagliare i bordi
+                    const scale = 1.08;
+                    const scaledWidth = sourceVideo.videoWidth * scale;
+                    const scaledHeight = sourceVideo.videoHeight * scale;
+                    const offsetX = -(scaledWidth - renderCanvas.width) / 2;
+                    const offsetY = -(scaledHeight - renderCanvas.height) / 2;
+                    
+                    renderCtx.drawImage(
+                        sourceVideo,
+                        offsetX,
+                        offsetY,
+                        scaledWidth,
+                        scaledHeight
+                    );
+
+                    // Draw text overlay usando la posizione salvata
+                    if (captionPosition.text && captionPosition.text !== 'Scrivi il tuo testo') {
+                        const scaleFactor = renderCanvas.width / 290; // 720/290 = 2.48x
+                        const scaledFontSize = captionPosition.fontSize * scaleFactor;
+
+                        let fontFamily = 'Montserrat';
+                        if (captionPosition.fontClass.includes('font-typewriter')) fontFamily = 'Courier Prime';
+                        else if (captionPosition.fontClass.includes('font-classic')) fontFamily = 'Inter';
+                        else if (captionPosition.fontClass.includes('font-handwriting')) fontFamily = 'Dancing Script';
+
+                        renderCtx.font = `800 ${scaledFontSize}px ${fontFamily}`;
+                        renderCtx.textAlign = 'center';
+                        renderCtx.textBaseline = 'top';
+
+                        // Calcola posizione Y usando i dati salvati
+                        const topRatio = captionPosition.topPx / dropZone.offsetHeight;
+                        const textY = renderCanvas.height * topRatio;
+
+                        if (outlineEnabled) {
+                            renderCtx.strokeStyle = captionPosition.outlineColor;
+                            renderCtx.lineWidth = Math.max(scaleFactor * 3, 4); // Outline più spesso per 720p
+                            renderCtx.lineJoin = 'round';
+                            renderCtx.miterLimit = 2;
+                            renderCtx.strokeText(captionPosition.text, renderCanvas.width / 2, textY);
+                        }
+
+                        renderCtx.fillStyle = captionPosition.color;
+                        renderCtx.fillText(captionPosition.text, renderCanvas.width / 2, textY);
+                    }
+
+                    // Create VideoFrame and encode
+                    const videoFrame = new VideoFrame(renderCanvas, {
+                        timestamp: (i * 1_000_000) / fps
+                    });
+
+                    videoEncoder.encode(videoFrame, { keyFrame: i % 30 === 0 });
+                    videoFrame.close();
+
+                    // Encode audio se presente
+                    if (audioEncoder && audioData) {
+                        // Calcola il sample offset corretto considerando il resampling
+                        const resampleRatio = sourceSampleRate / targetSampleRate;
+                        const sourceSamplesNeeded = Math.floor(samplesPerFrame * resampleRatio);
+                        
+                        // Crea buffer planar (canali separati)
+                        const leftChannel = new Float32Array(samplesPerFrame);
+                        const rightChannel = new Float32Array(samplesPerFrame);
+                        
+                        // Semplice resampling (nearest neighbor per semplicità)
+                        for (let j = 0; j < samplesPerFrame; j++) {
+                            const sourceIndex = Math.floor(audioSampleOffset + (j * resampleRatio));
+                            if (sourceIndex < audioData.left.length) {
+                                leftChannel[j] = audioData.left[sourceIndex];
+                                rightChannel[j] = audioData.right[sourceIndex];
+                            } else {
+                                leftChannel[j] = 0;
+                                rightChannel[j] = 0;
+                            }
+                        }
+
+                        // Crea AudioData con formato planar corretto
+                        const audioFrame = new AudioData({
+                            format: 'f32-planar',
+                            sampleRate: targetSampleRate,
+                            numberOfFrames: samplesPerFrame,
+                            numberOfChannels: 2,
+                            timestamp: (i * 1_000_000) / fps,
+                            data: new Float32Array([...leftChannel, ...rightChannel])
+                        });
+
+                        audioEncoder.encode(audioFrame);
+                        audioFrame.close();
+                        
+                        audioSampleOffset += sourceSamplesNeeded;
+                    }
+
+                    frameCount++;
+                    const progressPercent = Math.round((frameCount / totalFrames) * 100);
+                    progress.style.width = progressPercent + '%';
+                    percentText.innerText = progressPercent + '%';
+
+                    // Yield ogni 10 frame per non bloccare UI
+                    if (i % 10 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+
+                statusText.innerText = 'Finalizzazione MP4...';
+                await videoEncoder.flush();
+                if (audioEncoder) await audioEncoder.flush();
+                muxer.finalize();
+
+                const buffer = muxer.target.buffer;
+                const blob = new Blob([buffer], { type: 'video/mp4' });
+                
+                statusText.innerText = 'Download...';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'TikTok_Clip.mp4';
+                a.click();
+
+                statusText.innerText = 'Completato!';
+                percentText.innerText = '100%';
+                progress.style.width = '100%';
+                
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                    exportBtn.disabled = false;
+                }, 2000);
+
+            } catch (e) {
+                console.error('Errore durante l\'export:', e);
+                statusText.innerText = 'Errore: ' + e.message;
+                alert('Errore durante l\'export. Il tuo browser potrebbe non supportare questa funzionalità. Prova con Chrome o Edge aggiornati.');
+                percentText.innerText = '';
+                setTimeout(() => status.classList.add('hidden'), 3000);
+                exportBtn.disabled = false;
+            }
+        };
+
+        document.getElementById('toggle-guide').onclick = () => {
+            const g = document.getElementById('safe-guide');
+            g.style.display = g.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Viral Captions System - Music Discovery Focus
+        const viralCaptions = {
+            pov: [
+                "POV: This song just saved your playlist",
+                "POV: You found THE song",
+                "POV: Your new obsession just dropped",
+                "POV: When the beat hits different",
+                "POV: Song of the summer found",
+                "POV: This is your sign to add it",
+                "POV: Your ears needed this",
+                "POV: Main character energy unlocked",
+                "POV: The song you've been searching for",
+                "POV: When music gives you chills",
+                "POV: Perfect song doesn't exi—",
+                "POV: Your vibe just changed",
+                "POV: This song gets you",
+                "POV: Instant serotonin boost",
+                "POV: You can't skip this one",
+                "POV: The algorithm blessed you",
+                "POV: Music taste upgraded",
+                "POV: This hit different at 3am",
+                "POV: Your new favorite song",
+                "POV: When lyrics match your life",
+                "POV: The nostalgia hit hard",
+                "POV: This song is a whole vibe",
+                "POV: You're obsessed already",
+                "POV: Soundtrack of your life",
+                "POV: This changed everything",
+                "POV: Your new emotional support song",
+                "POV: The drop was worth it",
+                "POV: This unlocked a memory",
+                "POV: Instant add to favorites",
+                "POV: Music that hits your soul",
+                "POV: The song you needed today",
+                "POV: Your playlist thanks me",
+                "POV: This is pure art",
+                "POV: When music speaks for you",
+                "POV: The vibe is immaculate",
+                "POV: You're vibing hard now",
+                "POV: This song owns you now",
+                "POV: Perfect workout song found",
+                "POV: Your mood just shifted",
+                "POV: This is criminally underrated",
+                "POV: The song chose you",
+                "POV: Replay button broken",
+                "POV: This needs to go viral",
+                "POV: Your new anthem",
+                "POV: Music that heals",
+                "POV: The vibes are unmatched",
+                "POV: This slaps differently",
+                "POV: Your new happy place",
+                "POV: When the song understands",
+                "POV: This deserves millions"
+            ],
+            amore: [
+                "This song + your person = perfect",
+                "Love language: this song",
+                "Play this for your crush",
+                "Send this to your forever person",
+                "The song that brought us together",
+                "Love feels like this song",
+                "Our song hits different",
+                "When music explains your feelings",
+                "This is what love sounds like",
+                "Song for hopeless romantics",
+                "Falling in love to this",
+                "Your wedding song energy",
+                "Love at first listen",
+                "This song gets the feels",
+                "Crushing hard with this vibe",
+                "The butterflies started here",
+                "Romance in musical form",
+                "Slow dance to this",
+                "Heart eyes activated",
+                "Love story soundtrack",
+                "When they're your person",
+                "This song screams soulmate",
+                "Dedicated to my favorite human",
+                "The love I want sounds like this",
+                "Missing you hours song",
+                "Together forever vibes",
+                "This song wrote my love story",
+                "Couples need this on repeat",
+                "The way you make me feel",
+                "Love deeper than this beat",
+                "First date energy",
+                "Anniversary vibes forever",
+                "This song = relationship goals",
+                "Playing this at our wedding",
+                "You + me + this song",
+                "Hopeless romantic anthem",
+                "Love confession through music",
+                "Every lyric hits different now",
+                "This describes us perfectly",
+                "Falling harder with every note",
+                "Our forever mood",
+                "This is pure romance",
+                "Date night playlist essential",
+                "Love language unlocked",
+                "The song of us",
+                "Heart full because of this",
+                "This made me believe in love",
+                "Send this to your Valentine",
+                "Love feels infinite here",
+                "This song made me a romantic"
+            ],
+            gym: [
+                "Gym playlist just got better",
+                "PR incoming with this energy",
+                "This song adds 20lbs to your lift",
+                "Beast mode activated",
+                "When this drops at the gym",
+                "Workout motivation unlocked",
+                "This is pure adrenaline",
+                "Your new gym anthem",
+                "Cardio never felt this good",
+                "Leg day energy right here",
+                "The pump intensifies",
+                "Train insane to this",
+                "This song lifts for you",
+                "Gains incoming",
+                "Your muscles needed this",
+                "Workout mode: MAXIMUM",
+                "Pre-workout in audio form",
+                "This makes you unstoppable",
+                "Champion mindset activated",
+                "Your body will thank me",
+                "Running faster already",
+                "Gym rat approved",
+                "This song never skips leg day",
+                "Power through anything",
+                "Your new training partner",
+                "The grind just got easier",
+                "Beast unleashed",
+                "This is liquid motivation",
+                "Your gains soundtrack",
+                "Sweat session perfection",
+                "This song lifts heavy",
+                "Iron paradise anthem",
+                "Your new max PR song",
+                "Discipline in musical form",
+                "Push through the burn",
+                "This makes quitting impossible",
+                "Your new running cadence",
+                "Stronger with every beat",
+                "The ultimate pump song",
+                "Chest day excellence",
+                "This is pure testosterone",
+                "Your comeback song",
+                "Fitness goals incoming",
+                "This owns the weight room",
+                "Your transformation anthem",
+                "Conditioning got easier",
+                "The grind loves this",
+                "Warrior mode activated",
+                "This is built different",
+                "Your victory lap song"
+            ],
+            motivazione: [
+                "This is your wake up call",
+                "Success sounds like this",
+                "Your comeback starts now",
+                "This song builds empires",
+                "Main character energy",
+                "Unstoppable mindset unlocked",
+                "This is pure ambition",
+                "Your breakthrough anthem",
+                "Champions listen to this",
+                "This song refuses to quit",
+                "Your potential unlocked",
+                "Game changer energy",
+                "This makes dreams happen",
+                "Boss moves only",
+                "Your hustle soundtrack",
+                "This is liquid confidence",
+                "Greatness activated",
+                "Your moment starts here",
+                "This song means business",
+                "Limits? Never heard of them",
+                "Your victory march",
+                "This is pure determination",
+                "Excellence in audio form",
+                "Your grind anthem",
+                "This builds legends",
+                "Manifest greatness now",
+                "This is winning energy",
+                "Your success montage song",
+                "Pressure makes diamonds",
+                "This song conquers fear",
+                "Your empire building music",
+                "Unstoppable force activated",
+                "This is pure power",
+                "Your comeback story begins",
+                "Champions on repeat",
+                "This fuels ambition",
+                "Your future self approves",
+                "This is breakthrough energy",
+                "Limits shattered",
+                "Your motivation anthem",
+                "This song crushes doubt",
+                "Excellence never sounded better",
+                "Your rise starts now",
+                "This is destiny calling",
+                "Greatness incoming",
+                "Your transformation song",
+                "This builds character",
+                "Success in musical form",
+                "Your legacy anthem",
+                "This is pure inspiration"
+            ],
+            humor: [
+                "When the aux hits different",
+                "Not me adding this immediately",
+                "Why is this so accurate tho",
+                "The vibe check passed",
+                "This shouldn't slap this hard",
+                "POV: You're the main character",
+                "Not the song I needed but deserved",
+                "This lives rent free now",
+                "Why does this go so hard",
+                "The algorithm understood the assignment",
+                "This is too good to gatekeep",
+                "Me pretending I discovered this",
+                "The playlist needed this ASAP",
+                "Not my neighbors hearing this 50x",
+                "This just changed my whole mood",
+                "Why am I obsessed already",
+                "This hit different unexpectedly",
+                "Me forcing everyone to listen",
+                "The song I didn't know I needed",
+                "This is criminally underrated",
+                "Not me replaying instantly",
+                "Why is this my new personality",
+                "The aux cord privilege song",
+                "This belongs on every playlist",
+                "Me hyping this up to everyone",
+                "Not the bop I expected",
+                "This is stuck in my head forever",
+                "Why does this slap so much",
+                "Me making this my whole vibe",
+                "This song gets it",
+                "Not me screaming the lyrics",
+                "Why is this perfect tho",
+                "The song stealing my attention",
+                "Me adding this 47 times",
+                "This is too fire to skip",
+                "Not the masterpiece we deserved",
+                "Why am I emotional over this",
+                "This passed every vibe check",
+                "Me sending this to everyone",
+                "This is actual gold",
+                "Not me playing this on repeat",
+                "Why does this understand me",
+                "This just hits different idk",
+                "Me claiming I knew this first",
+                "This is pure chaos (I love it)",
+                "Not the banger we needed",
+                "Why is this my new obsession",
+                "This song said no skips",
+                "Me making everyone listen",
+                "This is unhinged perfection"
+            ],
+            lifestyle: [
+                "Soundtrack to living your best life",
+                "This is the energy we need",
+                "Vibes on a different level",
+                "Your daily dose of good music",
+                "This song elevates everything",
+                "Perfect for every moment",
+                "Life sounds better with this",
+                "Your new daily ritual",
+                "This is pure good vibes",
+                "The song that gets you",
+                "Living life in HD with this",
+                "Your vibe upgrade arrived",
+                "This matches your aesthetic",
+                "Mood booster activated",
+                "This song just fits",
+                "Your new comfort song",
+                "Life's too short for bad music",
+                "This is your new standard",
+                "Peak performance music",
+                "Your elevated state anthem",
+                "This song understands the vibe",
+                "Morning routine essential",
+                "This is self care in audio",
+                "Your happiness soundtrack",
+                "Living intentionally with this",
+                "This enhances every moment",
+                "Your new go-to song",
+                "This is premium vibes only",
+                "Life better with this playing",
+                "Your aesthetic in music form",
+                "This song matches your energy",
+                "Daily inspiration unlocked",
+                "This is your new baseline",
+                "The song for good days",
+                "Your life soundtrack update",
+                "This captures the feeling",
+                "Peak existence music",
+                "Your new favorite escape",
+                "This song elevates moods",
+                "Living your truth sounds like this",
+                "Your daily affirmation song",
+                "This is wellness in audio",
+                "The good life anthem",
+                "Your elevated experience",
+                "This song is self love",
+                "Living deliberately with this",
+                "Your new chapter song",
+                "This is positive energy only",
+                "The gratitude anthem",
+                "Your best self soundtrack"
+            ]
+        };
+
+        let selectedCategory = 'pov';
+
+        // Category selection
+        document.querySelectorAll('.caption-cat-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedCategory = btn.dataset.category;
+            };
+        });
+
+        // Random caption generator
+        document.getElementById('random-caption-btn').onclick = () => {
+            const captions = viralCaptions[selectedCategory];
+            const randomCaption = captions[Math.floor(Math.random() * captions.length)];
+            
+            document.getElementById('caption-input').value = randomCaption;
+            caption.innerText = randomCaption;
+            
+            // Animazione di feedback
+            const btn = document.getElementById('random-caption-btn');
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 100);
+        };
+    </script>
 </body>
 </html>
