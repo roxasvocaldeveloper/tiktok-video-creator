@@ -563,7 +563,7 @@
             this.classList.toggle('active');
             
             if (removeWatermark) {
-                video.style.transform = 'scale(1.05)';
+                video.style.transform = 'scale(1.1)';
                 this.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom';
             } else {
                 video.style.transform = 'scale(1)';
@@ -1060,6 +1060,8 @@
                     text: captionElement.innerText,
                     // Posizione top relativa al container (in pixel)
                     topPx: captionRect.top - containerRect.top,
+                    // Salva anche la larghezza effettiva del caption per mantenere il wrapping
+                    maxWidthPx: captionElement.offsetWidth,
                     fontSize: parseInt(captionElement.style.fontSize || '12'),
                     color: captionElement.style.color || '#ffffff',
                     outlineColor: getComputedStyle(captionElement).getPropertyValue('--outline-color') || '#000000',
@@ -1070,6 +1072,7 @@
                 console.log('Caption position saved:', captionPosition);
                 console.log('Container height:', containerRect.height);
                 console.log('Caption top offset:', captionPosition.topPx);
+                console.log('Caption max width:', captionPosition.maxWidthPx);
 
                 for (let i = 0; i < totalFrames; i++) {
                     const timestamp = i / fps;
@@ -1078,7 +1081,7 @@
 
                     // Applica zoom se removeWatermark è attivo
                     if (removeWatermark) {
-                        const scale = 1.05;
+                        const scale = 1.1;
                         const scaledWidth = sourceVideo.videoWidth * scale;
                         const scaledHeight = sourceVideo.videoHeight * scale;
                         const offsetX = -(scaledWidth - renderCanvas.width) / 2;
@@ -1095,7 +1098,7 @@
                         renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
                     }
 
-                    // Draw caption con posizione corretta
+                    // Draw caption con posizione corretta e word wrapping
                     if (captionPosition.text && captionPosition.text !== 'Scrivi il tuo testo') {
                         // Calcola il scale factor basandosi sull'altezza del container
                         const previewHeight = videoContainer.offsetHeight;
@@ -1103,6 +1106,7 @@
                         const scaleFactor = exportHeight / previewHeight;
                         
                         const scaledFontSize = captionPosition.fontSize * scaleFactor;
+                        const scaledMaxWidth = captionPosition.maxWidthPx * scaleFactor;
 
                         let fontFamily = 'Montserrat';
                         if (captionPosition.fontClass.includes('font-typewriter')) fontFamily = 'Courier Prime';
@@ -1113,19 +1117,45 @@
                         renderCtx.textAlign = 'center';
                         renderCtx.textBaseline = 'top';
 
-                        // Usa la posizione top scalata esattamente
-                        const textY = captionPosition.topPx * scaleFactor;
+                        // Funzione per wrappare il testo su più righe
+                        function wrapText(text, maxWidth) {
+                            const words = text.split(' ');
+                            const lines = [];
+                            let currentLine = words[0];
 
-                        if (captionPosition.hasOutline) {
-                            renderCtx.strokeStyle = captionPosition.outlineColor;
-                            renderCtx.lineWidth = Math.max(scaleFactor * 1.5, 3);
-                            renderCtx.lineJoin = 'round';
-                            renderCtx.miterLimit = 2;
-                            renderCtx.strokeText(captionPosition.text, renderCanvas.width / 2, textY);
+                            for (let i = 1; i < words.length; i++) {
+                                const testLine = currentLine + ' ' + words[i];
+                                const metrics = renderCtx.measureText(testLine);
+                                if (metrics.width > maxWidth) {
+                                    lines.push(currentLine);
+                                    currentLine = words[i];
+                                } else {
+                                    currentLine = testLine;
+                                }
+                            }
+                            lines.push(currentLine);
+                            return lines;
                         }
 
-                        renderCtx.fillStyle = captionPosition.color;
-                        renderCtx.fillText(captionPosition.text, renderCanvas.width / 2, textY);
+                        const lines = wrapText(captionPosition.text, scaledMaxWidth);
+                        const lineHeight = scaledFontSize * 1.2; // 1.2 è simile al line-height: 1.1 del CSS
+                        const textY = captionPosition.topPx * scaleFactor;
+
+                        // Disegna ogni riga
+                        lines.forEach((line, index) => {
+                            const y = textY + (index * lineHeight);
+                            
+                            if (captionPosition.hasOutline) {
+                                renderCtx.strokeStyle = captionPosition.outlineColor;
+                                renderCtx.lineWidth = Math.max(scaleFactor * 1.5, 3);
+                                renderCtx.lineJoin = 'round';
+                                renderCtx.miterLimit = 2;
+                                renderCtx.strokeText(line, renderCanvas.width / 2, y);
+                            }
+
+                            renderCtx.fillStyle = captionPosition.color;
+                            renderCtx.fillText(line, renderCanvas.width / 2, y);
+                        });
                     }
 
                     const videoFrame = new VideoFrame(renderCanvas, {
