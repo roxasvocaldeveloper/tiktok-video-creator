@@ -563,7 +563,7 @@
             this.classList.toggle('active');
             
             if (removeWatermark) {
-                video.style.transform = 'scale(1.08)';
+                video.style.transform = 'scale(1.05)';
                 this.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom';
             } else {
                 video.style.transform = 'scale(1)';
@@ -1052,20 +1052,24 @@
                 const captionElement = document.getElementById('caption-overlay');
                 const videoContainer = document.getElementById('drop-zone');
                 
+                // Calcola la posizione esatta in pixel relativi al container
+                const containerRect = videoContainer.getBoundingClientRect();
+                const captionRect = captionElement.getBoundingClientRect();
+                
                 const captionPosition = {
                     text: captionElement.innerText,
-                    // Usa offsetTop direttamente - è già in pixel relativi al container
-                    topPx: captionElement.offsetTop,
-                    fontSize: parseInt(captionElement.style.fontSize || '24'),
+                    // Posizione top relativa al container (in pixel)
+                    topPx: captionRect.top - containerRect.top,
+                    fontSize: parseInt(captionElement.style.fontSize || '12'),
                     color: captionElement.style.color || '#ffffff',
                     outlineColor: getComputedStyle(captionElement).getPropertyValue('--outline-color') || '#000000',
                     fontClass: captionElement.className,
                     hasOutline: captionElement.classList.contains('text-bold-outline')
                 };
 
-                // Debug log
                 console.log('Caption position saved:', captionPosition);
-                console.log('Video container height:', videoContainer.offsetHeight);
+                console.log('Container height:', containerRect.height);
+                console.log('Caption top offset:', captionPosition.topPx);
 
                 for (let i = 0; i < totalFrames; i++) {
                     const timestamp = i / fps;
@@ -1074,7 +1078,7 @@
 
                     // Applica zoom se removeWatermark è attivo
                     if (removeWatermark) {
-                        const scale = 1.08;
+                        const scale = 1.05;
                         const scaledWidth = sourceVideo.videoWidth * scale;
                         const scaledHeight = sourceVideo.videoHeight * scale;
                         const offsetX = -(scaledWidth - renderCanvas.width) / 2;
@@ -1093,13 +1097,9 @@
 
                     // Draw caption con posizione corretta
                     if (captionPosition.text && captionPosition.text !== 'Scrivi il tuo testo') {
-                        // CORREZIONE CRITICA: Il problema è che dobbiamo scalare in base all'ALTEZZA del container
-                        // perché il video è 9:16 e il canvas è 720x1280
-                        // Il video preview ha width=290px e height=515px circa
-                        // Il canvas export ha width=720px e height=1280px
-                        
-                        const previewHeight = videoContainer.offsetHeight; // ~515px
-                        const exportHeight = renderCanvas.height; // 1280px
+                        // Calcola il scale factor basandosi sull'altezza del container
+                        const previewHeight = videoContainer.offsetHeight;
+                        const exportHeight = renderCanvas.height;
                         const scaleFactor = exportHeight / previewHeight;
                         
                         const scaledFontSize = captionPosition.fontSize * scaleFactor;
@@ -1113,7 +1113,7 @@
                         renderCtx.textAlign = 'center';
                         renderCtx.textBaseline = 'top';
 
-                        // Scala la posizione Y usando lo stesso scaleFactor
+                        // Usa la posizione top scalata esattamente
                         const textY = captionPosition.topPx * scaleFactor;
 
                         if (captionPosition.hasOutline) {
