@@ -3508,18 +3508,35 @@
         // Result: export is identical to preview at any resolution.
         // ═══════════════════════════════════════════════════════════════════
 
+        // ═══════════════════════════════════════════════════════════════
+        // PIXEL-PERFECT CAPTION SYSTEM — v3
+        //
+        // Strategy:
+        //   1. extractCaptionLines() reads ACTUAL browser line breaks from the
+        //      DOM via Range API → gives us the correct text per line AND the
+        //      Y position of each line as a ratio of the container height.
+        //      It also captures widthRatio (caption width / container width)
+        //      so the canvas knows the exact max-width constraint.
+        //
+        //   2. drawCaptionOnCanvas() reproduces each DOM line at the scaled Y.
+        //      If canvas font metrics cause a line to exceed maxW, it sub-wraps
+        //      it — but only within that DOM line (so the break order is preserved).
+        //
+        // Result: export matches preview even when browser and canvas font
+        // metrics differ slightly.
+        // ═══════════════════════════════════════════════════════════════
+
         function extractCaptionLines(el, containerRect) {
             const text = el.innerText || '';
             const skip = !text.trim() || text === 'Scrivi il tuo testo';
 
             if (skip) {
-                return { skip: true, lines: [], fontSizeRatio: 0,
-                         color: '#fff', outlineColor: '#000',
-                         fontClass: '', hasOutline: false };
+                return { skip: true, domLines: [], fontSizeRatio: 0, widthRatio: 0,
+                         color: '#fff', outlineColor: '#000', fontClass: '', hasOutline: false };
             }
 
             const textNode = el.firstChild;
-            const lines = [];
+            const domLines = [];
 
             if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0) {
                 const range = document.createRange();
@@ -3530,22 +3547,20 @@
                     const isEnd = (i === text.length);
                     const ch = isEnd ? '' : text[i];
 
-                    // Flush on newline character or end of string
                     if (ch === '\n' || isEnd) {
-                        const segText = text.slice(lineStartIdx, i).trimEnd();
-                        if (segText) {
+                        const seg = text.slice(lineStartIdx, i).trimEnd();
+                        if (seg) {
                             range.setStart(textNode, lineStartIdx);
                             range.setEnd(textNode, Math.min(i, text.length));
                             const r = range.getBoundingClientRect();
-                            lines.push({ text: segText,
-                                         topRatio: (r.top - containerRect.top) / containerRect.height });
+                            domLines.push({ text: seg,
+                                            topRatio: (r.top - containerRect.top) / containerRect.height });
                         }
                         lineStartIdx = i + 1;
                         lastTop = null;
                         continue;
                     }
 
-                    // Sample this character's top to detect soft line breaks
                     range.setStart(textNode, i);
                     range.setEnd(textNode, i + 1);
                     const r = range.getBoundingClientRect();
@@ -3554,31 +3569,29 @@
                     if (lastTop === null) {
                         lastTop = charTop;
                     } else if (charTop !== lastTop) {
-                        // Browser wrapped here — flush previous visual line
-                        const segText = text.slice(lineStartIdx, i).trimEnd();
-                        if (segText) {
+                        const seg = text.slice(lineStartIdx, i).trimEnd();
+                        if (seg) {
                             range.setStart(textNode, lineStartIdx);
                             range.setEnd(textNode, i);
                             const lr = range.getBoundingClientRect();
-                            lines.push({ text: segText,
-                                          topRatio: (lr.top - containerRect.top) / containerRect.height });
+                            domLines.push({ text: seg,
+                                            topRatio: (lr.top - containerRect.top) / containerRect.height });
                         }
                         lineStartIdx = i;
                         lastTop = charTop;
                     }
                 }
             } else {
-                // Fallback: single line using element bounding rect
                 const r = el.getBoundingClientRect();
-                lines.push({ text: text,
-                             topRatio: (r.top - containerRect.top) / containerRect.height });
+                domLines.push({ text, topRatio: (r.top - containerRect.top) / containerRect.height });
             }
 
             return {
                 skip: false,
-                lines,
-                // Font size as ratio of container height → scales to any canvas
+                domLines,
                 fontSizeRatio: parseInt(el.style.fontSize || '12') / containerRect.height,
+                // Width of caption element as fraction of container width → canvas maxWidth
+                widthRatio: el.offsetWidth / containerRect.width,
                 color: el.style.color || '#ffffff',
                 outlineColor: getComputedStyle(el).getPropertyValue('--outline-color') || '#000000',
                 fontClass: el.className,
@@ -3587,9 +3600,12 @@
         }
 
         function drawCaptionOnCanvas(ctx, cp, canvasW, canvasH) {
-            if (!cp || cp.skip || !cp.lines.length) return;
+            if (!cp || cp.skip || !cp.domLines || !cp.domLines.length) return;
 
             const fontSize = cp.fontSizeRatio * canvasH;
+            // Scaled max width — mirrors the CSS max-width of the caption element
+            const maxW = cp.widthRatio * canvasW;
+            const lineH = fontSize * 1.1; // matches CSS line-height: 1.1
 
             let fontFamily = 'Montserrat';
             if (cp.fontClass.includes('font-typewriter')) fontFamily = 'Courier Prime';
@@ -3600,20 +3616,40 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
-            cp.lines.forEach(line => {
-                const y = line.topRatio * canvasH;
+            // For each DOM line:
+            // - Place it at the DOM's Y position (topRatio × canvasH)
+            // - If canvas font is wider than maxW, sub-wrap (shouldn't happen often)
+            cp.domLines.forEach((domLine) => {
+                const domY = domLine.topRatio * canvasH;
 
-                if (cp.hasOutline) {
-                    ctx.strokeStyle = cp.outlineColor;
-                    // Scale stroke width proportionally (matches CSS text-shadow spread)
-                    ctx.lineWidth = Math.max(fontSize * 0.10, 2);
-                    ctx.lineJoin = 'round';
-                    ctx.miterLimit = 2;
-                    ctx.strokeText(line.text, canvasW / 2, y);
+                const words = domLine.text.split(' ');
+                const subLines = [];
+                let cur = words[0] || '';
+
+                for (let wi = 1; wi < words.length; wi++) {
+                    const test = cur + ' ' + words[wi];
+                    if (ctx.measureText(test).width <= maxW) {
+                        cur = test;
+                    } else {
+                        subLines.push(cur);
+                        cur = words[wi];
+                    }
                 }
+                subLines.push(cur);
 
-                ctx.fillStyle = cp.color;
-                ctx.fillText(line.text, canvasW / 2, y);
+                subLines.forEach((subLine, si) => {
+                    const y = domY + si * lineH;
+
+                    if (cp.hasOutline) {
+                        ctx.strokeStyle = cp.outlineColor;
+                        ctx.lineWidth = Math.max(fontSize * 0.10, 2);
+                        ctx.lineJoin = 'round';
+                        ctx.miterLimit = 2;
+                        ctx.strokeText(subLine, canvasW / 2, y);
+                    }
+                    ctx.fillStyle = cp.color;
+                    ctx.fillText(subLine, canvasW / 2, y);
+                });
             });
         }
 
