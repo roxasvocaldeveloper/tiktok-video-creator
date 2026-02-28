@@ -319,6 +319,66 @@
         #render-canvas {
             display: none;
         }
+
+        .queue-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .queue-item.active {
+            border-color: var(--sv-blue);
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .queue-item:hover {
+            border-color: var(--sv-blue);
+        }
+
+        .queue-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .queue-item-caption {
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .queue-item-meta {
+            font-size: 8px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .queue-item-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .queue-item-btn {
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .queue-item-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #666;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -376,26 +436,33 @@
                     <p class="text-[9px] font-bold tracking-widest text-zinc-600">SOUNDVERTISE</p>
                 </div>
                 <div class="text-right">
-                    <span id="video-dur-label" class="text-blue-400 font-mono text-xs font-bold uppercase">Video: 15.0s</span>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <span id="video-dur-label" class="text-blue-400 font-mono text-xs font-bold uppercase block">Video: 15.0s</span>
+                            <span id="queue-count" class="text-violet-400 font-mono text-[10px] font-bold uppercase">Coda: 0/20</span>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1">
-                    <label class="text-[9px] font-black uppercase text-zinc-500">File Video</label>
+                    <label class="text-[9px] font-black uppercase text-zinc-500">File Video (Max 20)</label>
                     <label for="video-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
                         <i data-lucide="video" class="w-4 h-4 text-blue-400"></i>
-                        <span class="text-[11px] text-zinc-400 truncate" id="video-label">Carica Video</span>
-                        <input type="file" id="video-input" accept="video/*" class="hidden">
+                        <span class="text-[11px] text-zinc-400 truncate" id="video-label">Carica Video (Multipli)</span>
+                        <input type="file" id="video-input" accept="video/*" multiple class="hidden">
                     </label>
+                    <div id="video-files-list" class="text-[9px] text-zinc-500 mt-1"></div>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[9px] font-black uppercase text-zinc-500">File Audio</label>
+                    <label class="text-[9px] font-black uppercase text-zinc-500">File Audio (Max 20)</label>
                     <label for="audio-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-violet-500 transition-all">
                         <i data-lucide="music" class="w-4 h-4 text-violet-400"></i>
-                        <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Opzionale)</span>
-                        <input type="file" id="audio-input" accept="audio/*" class="hidden">
+                        <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Multipli)</span>
+                        <input type="file" id="audio-input" accept="audio/*" multiple class="hidden">
                     </label>
+                    <div id="audio-files-list" class="text-[9px] text-zinc-500 mt-1"></div>
                 </div>
             </div>
 
@@ -422,9 +489,14 @@
                         <i data-lucide="play" id="play-icon" class="w-5 h-5 fill-white"></i>
                     </button>
                     <div class="flex-1 space-y-1">
-                        <div class="flex justify-between text-[9px] font-black uppercase text-zinc-500">
+                        <div class="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
                             <span>Onda Sonora (Loop Anteprima)</span>
-                            <span id="audio-start-label">Start Audio: 0.0s</span>
+                            <div class="flex items-center gap-2">
+                                <select id="audio-selector" class="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-[9px] text-zinc-300 font-bold cursor-pointer hover:border-violet-500 transition-all">
+                                    <option value="">Nessun Audio</option>
+                                </select>
+                                <span id="audio-start-label">Start: 0.0s</span>
+                            </div>
                         </div>
                         <div class="trimmer-track h-[70px]" id="a-trimmer-track">
                             <div class="waveform-wrapper">
@@ -508,9 +580,40 @@
                 </div>
             </div>
 
-            <button id="export-btn" class="w-full btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                <i data-lucide="download" class="w-4 h-4"></i> Scarica Video MP4
-            </button>
+            <!-- Bulk Video Queue -->
+            <div class="space-y-3 p-4 bg-gradient-to-br from-blue-950/30 to-violet-950/30 rounded-2xl border border-blue-800/30">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-black uppercase text-blue-300 tracking-widest">🎬 Creazione Bulk</span>
+                    <div class="flex gap-2">
+                        <button id="auto-queue-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-3 h-3"></i>
+                            Auto-Coda
+                        </button>
+                        <button id="prev-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5 disabled:opacity-30">
+                            <i data-lucide="chevron-left" class="w-3 h-3"></i>
+                            Prev
+                        </button>
+                        <button id="add-to-queue-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
+                            Aggiungi
+                        </button>
+                        <button id="next-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5 disabled:opacity-30">
+                            Next
+                            <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="queue-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="export-btn" class="btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
+                    <i data-lucide="download" class="w-4 h-4"></i> Esporta Video Singolo
+                </button>
+                <button id="export-all-btn" class="bg-gradient-to-r from-violet-600 to-blue-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed hover:from-violet-500 hover:to-blue-500 transition-all">
+                    <i data-lucide="download-cloud" class="w-4 h-4"></i> Esporta Tutti (<span id="export-count">0</span>)
+                </button>
+            </div>
             
             <div id="export-status" class="hidden bg-black border border-zinc-800 p-4 rounded-2xl">
                 <div class="flex justify-between text-[10px] mb-2 font-black uppercase text-blue-400">
@@ -534,6 +637,8 @@
         const video = document.getElementById('main-video');
         const audio = document.getElementById('bg-music');
         const caption = document.getElementById('caption-overlay');
+        const captionElement = document.getElementById('caption-overlay');
+        const videoContainer = document.getElementById('drop-zone');
         const vTrimOverlay = document.getElementById('video-trim-overlay');
         const aTrimOverlay = document.getElementById('audio-trim-overlay');
         const vTrimmerTrack = document.getElementById('v-trimmer-track');
@@ -556,6 +661,85 @@
         let isDraggingA = false;
         let dragOffsetV = 0;
         let dragOffsetA = 0;
+
+        // File libraries for bulk workflow
+        let videoLibrary = [];
+        let audioLibrary = [];
+        let currentVideoIndex = 0;
+        let currentAudioIndex = -1; // -1 means no audio selected
+
+        function updateFileLibraryUI() {
+            const videoList = document.getElementById('video-files-list');
+            const audioList = document.getElementById('audio-files-list');
+            
+            if (videoLibrary.length > 0) {
+                videoList.innerHTML = `📁 ${videoLibrary.length} video caricati`;
+                document.getElementById('video-label').innerText = `${videoLibrary.length} video pronti`;
+            } else {
+                videoList.innerHTML = '';
+                document.getElementById('video-label').innerText = 'Carica Video (Multipli)';
+            }
+            
+            if (audioLibrary.length > 0) {
+                audioList.innerHTML = `🎵 ${audioLibrary.length} audio caricati`;
+                document.getElementById('audio-label').innerText = `${audioLibrary.length} audio pronti`;
+                
+                // Update audio selector
+                const selector = document.getElementById('audio-selector');
+                selector.innerHTML = '<option value="">Nessun Audio</option>';
+                audioLibrary.forEach((audioFile, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = audioFile.name;
+                    selector.appendChild(option);
+                });
+            } else {
+                audioList.innerHTML = '';
+                document.getElementById('audio-label').innerText = 'Carica Audio (Multipli)';
+            }
+        }
+
+        function loadVideoFromLibrary(index) {
+            if (index < 0 || index >= videoLibrary.length) return;
+            
+            currentVideoIndex = index;
+            videoFile = videoLibrary[index];
+            video.src = URL.createObjectURL(videoFile);
+            video.onloadedmetadata = () => {
+                videoDuration = video.duration;
+                vStart = 0;
+                vEnd = Math.min(videoDuration, 15);
+                updateTrimmers();
+                video.currentTime = vStart;
+            };
+            generateThumbnails(videoFile);
+        }
+
+        function loadAudioFromSelector() {
+            const selector = document.getElementById('audio-selector');
+            const selectedIndex = parseInt(selector.value);
+            
+            if (isNaN(selectedIndex) || selectedIndex < 0) {
+                // No audio selected
+                currentAudioIndex = -1;
+                audioFile = null;
+                audio.src = '';
+                audioDuration = 0;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                updateTrimmers();
+                return;
+            }
+            
+            currentAudioIndex = selectedIndex;
+            audioFile = audioLibrary[selectedIndex];
+            audio.src = URL.createObjectURL(audioFile);
+            audio.onloadedmetadata = () => {
+                audioDuration = audio.duration;
+                drawWaveform(audioFile);
+                updateTrimmers();
+                audio.currentTime = aStart;
+            };
+        }
 
         // Toggle watermark removal
         document.getElementById('toggle-watermark').onclick = function() {
@@ -720,33 +904,55 @@
         };
 
         document.getElementById('video-input').onchange = async (e) => {
-            videoFile = e.target.files[0];
-            if (videoFile) {
-                video.src = URL.createObjectURL(videoFile);
-                document.getElementById('video-label').innerText = videoFile.name;
-                video.onloadedmetadata = () => {
-                    videoDuration = video.duration;
-                    vStart = 0;
-                    vEnd = Math.min(videoDuration, 15);
-                    updateTrimmers();
-                    video.currentTime = vStart;
-                };
-                generateThumbnails(videoFile);
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            if (files.length > MAX_QUEUE_SIZE) {
+                alert(`Puoi caricare massimo ${MAX_QUEUE_SIZE} video!`);
+                videoLibrary = files.slice(0, MAX_QUEUE_SIZE);
+            } else {
+                videoLibrary = files;
+            }
+            
+            updateFileLibraryUI();
+            
+            // Load first video automatically
+            if (videoLibrary.length > 0) {
+                loadVideoFromLibrary(0);
+                
+                // Show success notification
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50';
+                statusDiv.innerText = `✓ ${videoLibrary.length} video caricati!`;
+                document.body.appendChild(statusDiv);
+                setTimeout(() => statusDiv.remove(), 2000);
             }
         };
 
         document.getElementById('audio-input').onchange = (e) => {
-            audioFile = e.target.files[0];
-            if (audioFile) {
-                audio.src = URL.createObjectURL(audioFile);
-                document.getElementById('audio-label').innerText = audioFile.name;
-                audio.onloadedmetadata = () => {
-                    audioDuration = audio.duration;
-                    drawWaveform(audioFile);
-                    updateTrimmers();
-                    audio.currentTime = aStart;
-                };
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            
+            if (files.length > MAX_QUEUE_SIZE) {
+                alert(`Puoi caricare massimo ${MAX_QUEUE_SIZE} audio!`);
+                audioLibrary = files.slice(0, MAX_QUEUE_SIZE);
+            } else {
+                audioLibrary = files;
             }
+            
+            updateFileLibraryUI();
+            
+            // Show success notification
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'fixed top-4 right-4 bg-violet-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50';
+            statusDiv.innerText = `✓ ${audioLibrary.length} audio caricati!`;
+            document.body.appendChild(statusDiv);
+            setTimeout(() => statusDiv.remove(), 2000);
+        };
+
+        // Audio selector change handler
+        document.getElementById('audio-selector').onchange = () => {
+            loadAudioFromSelector();
         };
 
         document.getElementById('play-btn').onclick = () => {
@@ -1048,31 +1254,14 @@
                 const samplesPerFrame = Math.floor(targetSampleRate / fps);
                 let audioSampleOffset = 0;
 
-                // CORREZIONE: Salva la posizione REALE del caption rispetto al video container
                 const captionElement = document.getElementById('caption-overlay');
                 const videoContainer = document.getElementById('drop-zone');
-                
-                // Calcola la posizione esatta in pixel relativi al container
                 const containerRect = videoContainer.getBoundingClientRect();
-                const captionRect = captionElement.getBoundingClientRect();
-                
-                const captionPosition = {
-                    text: captionElement.innerText,
-                    // Posizione top relativa al container (in pixel)
-                    topPx: captionRect.top - containerRect.top,
-                    // Salva anche la larghezza effettiva del caption per mantenere il wrapping
-                    maxWidthPx: captionElement.offsetWidth,
-                    fontSize: parseInt(captionElement.style.fontSize || '12'),
-                    color: captionElement.style.color || '#ffffff',
-                    outlineColor: getComputedStyle(captionElement).getPropertyValue('--outline-color') || '#000000',
-                    fontClass: captionElement.className,
-                    hasOutline: captionElement.classList.contains('text-bold-outline')
-                };
 
-                console.log('Caption position saved:', captionPosition);
-                console.log('Container height:', containerRect.height);
-                console.log('Caption top offset:', captionPosition.topPx);
-                console.log('Caption max width:', captionPosition.maxWidthPx);
+                // Read EXACTLY how the browser broke the lines using the Range API.
+                // This is the only way to guarantee export matches preview perfectly —
+                // no canvas re-measurement, no approximation, just the truth from the DOM.
+                const captionPosition = extractCaptionLines(captionElement, containerRect);
 
                 for (let i = 0; i < totalFrames; i++) {
                     const timestamp = i / fps;
@@ -1098,65 +1287,7 @@
                         renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
                     }
 
-                    // Draw caption con posizione corretta e word wrapping
-                    if (captionPosition.text && captionPosition.text !== 'Scrivi il tuo testo') {
-                        // Calcola il scale factor basandosi sull'altezza del container
-                        const previewHeight = videoContainer.offsetHeight;
-                        const exportHeight = renderCanvas.height;
-                        const scaleFactor = exportHeight / previewHeight;
-                        
-                        const scaledFontSize = captionPosition.fontSize * scaleFactor;
-                        const scaledMaxWidth = captionPosition.maxWidthPx * scaleFactor;
-
-                        let fontFamily = 'Montserrat';
-                        if (captionPosition.fontClass.includes('font-typewriter')) fontFamily = 'Courier Prime';
-                        else if (captionPosition.fontClass.includes('font-classic')) fontFamily = 'Inter';
-                        else if (captionPosition.fontClass.includes('font-handwriting')) fontFamily = 'Dancing Script';
-
-                        renderCtx.font = `800 ${scaledFontSize}px ${fontFamily}`;
-                        renderCtx.textAlign = 'center';
-                        renderCtx.textBaseline = 'top';
-
-                        // Funzione per wrappare il testo su più righe
-                        function wrapText(text, maxWidth) {
-                            const words = text.split(' ');
-                            const lines = [];
-                            let currentLine = words[0];
-
-                            for (let i = 1; i < words.length; i++) {
-                                const testLine = currentLine + ' ' + words[i];
-                                const metrics = renderCtx.measureText(testLine);
-                                if (metrics.width > maxWidth) {
-                                    lines.push(currentLine);
-                                    currentLine = words[i];
-                                } else {
-                                    currentLine = testLine;
-                                }
-                            }
-                            lines.push(currentLine);
-                            return lines;
-                        }
-
-                        const lines = wrapText(captionPosition.text, scaledMaxWidth);
-                        const lineHeight = scaledFontSize * 1.2; // 1.2 è simile al line-height: 1.1 del CSS
-                        const textY = captionPosition.topPx * scaleFactor;
-
-                        // Disegna ogni riga
-                        lines.forEach((line, index) => {
-                            const y = textY + (index * lineHeight);
-                            
-                            if (captionPosition.hasOutline) {
-                                renderCtx.strokeStyle = captionPosition.outlineColor;
-                                renderCtx.lineWidth = Math.max(scaleFactor * 1.5, 3);
-                                renderCtx.lineJoin = 'round';
-                                renderCtx.miterLimit = 2;
-                                renderCtx.strokeText(line, renderCanvas.width / 2, y);
-                            }
-
-                            renderCtx.fillStyle = captionPosition.color;
-                            renderCtx.fillText(line, renderCanvas.width / 2, y);
-                        });
-                    }
+                    drawCaptionOnCanvas(renderCtx, captionPosition, renderCanvas.width, renderCanvas.height);
 
                     const videoFrame = new VideoFrame(renderCanvas, {
                         timestamp: (i * 1_000_000) / fps
@@ -1246,6 +1377,355 @@
             const g = document.getElementById('safe-guide');
             g.style.display = g.style.display === 'none' ? 'block' : 'none';
         };
+
+        // ============================================
+        // BULK VIDEO QUEUE SYSTEM
+        // ============================================
+        
+        const MAX_QUEUE_SIZE = 20;
+        let videoQueue = [];
+        let currentQueueIndex = -1;
+
+        function updateQueueUI() {
+            const queueList = document.getElementById('queue-list');
+            const queueCount = document.getElementById('queue-count');
+            const exportCount = document.getElementById('export-count');
+            const exportAllBtn = document.getElementById('export-all-btn');
+            const prevBtn = document.getElementById('prev-video-btn');
+            const nextBtn = document.getElementById('next-video-btn');
+            
+            queueCount.innerText = `Coda: ${videoQueue.length}/20`;
+            exportCount.innerText = videoQueue.length;
+            exportAllBtn.disabled = videoQueue.length === 0;
+            
+            if (videoQueue.length === 0) {
+                queueList.innerHTML = '<div class="text-center text-zinc-500 text-[10px] py-4">Nessun video in coda</div>';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+            } else {
+                queueList.innerHTML = videoQueue.map((item, index) => `
+                    <div class="queue-item ${index === currentQueueIndex ? 'active' : ''}" data-index="${index}">
+                        <div class="queue-item-info">
+                            <div class="queue-item-caption">${index + 1}. ${item.caption || 'Senza testo'}</div>
+                            <div class="queue-item-meta">${item.duration.toFixed(1)}s • ${item.hasAudio ? 'Con audio' : 'Solo video'}</div>
+                        </div>
+                        <div class="queue-item-actions">
+                            <button class="queue-item-btn load-queue-item" data-index="${index}">
+                                <i data-lucide="eye" class="w-3 h-3 text-blue-400"></i>
+                            </button>
+                            <button class="queue-item-btn delete-queue-item" data-index="${index}">
+                                <i data-lucide="trash-2" class="w-3 h-3 text-red-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                lucide.createIcons();
+                
+                // Event listeners per i bottoni
+                document.querySelectorAll('.load-queue-item').forEach(btn => {
+                    btn.onclick = () => loadQueueItem(parseInt(btn.dataset.index));
+                });
+                
+                document.querySelectorAll('.delete-queue-item').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteQueueItem(parseInt(btn.dataset.index));
+                    };
+                });
+                
+                prevBtn.disabled = currentQueueIndex <= 0;
+                nextBtn.disabled = currentQueueIndex >= videoQueue.length - 1;
+            }
+        }
+
+        function captureCurrentState() {
+            console.log('captureCurrentState called');
+            console.log('videoFile:', videoFile);
+            
+            if (!videoFile) {
+                alert('Carica prima un video!');
+                return null;
+            }
+
+            try {
+                const containerRect = videoContainer.getBoundingClientRect();
+
+                const state = {
+                    // Video data
+                    videoFile: videoFile,
+                    videoFileName: videoFile.name,
+                    videoLibraryIndex: currentVideoIndex,
+                    vStart: vStart,
+                    vEnd: vEnd,
+                    duration: vEnd - vStart,
+                    
+                    // Audio data
+                    audioFile: audioFile,
+                    audioFileName: audioFile ? audioFile.name : null,
+                    audioLibraryIndex: currentAudioIndex,
+                    aStart: aStart,
+                    hasAudio: !!audioFile,
+                    
+                    // Caption: store DOM-extracted lines so bulk export is pixel-perfect
+                    captionPosition: extractCaptionLines(captionElement, containerRect),
+                    
+                    // Settings
+                    removeWatermark: removeWatermark,
+                    
+                    // Timestamp
+                    timestamp: Date.now()
+                };
+                
+                console.log('State created successfully:', state);
+                return state;
+                
+            } catch (error) {
+                console.error('Error in captureCurrentState:', error);
+                alert('Errore nel catturare lo stato: ' + error.message);
+                return null;
+            }
+        }
+
+        function loadQueueItem(index) {
+            if (index < 0 || index >= videoQueue.length) return;
+            
+            const item = videoQueue[index];
+            currentQueueIndex = index;
+            
+            // Restore video
+            if (item.videoFile) {
+                videoFile = item.videoFile;
+                currentVideoIndex = item.videoLibraryIndex || 0;
+                video.src = URL.createObjectURL(item.videoFile);
+                video.onloadedmetadata = () => {
+                    videoDuration = video.duration;
+                    vStart = item.vStart;
+                    vEnd = item.vEnd;
+                    updateTrimmers();
+                    video.currentTime = vStart;
+                };
+                generateThumbnails(item.videoFile);
+            }
+            
+            // Restore audio
+            if (item.audioFile) {
+                audioFile = item.audioFile;
+                currentAudioIndex = item.audioLibraryIndex || -1;
+                audio.src = URL.createObjectURL(item.audioFile);
+                audio.onloadedmetadata = () => {
+                    audioDuration = audio.duration;
+                    aStart = item.aStart;
+                    drawWaveform(item.audioFile);
+                    updateTrimmers();
+                };
+                
+                // Update selector
+                const selector = document.getElementById('audio-selector');
+                if (currentAudioIndex >= 0) {
+                    selector.value = currentAudioIndex;
+                }
+            } else {
+                audioFile = null;
+                currentAudioIndex = -1;
+                audio.src = '';
+                document.getElementById('audio-selector').value = '';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Restore caption
+            captionElement.innerText = item.caption;
+            document.getElementById('caption-input').value = item.caption;
+            captionElement.style.fontSize = item.fontSize + 'px';
+            document.getElementById('fs-val').innerText = item.fontSize + 'px';
+            document.getElementById('font-size').value = item.fontSize;
+            captionElement.style.color = item.textColor;
+            document.getElementById('text-color').value = item.textColor;
+            captionElement.style.setProperty('--outline-color', item.outlineColor);
+            document.getElementById('outline-color').value = item.outlineColor;
+            
+            // Restore font
+            const hasOutline = item.hasOutline;
+            captionElement.className = item.fontClass;
+            outlineEnabled = hasOutline;
+            updateOutlineUI();
+            
+            // Update font buttons
+            document.querySelectorAll('.font-btn').forEach(btn => {
+                if (item.fontClass.includes(btn.dataset.font)) {
+                    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Restore watermark setting
+            removeWatermark = item.removeWatermark;
+            const watermarkBtn = document.getElementById('toggle-watermark');
+            if (removeWatermark) {
+                video.style.transform = 'scale(1.1)';
+                watermarkBtn.classList.add('active');
+                watermarkBtn.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom';
+            } else {
+                video.style.transform = 'scale(1)';
+                watermarkBtn.classList.remove('active');
+                watermarkBtn.innerHTML = '<i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO';
+            }
+            lucide.createIcons();
+            
+            updateQueueUI();
+        }
+
+        function deleteQueueItem(index) {
+            if (confirm('Rimuovere questo video dalla coda?')) {
+                videoQueue.splice(index, 1);
+                if (currentQueueIndex === index) {
+                    currentQueueIndex = -1;
+                } else if (currentQueueIndex > index) {
+                    currentQueueIndex--;
+                }
+                updateQueueUI();
+            }
+        }
+
+        // Add to queue button
+        document.getElementById('add-to-queue-btn').onclick = () => {
+            console.log('Add to queue clicked');
+            console.log('Current queue length:', videoQueue.length);
+            console.log('Video file:', videoFile);
+            
+            if (videoQueue.length >= MAX_QUEUE_SIZE) {
+                alert(`Puoi aggiungere massimo ${MAX_QUEUE_SIZE} video alla coda!`);
+                return;
+            }
+            
+            try {
+                const state = captureCurrentState();
+                console.log('Captured state:', state);
+                
+                if (!state) {
+                    console.log('State is null, aborting');
+                    return;
+                }
+                
+                videoQueue.push(state);
+                currentQueueIndex = videoQueue.length - 1;
+                console.log('Video added to queue. New length:', videoQueue.length);
+                
+                updateQueueUI();
+                
+                // Visual feedback
+                const btn = document.getElementById('add-to-queue-btn');
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => btn.style.transform = 'scale(1)', 100);
+                
+                // Success message
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50';
+                statusDiv.innerText = `✓ Video ${videoQueue.length} aggiunto alla coda!`;
+                document.body.appendChild(statusDiv);
+                setTimeout(() => statusDiv.remove(), 2000);
+                
+            } catch (error) {
+                console.error('Error adding to queue:', error);
+                alert('Errore durante l\'aggiunta alla coda: ' + error.message);
+            }
+        };
+
+        // Navigation buttons
+        document.getElementById('prev-video-btn').onclick = () => {
+            if (currentQueueIndex > 0) {
+                loadQueueItem(currentQueueIndex - 1);
+            } else if (videoLibrary.length > 0 && currentVideoIndex > 0) {
+                // Navigate to previous video in library
+                loadVideoFromLibrary(currentVideoIndex - 1);
+            }
+        };
+
+        document.getElementById('next-video-btn').onclick = () => {
+            if (currentQueueIndex < videoQueue.length - 1) {
+                loadQueueItem(currentQueueIndex + 1);
+            } else if (videoLibrary.length > 0 && currentVideoIndex < videoLibrary.length - 1) {
+                // Navigate to next video in library
+                loadVideoFromLibrary(currentVideoIndex + 1);
+                
+                // Auto-select caption if available
+                const randomBtn = document.getElementById('random-caption-btn');
+                if (randomBtn) {
+                    randomBtn.click();
+                }
+            }
+        };
+
+        // Auto-queue all videos button
+        document.getElementById('auto-queue-btn').onclick = async () => {
+            if (videoLibrary.length === 0) {
+                alert('Carica prima dei video!');
+                return;
+            }
+
+            if (!confirm(`Aggiungere automaticamente tutti i ${videoLibrary.length} video alla coda?\n\nOgni video avrà una caption casuale. Puoi selezionare l'audio per ognuno usando il menu a tendina.`)) {
+                return;
+            }
+
+            const autoQueueBtn = document.getElementById('auto-queue-btn');
+            autoQueueBtn.disabled = true;
+            autoQueueBtn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Caricamento...';
+            lucide.createIcons();
+
+            for (let i = 0; i < videoLibrary.length && videoQueue.length < MAX_QUEUE_SIZE; i++) {
+                // Load video
+                currentVideoIndex = i;
+                videoFile = videoLibrary[i];
+                
+                // Wait for video to load
+                video.src = URL.createObjectURL(videoFile);
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        videoDuration = video.duration;
+                        vStart = 0;
+                        vEnd = Math.min(videoDuration, 15);
+                        updateTrimmers();
+                        resolve();
+                    };
+                });
+
+                // Generate random caption
+                const captions = viralCaptions[selectedCategory];
+                const randomCaption = captions[Math.floor(Math.random() * captions.length)];
+                captionElement.innerText = randomCaption;
+                document.getElementById('caption-input').value = randomCaption;
+
+                // Add to queue
+                const state = captureCurrentState();
+                if (state) {
+                    videoQueue.push(state);
+                }
+
+                // Small delay for UI update
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            currentQueueIndex = videoQueue.length - 1;
+            updateQueueUI();
+
+            autoQueueBtn.disabled = false;
+            autoQueueBtn.innerHTML = '<i data-lucide="zap" class="w-3 h-3"></i> Auto-Coda';
+            lucide.createIcons();
+
+            // Success notification
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50';
+            statusDiv.innerText = `✓ ${videoQueue.length} video aggiunti alla coda!`;
+            document.body.appendChild(statusDiv);
+            setTimeout(() => statusDiv.remove(), 3000);
+        };
+
+        // Initialize
+        updateQueueUI();
+
+        // ============================================
+        // END BULK VIDEO QUEUE SYSTEM
+        // ============================================
 
         // Viral Captions System - 15 Categories x 100 Captions = 1500 Total
         const viralCaptions = {
@@ -2771,6 +3251,372 @@
             btn.style.transform = 'scale(0.95)';
             setTimeout(() => btn.style.transform = 'scale(1)', 100);
         };
+
+        // ============================================
+        // EXPORT ALL FUNCTIONALITY
+        // ============================================
+        
+        document.getElementById('export-all-btn').onclick = async () => {
+            if (videoQueue.length === 0) {
+                alert('La coda è vuota! Aggiungi video prima di esportare.');
+                return;
+            }
+
+            if (!confirm(`Esportare ${videoQueue.length} video? Questo potrebbe richiedere diversi minuti.`)) {
+                return;
+            }
+
+            const exportAllBtn = document.getElementById('export-all-btn');
+            exportAllBtn.disabled = true;
+            
+            const status = document.getElementById('export-status');
+            const progress = document.getElementById('progress-bar');
+            const statusText = document.getElementById('status-text');
+            const percentText = document.getElementById('percent-text');
+            
+            status.classList.remove('hidden');
+
+            try {
+                for (let queueIndex = 0; queueIndex < videoQueue.length; queueIndex++) {
+                    const item = videoQueue[queueIndex];
+                    
+                    statusText.innerText = `Video ${queueIndex + 1}/${videoQueue.length}: Preparazione...`;
+                    progress.style.width = '0%';
+                    percentText.innerText = '0%';
+
+                    // Setup video source
+                    const sourceVideo = document.getElementById('source-video');
+                    sourceVideo.src = URL.createObjectURL(item.videoFile);
+                    await new Promise(r => sourceVideo.onloadedmetadata = r);
+
+                    const renderCanvas = document.getElementById('render-canvas');
+                    const renderCtx = renderCanvas.getContext('2d');
+                    
+                    const targetWidth = 720;
+                    const targetHeight = 1280;
+                    
+                    renderCanvas.width = targetWidth;
+                    renderCanvas.height = targetHeight;
+
+                    const fps = 30;
+                    const duration = item.vEnd - item.vStart;
+
+                    const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
+
+                    const muxerConfig = {
+                        target: new ArrayBufferTarget(),
+                        video: {
+                            codec: 'avc',
+                            width: renderCanvas.width,
+                            height: renderCanvas.height
+                        },
+                        fastStart: 'in-memory'
+                    };
+
+                    if (item.audioFile) {
+                        muxerConfig.audio = {
+                            codec: 'aac',
+                            numberOfChannels: 2,
+                            sampleRate: 48000
+                        };
+                    }
+
+                    const muxer = new Muxer(muxerConfig);
+                    
+                    const videoEncoder = new VideoEncoder({
+                        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+                        error: e => {
+                            console.error('Video encoder error:', e);
+                            throw new Error('Errore di codifica video: ' + e.message);
+                        }
+                    });
+
+                    videoEncoder.configure({
+                        codec: 'avc1.42001F',
+                        width: renderCanvas.width,
+                        height: renderCanvas.height,
+                        bitrate: 8_000_000,
+                        framerate: fps,
+                        avc: { format: 'avc' }
+                    });
+
+                    let audioEncoder = null;
+                    let audioData = null;
+
+                    if (item.audioFile) {
+                        const audioContext = new AudioContext({ sampleRate: 48000 });
+                        const audioBuffer = await item.audioFile.arrayBuffer();
+                        const decodedAudio = await audioContext.decodeAudioData(audioBuffer);
+                        
+                        const startSample = Math.floor(item.aStart * decodedAudio.sampleRate);
+                        const endSample = Math.floor((item.aStart + duration) * decodedAudio.sampleRate);
+                        const sampleCount = endSample - startSample;
+                        
+                        audioData = {
+                            left: new Float32Array(sampleCount),
+                            right: new Float32Array(sampleCount),
+                            sampleRate: decodedAudio.sampleRate
+                        };
+                        
+                        const leftChannel = decodedAudio.getChannelData(0);
+                        const rightChannel = decodedAudio.numberOfChannels > 1 ? decodedAudio.getChannelData(1) : leftChannel;
+                        
+                        for (let i = 0; i < sampleCount; i++) {
+                            audioData.left[i] = leftChannel[startSample + i] || 0;
+                            audioData.right[i] = rightChannel[startSample + i] || 0;
+                        }
+
+                        audioEncoder = new AudioEncoder({
+                            output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+                            error: e => {
+                                console.error('Audio encoder error:', e);
+                                throw new Error('Errore di codifica audio: ' + e.message);
+                            }
+                        });
+
+                        audioEncoder.configure({
+                            codec: 'mp4a.40.2',
+                            sampleRate: 48000,
+                            numberOfChannels: 2,
+                            bitrate: 128000
+                        });
+                    }
+
+                    sourceVideo.currentTime = item.vStart;
+                    await new Promise(r => sourceVideo.onseeked = r);
+
+                    const totalFrames = Math.ceil(duration * fps);
+                    const targetSampleRate = 48000;
+                    const sourceSampleRate = audioData ? audioData.sampleRate : 48000;
+                    const samplesPerFrame = Math.floor(targetSampleRate / fps);
+                    let audioSampleOffset = 0;
+
+                    for (let i = 0; i < totalFrames; i++) {
+                        const timestamp = i / fps;
+                        sourceVideo.currentTime = item.vStart + timestamp;
+                        await new Promise(r => sourceVideo.onseeked = r);
+
+                        // Draw video with optional zoom
+                        if (item.removeWatermark) {
+                            const scale = 1.1;
+                            const scaledWidth = sourceVideo.videoWidth * scale;
+                            const scaledHeight = sourceVideo.videoHeight * scale;
+                            const offsetX = -(scaledWidth - renderCanvas.width) / 2;
+                            const offsetY = -(scaledHeight - renderCanvas.height) / 2;
+                            
+                            renderCtx.drawImage(sourceVideo, offsetX, offsetY, scaledWidth, scaledHeight);
+                        } else {
+                            renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
+                        }
+
+                        drawCaptionOnCanvas(renderCtx, item.captionPosition, renderCanvas.width, renderCanvas.height);
+
+                        const videoFrame = new VideoFrame(renderCanvas, {
+                            timestamp: (i * 1_000_000) / fps
+                        });
+
+                        videoEncoder.encode(videoFrame, { keyFrame: i % 30 === 0 });
+                        videoFrame.close();
+
+                        if (audioEncoder && audioData) {
+                            const resampleRatio = sourceSampleRate / targetSampleRate;
+                            const sourceSamplesNeeded = Math.floor(samplesPerFrame * resampleRatio);
+                            
+                            const leftChannel = new Float32Array(samplesPerFrame);
+                            const rightChannel = new Float32Array(samplesPerFrame);
+                            
+                            for (let j = 0; j < samplesPerFrame; j++) {
+                                const sourceIndex = Math.floor(audioSampleOffset + (j * resampleRatio));
+                                if (sourceIndex < audioData.left.length) {
+                                    leftChannel[j] = audioData.left[sourceIndex];
+                                    rightChannel[j] = audioData.right[sourceIndex];
+                                } else {
+                                    leftChannel[j] = 0;
+                                    rightChannel[j] = 0;
+                                }
+                            }
+
+                            const audioFrame = new AudioData({
+                                format: 'f32-planar',
+                                sampleRate: targetSampleRate,
+                                numberOfFrames: samplesPerFrame,
+                                numberOfChannels: 2,
+                                timestamp: (i * 1_000_000) / fps,
+                                data: new Float32Array([...leftChannel, ...rightChannel])
+                            });
+
+                            audioEncoder.encode(audioFrame);
+                            audioFrame.close();
+                            
+                            audioSampleOffset += sourceSamplesNeeded;
+                        }
+
+                        const progressPercent = Math.round((i / totalFrames) * 100);
+                        progress.style.width = progressPercent + '%';
+                        percentText.innerText = progressPercent + '%';
+
+                        if (i % 10 === 0) {
+                            await new Promise(r => setTimeout(r, 0));
+                        }
+                    }
+
+                    await videoEncoder.flush();
+                    if (audioEncoder) await audioEncoder.flush();
+                    muxer.finalize();
+
+                    const buffer = muxer.target.buffer;
+                    const blob = new Blob([buffer], { type: 'video/mp4' });
+                    
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const sanitizedCaption = (item.caption || 'video').substring(0, 30).replace(/[^a-z0-9]/gi, '_');
+                    a.download = `TikTok_${queueIndex + 1}_${sanitizedCaption}.mp4`;
+                    a.click();
+                    
+                    URL.revokeObjectURL(url);
+                    
+                    // Small delay between downloads
+                    await new Promise(r => setTimeout(r, 500));
+                }
+
+                statusText.innerText = 'Tutti i video esportati!';
+                percentText.innerText = '100%';
+                progress.style.width = '100%';
+                
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                    exportAllBtn.disabled = false;
+                }, 3000);
+
+            } catch (e) {
+                console.error('Errore durante l\'export bulk:', e);
+                statusText.innerText = 'Errore: ' + e.message;
+                alert('Errore durante l\'export bulk. Controlla la console per dettagli.');
+                setTimeout(() => status.classList.add('hidden'), 3000);
+                exportAllBtn.disabled = false;
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════════
+        // PIXEL-PERFECT CAPTION SYSTEM
+        // Instead of re-measuring word-wrap in the canvas (which never matches
+        // browser CSS rendering due to subpixel font metrics), we:
+        //   1. Read the ACTUAL rendered line breaks from the DOM via Range API
+        //   2. Store each line + its Y position as a ratio of container height
+        //   3. In the canvas, place each line at (ratio × canvasHeight)
+        // Result: export is identical to preview at any resolution.
+        // ═══════════════════════════════════════════════════════════════════
+
+        function extractCaptionLines(el, containerRect) {
+            const text = el.innerText || '';
+            const skip = !text.trim() || text === 'Scrivi il tuo testo';
+
+            if (skip) {
+                return { skip: true, lines: [], fontSizeRatio: 0,
+                         color: '#fff', outlineColor: '#000',
+                         fontClass: '', hasOutline: false };
+            }
+
+            const textNode = el.firstChild;
+            const lines = [];
+
+            if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0) {
+                const range = document.createRange();
+                let lineStartIdx = 0;
+                let lastTop = null;
+
+                for (let i = 0; i <= text.length; i++) {
+                    const isEnd = (i === text.length);
+                    const ch = isEnd ? '' : text[i];
+
+                    // Flush on newline character or end of string
+                    if (ch === '\n' || isEnd) {
+                        const segText = text.slice(lineStartIdx, i).trimEnd();
+                        if (segText) {
+                            range.setStart(textNode, lineStartIdx);
+                            range.setEnd(textNode, Math.min(i, text.length));
+                            const r = range.getBoundingClientRect();
+                            lines.push({ text: segText,
+                                         topRatio: (r.top - containerRect.top) / containerRect.height });
+                        }
+                        lineStartIdx = i + 1;
+                        lastTop = null;
+                        continue;
+                    }
+
+                    // Sample this character's top to detect soft line breaks
+                    range.setStart(textNode, i);
+                    range.setEnd(textNode, i + 1);
+                    const r = range.getBoundingClientRect();
+                    const charTop = Math.round(r.top);
+
+                    if (lastTop === null) {
+                        lastTop = charTop;
+                    } else if (charTop !== lastTop) {
+                        // Browser wrapped here — flush previous visual line
+                        const segText = text.slice(lineStartIdx, i).trimEnd();
+                        if (segText) {
+                            range.setStart(textNode, lineStartIdx);
+                            range.setEnd(textNode, i);
+                            const lr = range.getBoundingClientRect();
+                            lines.push({ text: segText,
+                                          topRatio: (lr.top - containerRect.top) / containerRect.height });
+                        }
+                        lineStartIdx = i;
+                        lastTop = charTop;
+                    }
+                }
+            } else {
+                // Fallback: single line using element bounding rect
+                const r = el.getBoundingClientRect();
+                lines.push({ text: text,
+                             topRatio: (r.top - containerRect.top) / containerRect.height });
+            }
+
+            return {
+                skip: false,
+                lines,
+                // Font size as ratio of container height → scales to any canvas
+                fontSizeRatio: parseInt(el.style.fontSize || '12') / containerRect.height,
+                color: el.style.color || '#ffffff',
+                outlineColor: getComputedStyle(el).getPropertyValue('--outline-color') || '#000000',
+                fontClass: el.className,
+                hasOutline: el.classList.contains('text-bold-outline')
+            };
+        }
+
+        function drawCaptionOnCanvas(ctx, cp, canvasW, canvasH) {
+            if (!cp || cp.skip || !cp.lines.length) return;
+
+            const fontSize = cp.fontSizeRatio * canvasH;
+
+            let fontFamily = 'Montserrat';
+            if (cp.fontClass.includes('font-typewriter')) fontFamily = 'Courier Prime';
+            else if (cp.fontClass.includes('font-classic'))  fontFamily = 'Inter';
+            else if (cp.fontClass.includes('font-handwriting')) fontFamily = 'Dancing Script';
+
+            ctx.font = `800 ${fontSize}px ${fontFamily}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            cp.lines.forEach(line => {
+                const y = line.topRatio * canvasH;
+
+                if (cp.hasOutline) {
+                    ctx.strokeStyle = cp.outlineColor;
+                    // Scale stroke width proportionally (matches CSS text-shadow spread)
+                    ctx.lineWidth = Math.max(fontSize * 0.10, 2);
+                    ctx.lineJoin = 'round';
+                    ctx.miterLimit = 2;
+                    ctx.strokeText(line.text, canvasW / 2, y);
+                }
+
+                ctx.fillStyle = cp.color;
+                ctx.fillText(line.text, canvasW / 2, y);
+            });
+        }
+
     </script>
 </body>
 </html>
