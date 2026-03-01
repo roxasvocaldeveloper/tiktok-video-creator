@@ -3526,100 +3526,107 @@
         // metrics differ slightly.
         // ═══════════════════════════════════════════════════════════════
 
-        function extractCaptionLines(el, containerRect) {
-            const text = el.innerText || '';
-            const skip = !text.trim() || text === 'Scrivi il tuo testo';
 
+        // ═══════════════════════════════════════════════════════════════════
+        // CAPTION SYSTEM — definitive approach
+        //
+        // Problem: the preview caption element has CSS word-wrap + explicit
+        // newlines from Enter key (stored as <br> nodes in the DOM).
+        // Canvas has no CSS word-wrap — it needs explicit line positions.
+        //
+        // Solution:
+        //  1. Read the textarea value directly (has \n for Enter presses)
+        //  2. Split on \n to get "paragraphs" (user-defined line groups)
+        //  3. For each paragraph, wrap words to fit the caption's CSS width
+        //     using an offscreen canvas with the same font
+        //  4. Store all final lines with Y positions as ratios
+        //  5. In drawCaptionOnCanvas: reproduce at scaled Y — Enter gaps
+        //     are preserved because they come from the \n splits
+        // ═══════════════════════════════════════════════════════════════════
+
+        function extractCaptionLines(el, containerRect) {
+            const rawText = document.getElementById('caption-input')
+                ? (document.getElementById('caption-input').value || '')
+                : (el.innerText || '');
+
+            const skip = !rawText.trim() || rawText.trim() === 'Scrivi il tuo testo';
             if (skip) {
                 return { skip: true, domLines: [], fontSizeRatio: 0, widthRatio: 0,
                          color: '#fff', outlineColor: '#000', fontClass: '', hasOutline: false };
             }
 
-            // ── Walk ALL child nodes (text + <br>) to handle Enter key presses ──
-            // When innerText is set with \n, browser creates: TextNode + <br> + TextNode
-            // We must iterate all of them to get every visual line including blank lines
-            // from explicit newlines.
+            // Font properties from the element
+            const fontSize = parseInt(el.style.fontSize || '12');
+            let fontFamily = 'Montserrat';
+            if (el.className.includes('font-typewriter')) fontFamily = 'Courier Prime';
+            else if (el.className.includes('font-classic'))  fontFamily = 'Inter';
+            else if (el.className.includes('font-handwriting')) fontFamily = 'Dancing Script';
 
-            const domLines = [];
-            const range = document.createRange();
+            // Measure wrap width: the caption element's actual pixel width in the preview
+            const maxPxWidth = el.offsetWidth;
 
-            function processTextNode(node) {
-                const nodeText = node.textContent;
-                if (!nodeText) return;
+            // Use an offscreen canvas with the SAME font as the preview to wrap text
+            const measure = document.createElement('canvas').getContext('2d');
+            measure.font = `800 ${fontSize}px ${fontFamily}`;
 
-                let lineStartIdx = 0;
-                let lastTop = null;
-
-                for (let i = 0; i <= nodeText.length; i++) {
-                    const isEnd = i === nodeText.length;
-
-                    if (isEnd) {
-                        const seg = nodeText.slice(lineStartIdx, i).trimEnd();
-                        if (seg) {
-                            range.setStart(node, lineStartIdx);
-                            range.setEnd(node, i);
-                            const r = range.getBoundingClientRect();
-                            domLines.push({
-                                text: seg,
-                                topRatio: (r.top - containerRect.top) / containerRect.height
-                            });
-                        }
-                        break;
-                    }
-
-                    range.setStart(node, i);
-                    range.setEnd(node, i + 1);
-                    const r = range.getBoundingClientRect();
-                    const charTop = Math.round(r.top);
-
-                    if (lastTop === null) {
-                        lastTop = charTop;
-                    } else if (charTop !== lastTop) {
-                        const seg = nodeText.slice(lineStartIdx, i).trimEnd();
-                        if (seg) {
-                            range.setStart(node, lineStartIdx);
-                            range.setEnd(node, i);
-                            const lr = range.getBoundingClientRect();
-                            domLines.push({
-                                text: seg,
-                                topRatio: (lr.top - containerRect.top) / containerRect.height
-                            });
-                        }
-                        lineStartIdx = i;
-                        lastTop = charTop;
+            function wrapParagraph(text) {
+                // Returns array of line strings that fit within maxPxWidth
+                if (!text.trim()) return ['']; // blank line from Enter
+                const words = text.split(' ');
+                const result = [];
+                let cur = words[0];
+                for (let i = 1; i < words.length; i++) {
+                    const test = cur + ' ' + words[i];
+                    if (measure.measureText(test).width <= maxPxWidth) {
+                        cur = test;
+                    } else {
+                        result.push(cur);
+                        cur = words[i];
                     }
                 }
+                result.push(cur);
+                return result;
             }
 
-            // Iterate child nodes: text nodes + <br> elements
-            // <br> from Enter key — we handle them by noting the Y gap
-            el.childNodes.forEach(node => {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    processTextNode(node);
-                }
-                // <br> nodes are implicit — their position is captured via
-                // the Y jump between the previous text node's last line and
-                // the next text node's first line. Nothing to do explicitly.
+            // Split on \n (Enter key) to get paragraphs, then wrap each
+            const paragraphs = rawText.split('\n');
+            const allLines = []; // strings in display order
+            paragraphs.forEach(para => {
+                wrapParagraph(para).forEach(line => allLines.push(line));
             });
 
-            // Fallback if nothing extracted
-            if (domLines.length === 0) {
-                const r = el.getBoundingClientRect();
-                domLines.push({ text: text.trim(), topRatio: (r.top - containerRect.top) / containerRect.height });
+            // Now get the actual Y position of line 0 from the DOM,
+            // then space subsequent lines by the measured line height
+            const elRect = el.getBoundingClientRect();
+            const lineHeightPx = fontSize * 1.1; // matches CSS line-height: 1.1
+
+            // Find the Y of the first visible character in the element
+            let firstLineTop = elRect.top;
+            const textNode = el.firstChild;
+            if (textNode && textNode.nodeType === Node.TEXT_NODE && textNode.textContent.length > 0) {
+                const range = document.createRange();
+                range.setStart(textNode, 0);
+                range.setEnd(textNode, 1);
+                const r = range.getBoundingClientRect();
+                if (r.top > 0) firstLineTop = r.top;
             }
+
+            const domLines = allLines.map((text, i) => ({
+                text,
+                topRatio: ((firstLineTop - containerRect.top) + i * lineHeightPx) / containerRect.height
+            }));
 
             return {
                 skip: false,
                 domLines,
-                fontSizeRatio: parseInt(el.style.fontSize || '12') / containerRect.height,
-                widthRatio: el.offsetWidth / containerRect.width,
+                fontSizeRatio: fontSize / containerRect.height,
+                widthRatio: maxPxWidth / containerRect.width,
                 color: el.style.color || '#ffffff',
                 outlineColor: getComputedStyle(el).getPropertyValue('--outline-color') || '#000000',
                 fontClass: el.className,
                 hasOutline: el.classList.contains('text-bold-outline')
             };
         }
-
 
         function drawCaptionOnCanvas(ctx, cp, canvasW, canvasH) {
             if (!cp || cp.skip || !cp.domLines || !cp.domLines.length) return;
@@ -3637,29 +3644,12 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
-            function drawLine(text, y) {
-                if (cp.hasOutline) {
-                    ctx.strokeStyle = cp.outlineColor;
-                    ctx.lineWidth = Math.max(fontSize * 0.10, 2);
-                    ctx.lineJoin = 'round';
-                    ctx.miterLimit = 2;
-                    ctx.strokeText(text, canvasW / 2, y);
-                }
-                ctx.fillStyle = cp.color;
-                ctx.fillText(text, canvasW / 2, y);
-            }
+            cp.domLines.forEach((line) => {
+                const y = line.topRatio * canvasH;
+                if (!line.text.trim()) return; // blank line — just skip drawing (space already in Y)
 
-            // Each domLine has an ABSOLUTE topRatio from the DOM.
-            // This automatically encodes:
-            //   - soft wraps (Y increases by lineH)
-            //   - explicit Enter gaps (Y increases by 2× lineH or more)
-            // We just place each line at its exact DOM Y — the gap from Enter is
-            // already baked into the topRatio difference between lines.
-            cp.domLines.forEach((domLine) => {
-                const domY = domLine.topRatio * canvasH;
-
-                // Sub-wrap only if canvas metrics make this line wider than maxW
-                const words = domLine.text.split(' ');
+                // Safety sub-wrap: if canvas metrics differ slightly from preview
+                const words = line.text.split(' ');
                 const subLines = [];
                 let cur = words[0] || '';
                 for (let wi = 1; wi < words.length; wi++) {
@@ -3673,10 +3663,17 @@
                 }
                 subLines.push(cur);
 
-                // First sub-line always at the DOM's exact Y (respects Enter spacing)
-                // Additional sub-lines (rare metric overflow) stack below it
                 subLines.forEach((subLine, si) => {
-                    drawLine(subLine, domY + si * lineH);
+                    const sy = y + si * lineH;
+                    if (cp.hasOutline) {
+                        ctx.strokeStyle = cp.outlineColor;
+                        ctx.lineWidth = Math.max(fontSize * 0.10, 2);
+                        ctx.lineJoin = 'round';
+                        ctx.miterLimit = 2;
+                        ctx.strokeText(subLine, canvasW / 2, sy);
+                    }
+                    ctx.fillStyle = cp.color;
+                    ctx.fillText(subLine, canvasW / 2, sy);
                 });
             });
         }
