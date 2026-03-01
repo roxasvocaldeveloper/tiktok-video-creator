@@ -1261,7 +1261,8 @@
                 // Read EXACTLY how the browser broke the lines using the Range API.
                 // This is the only way to guarantee export matches preview perfectly —
                 // no canvas re-measurement, no approximation, just the truth from the DOM.
-                const captionPosition = extractCaptionLines(captionElement, containerRect);
+                const captionRawText = document.getElementById('caption-input').value || captionElement.innerText || '';
+                const captionPosition = extractCaptionLines(captionElement, containerRect, captionRawText);
 
                 for (let i = 0; i < totalFrames; i++) {
                     const timestamp = i / fps;
@@ -1406,7 +1407,7 @@
                 queueList.innerHTML = videoQueue.map((item, index) => `
                     <div class="queue-item ${index === currentQueueIndex ? 'active' : ''}" data-index="${index}">
                         <div class="queue-item-info">
-                            <div class="queue-item-caption">${index + 1}. ${item.caption || 'Senza testo'}</div>
+                            <div class="queue-item-caption">${index + 1}. ${(item.rawCaption || item.caption || 'Senza testo').replace(/\n/g, ' ')}</div>
                             <div class="queue-item-meta">${item.duration.toFixed(1)}s • ${item.hasAudio ? 'Con audio' : 'Solo video'}</div>
                         </div>
                         <div class="queue-item-actions">
@@ -1467,8 +1468,11 @@
                     aStart: aStart,
                     hasAudio: !!audioFile,
                     
-                    // Caption: store DOM-extracted lines so bulk export is pixel-perfect
-                    captionPosition: extractCaptionLines(captionElement, containerRect),
+                    // Caption: store raw textarea value (has real \n from Shift+Enter)
+                    // + captionPosition computed at add-time for bulk export
+                    rawCaption: (document.getElementById('caption-input').value || captionElement.innerText || ''),
+                    captionPosition: extractCaptionLines(captionElement, containerRect,
+                        document.getElementById('caption-input').value || captionElement.innerText || ''),
                     
                     // Settings
                     removeWatermark: removeWatermark,
@@ -1534,8 +1538,9 @@
             }
             
             // Restore caption
-            captionElement.innerText = item.caption;
-            document.getElementById('caption-input').value = item.caption;
+            const textToRestore = item.rawCaption || item.caption || '';
+            captionElement.innerText = textToRestore;
+            document.getElementById('caption-input').value = textToRestore;
             captionElement.style.fontSize = item.fontSize + 'px';
             document.getElementById('fs-val').innerText = item.fontSize + 'px';
             document.getElementById('font-size').value = item.fontSize;
@@ -3470,7 +3475,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    const sanitizedCaption = (item.caption || 'video').substring(0, 30).replace(/[^a-z0-9]/gi, '_');
+                    const sanitizedCaption = (item.rawCaption || item.caption || 'video').replace(/\n/g, ' ').substring(0, 30).replace(/[^a-z0-9]/gi, '_');
                     a.download = `TikTok_${queueIndex + 1}_${sanitizedCaption}.mp4`;
                     a.click();
                     
@@ -3554,9 +3559,9 @@
         //   - all lines spaced by fontSize*1.1 from the topRatio anchor
         // ════════════════════════════════════════════════════════════════
 
-        function extractCaptionLines(el, containerRect) {
-            const textarea = document.getElementById('caption-input');
-            const rawText = textarea ? textarea.value : el.innerText;
+        function extractCaptionLines(el, containerRect, rawText) {
+            // rawText is passed explicitly — contains real \n from Shift+Enter in textarea
+            if (!rawText) rawText = el.innerText || '';
             const skip = !rawText || !rawText.trim() || rawText.trim() === 'Scrivi il tuo testo';
 
             if (skip) {
