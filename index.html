@@ -1261,7 +1261,7 @@
                 // Read EXACTLY how the browser broke the lines using the Range API.
                 // This is the only way to guarantee export matches preview perfectly —
                 // no canvas re-measurement, no approximation, just the truth from the DOM.
-                const captionRawText = document.getElementById('caption-input').value || captionElement.innerText || '';
+                const captionRawText = (document.getElementById('caption-input').value || captionElement.innerText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
                 const captionPosition = extractCaptionLines(captionElement, containerRect, captionRawText);
 
                 for (let i = 0; i < totalFrames; i++) {
@@ -1470,7 +1470,7 @@
                     
                     // Caption: store raw textarea value (has real \n from Shift+Enter)
                     // + captionPosition computed at add-time for bulk export
-                    rawCaption: (document.getElementById('caption-input').value || captionElement.innerText || ''),
+                    rawCaption: (document.getElementById('caption-input').value || captionElement.innerText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n'),
                     captionPosition: extractCaptionLines(captionElement, containerRect,
                         document.getElementById('caption-input').value || captionElement.innerText || ''),
                     
@@ -3560,71 +3560,74 @@
         // ════════════════════════════════════════════════════════════════
 
         function extractCaptionLines(el, containerRect, rawText) {
-            // rawText is passed explicitly — contains real \n from Shift+Enter in textarea
-            if (!rawText) rawText = el.innerText || '';
-            const skip = !rawText || !rawText.trim() || rawText.trim() === 'Scrivi il tuo testo';
-
-            if (skip) {
-                return { skip: true };
+            // ── Get text with newlines from the DOM directly ─────────────────
+            // Walk childNodes: TEXT_NODE → text content, BR → "\n"
+            // This is the ONLY 100% reliable source — works regardless of how
+            // the text was set (innerText assignment, textarea, or direct DOM).
+            function getTextWithBreaks(node) {
+                let out = '';
+                node.childNodes.forEach(child => {
+                    if (child.nodeType === Node.TEXT_NODE) out += child.textContent;
+                    else if (child.nodeName === 'BR') out += '\n';
+                    else out += getTextWithBreaks(child);
+                });
+                return out;
             }
 
-            const fontSize = parseInt(el.style.fontSize) || 12;
+            // Primary: DOM walk (captures <br> from innerText assignment)
+            let text = getTextWithBreaks(el);
 
+            // Secondary: rawText normalized (handles \r\n from Windows/Mac textarea)
+            if (rawText) {
+                const norm = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                // Prefer rawText if it has more newlines (more info)
+                const domNL  = (text.match(/\n/g) || []).length;
+                const rawNL  = (norm.match(/\n/g) || []).length;
+                if (rawNL > domNL) text = norm;
+            }
+
+            // Normalize: collapse any remaining \r
+            text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+
+            const skip = !text || text === 'Scrivi il tuo testo';
+            if (skip) return { skip: true };
+
+            const fontSize = parseInt(el.style.fontSize) || 12;
             let fontFamily = 'Montserrat';
-            if (el.className.includes('font-typewriter'))  fontFamily = 'Courier Prime';
-            else if (el.className.includes('font-classic'))   fontFamily = 'Inter';
+            if (el.className.includes('font-typewriter'))   fontFamily = 'Courier Prime';
+            else if (el.className.includes('font-classic'))    fontFamily = 'Inter';
             else if (el.className.includes('font-handwriting')) fontFamily = 'Dancing Script';
 
-            // Max-width in CSS pixels: the caption element has max-width:85% of container
-            // Use offsetWidth which already accounts for the actual rendered width
             const maxCssPx = el.offsetWidth;
-
-            // Offscreen canvas to measure text exactly as browser would (same font, same px)
             const mc = document.createElement('canvas').getContext('2d');
             mc.font = `800 ${fontSize}px ${fontFamily}`;
 
-            // Split on \n (Enter key presses) to get user-defined paragraphs
-            // Then wrap each paragraph to fit maxCssPx
-            const paragraphs = rawText.split('\n');
-            const allLines = [];  // final ordered lines of text
-
-            paragraphs.forEach((para, pi) => {
-                if (!para.trim()) {
-                    // Blank line from Enter — represents an empty row
-                    allLines.push('');
-                    return;
-                }
-                const words = para.trim().split(' ');
+            // Split on \n → paragraphs (user Enter presses), wrap each to maxCssPx
+            const paragraphs = text.split('\n');
+            const allLines = [];
+            paragraphs.forEach(para => {
+                if (!para.trim()) { allLines.push(''); return; }
+                const words = para.trim().split(/\s+/);
                 let cur = words[0];
                 for (let i = 1; i < words.length; i++) {
                     const test = cur + ' ' + words[i];
-                    if (mc.measureText(test).width <= maxCssPx) {
-                        cur = test;
-                    } else {
-                        allLines.push(cur);
-                        cur = words[i];
-                    }
+                    if (mc.measureText(test).width <= maxCssPx) cur = test;
+                    else { allLines.push(cur); cur = words[i]; }
                 }
                 allLines.push(cur);
             });
 
-            // Anchor: caption.offsetTop is the CSS top of the overlay div
-            // relative to the video container (drop-zone)
-            const topRatio = el.offsetTop / containerRect.height;
-            const fontSizeRatio = fontSize / containerRect.height;
-            const widthRatio = maxCssPx / containerRect.width;
-
             return {
                 skip: false,
-                allLines,          // ordered line strings ('' = blank)
-                topRatio,          // Y of first line as fraction of container
-                fontSizeRatio,
-                widthRatio,
+                allLines,
+                topRatio:        el.offsetTop / containerRect.height,
+                fontSizeRatio:   fontSize / containerRect.height,
+                widthRatio:      maxCssPx / containerRect.width,
                 lineHeightRatio: (fontSize * 1.1) / containerRect.height,
-                color: el.style.color || '#ffffff',
+                color:        el.style.color || '#ffffff',
                 outlineColor: getComputedStyle(el).getPropertyValue('--outline-color') || '#000000',
-                fontClass: el.className,
-                hasOutline: el.classList.contains('text-bold-outline')
+                fontClass:    el.className,
+                hasOutline:   el.classList.contains('text-bold-outline')
             };
         }
 
