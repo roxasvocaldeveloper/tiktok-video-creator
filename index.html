@@ -3535,62 +3535,83 @@
                          color: '#fff', outlineColor: '#000', fontClass: '', hasOutline: false };
             }
 
-            const textNode = el.firstChild;
-            const domLines = [];
+            // ── Walk ALL child nodes (text + <br>) to handle Enter key presses ──
+            // When innerText is set with \n, browser creates: TextNode + <br> + TextNode
+            // We must iterate all of them to get every visual line including blank lines
+            // from explicit newlines.
 
-            if (textNode && textNode.nodeType === Node.TEXT_NODE && text.length > 0) {
-                const range = document.createRange();
+            const domLines = [];
+            const range = document.createRange();
+
+            function processTextNode(node) {
+                const nodeText = node.textContent;
+                if (!nodeText) return;
+
                 let lineStartIdx = 0;
                 let lastTop = null;
 
-                for (let i = 0; i <= text.length; i++) {
-                    const isEnd = (i === text.length);
-                    const ch = isEnd ? '' : text[i];
+                for (let i = 0; i <= nodeText.length; i++) {
+                    const isEnd = i === nodeText.length;
 
-                    if (ch === '\n' || isEnd) {
-                        const seg = text.slice(lineStartIdx, i).trimEnd();
+                    if (isEnd) {
+                        const seg = nodeText.slice(lineStartIdx, i).trimEnd();
                         if (seg) {
-                            range.setStart(textNode, lineStartIdx);
-                            range.setEnd(textNode, Math.min(i, text.length));
+                            range.setStart(node, lineStartIdx);
+                            range.setEnd(node, i);
                             const r = range.getBoundingClientRect();
-                            domLines.push({ text: seg,
-                                            topRatio: (r.top - containerRect.top) / containerRect.height });
+                            domLines.push({
+                                text: seg,
+                                topRatio: (r.top - containerRect.top) / containerRect.height
+                            });
                         }
-                        lineStartIdx = i + 1;
-                        lastTop = null;
-                        continue;
+                        break;
                     }
 
-                    range.setStart(textNode, i);
-                    range.setEnd(textNode, i + 1);
+                    range.setStart(node, i);
+                    range.setEnd(node, i + 1);
                     const r = range.getBoundingClientRect();
                     const charTop = Math.round(r.top);
 
                     if (lastTop === null) {
                         lastTop = charTop;
                     } else if (charTop !== lastTop) {
-                        const seg = text.slice(lineStartIdx, i).trimEnd();
+                        const seg = nodeText.slice(lineStartIdx, i).trimEnd();
                         if (seg) {
-                            range.setStart(textNode, lineStartIdx);
-                            range.setEnd(textNode, i);
+                            range.setStart(node, lineStartIdx);
+                            range.setEnd(node, i);
                             const lr = range.getBoundingClientRect();
-                            domLines.push({ text: seg,
-                                            topRatio: (lr.top - containerRect.top) / containerRect.height });
+                            domLines.push({
+                                text: seg,
+                                topRatio: (lr.top - containerRect.top) / containerRect.height
+                            });
                         }
                         lineStartIdx = i;
                         lastTop = charTop;
                     }
                 }
-            } else {
+            }
+
+            // Iterate child nodes: text nodes + <br> elements
+            // <br> from Enter key — we handle them by noting the Y gap
+            el.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    processTextNode(node);
+                }
+                // <br> nodes are implicit — their position is captured via
+                // the Y jump between the previous text node's last line and
+                // the next text node's first line. Nothing to do explicitly.
+            });
+
+            // Fallback if nothing extracted
+            if (domLines.length === 0) {
                 const r = el.getBoundingClientRect();
-                domLines.push({ text, topRatio: (r.top - containerRect.top) / containerRect.height });
+                domLines.push({ text: text.trim(), topRatio: (r.top - containerRect.top) / containerRect.height });
             }
 
             return {
                 skip: false,
                 domLines,
                 fontSizeRatio: parseInt(el.style.fontSize || '12') / containerRect.height,
-                // Width of caption element as fraction of container width → canvas maxWidth
                 widthRatio: el.offsetWidth / containerRect.width,
                 color: el.style.color || '#ffffff',
                 outlineColor: getComputedStyle(el).getPropertyValue('--outline-color') || '#000000',
@@ -3599,13 +3620,13 @@
             };
         }
 
+
         function drawCaptionOnCanvas(ctx, cp, canvasW, canvasH) {
             if (!cp || cp.skip || !cp.domLines || !cp.domLines.length) return;
 
             const fontSize = cp.fontSizeRatio * canvasH;
-            // Scaled max width — mirrors the CSS max-width of the caption element
             const maxW = cp.widthRatio * canvasW;
-            const lineH = fontSize * 1.1; // matches CSS line-height: 1.1
+            const lineH = fontSize * 1.1;
 
             let fontFamily = 'Montserrat';
             if (cp.fontClass.includes('font-typewriter')) fontFamily = 'Courier Prime';
@@ -3616,16 +3637,31 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
-            // For each DOM line:
-            // - Place it at the DOM's Y position (topRatio × canvasH)
-            // - If canvas font is wider than maxW, sub-wrap (shouldn't happen often)
+            function drawLine(text, y) {
+                if (cp.hasOutline) {
+                    ctx.strokeStyle = cp.outlineColor;
+                    ctx.lineWidth = Math.max(fontSize * 0.10, 2);
+                    ctx.lineJoin = 'round';
+                    ctx.miterLimit = 2;
+                    ctx.strokeText(text, canvasW / 2, y);
+                }
+                ctx.fillStyle = cp.color;
+                ctx.fillText(text, canvasW / 2, y);
+            }
+
+            // Each domLine has an ABSOLUTE topRatio from the DOM.
+            // This automatically encodes:
+            //   - soft wraps (Y increases by lineH)
+            //   - explicit Enter gaps (Y increases by 2× lineH or more)
+            // We just place each line at its exact DOM Y — the gap from Enter is
+            // already baked into the topRatio difference between lines.
             cp.domLines.forEach((domLine) => {
                 const domY = domLine.topRatio * canvasH;
 
+                // Sub-wrap only if canvas metrics make this line wider than maxW
                 const words = domLine.text.split(' ');
                 const subLines = [];
                 let cur = words[0] || '';
-
                 for (let wi = 1; wi < words.length; wi++) {
                     const test = cur + ' ' + words[wi];
                     if (ctx.measureText(test).width <= maxW) {
@@ -3637,18 +3673,10 @@
                 }
                 subLines.push(cur);
 
+                // First sub-line always at the DOM's exact Y (respects Enter spacing)
+                // Additional sub-lines (rare metric overflow) stack below it
                 subLines.forEach((subLine, si) => {
-                    const y = domY + si * lineH;
-
-                    if (cp.hasOutline) {
-                        ctx.strokeStyle = cp.outlineColor;
-                        ctx.lineWidth = Math.max(fontSize * 0.10, 2);
-                        ctx.lineJoin = 'round';
-                        ctx.miterLimit = 2;
-                        ctx.strokeText(subLine, canvasW / 2, y);
-                    }
-                    ctx.fillStyle = cp.color;
-                    ctx.fillText(subLine, canvasW / 2, y);
+                    drawLine(subLine, domY + si * lineH);
                 });
             });
         }
