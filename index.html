@@ -9,362 +9,109 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/mp4-muxer@latest/build/mp4-muxer.js"></script>
     <style>
-        :root {
-            --sv-purple: #8B5CF6;
-            --sv-blue: #3B82F6;
-            --sv-bg: #050505;
-            --sv-card: #0F0F0F;
-        }
-
-        body {
-            background-color: var(--sv-bg);
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
-        }
-
-        .preview-column {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 80vh;
-        }
-
-        .iphone-frame {
-            width: 290px;
-            height: calc(290px * 16 / 9);
-            border: 10px solid #1A1A1A;
-            border-radius: 42px;
-            position: relative;
-            background: #000;
-            overflow: hidden;
-            box-shadow: 0 0 0 2px #000, 0 20px 50px rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .notch {
-            position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 75px;
-            height: 22px;
-            background: #000;
-            border-radius: 20px;
-            z-index: 50;
-            border: 1px solid #222;
-        }
-
-        .video-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background: #000;
-            overflow: hidden;
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.3s ease;
-        }
-
+        :root { --sv-purple: #8B5CF6; --sv-blue: #3B82F6; --sv-bg: #050505; }
+        body { background-color: var(--sv-bg); color: #fff; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; overflow-x: hidden; }
+        .preview-column { display: flex; flex-direction: column; align-items: center; }
+        .iphone-frame { width: 290px; height: calc(290px * 16 / 9); border: 10px solid #1A1A1A; border-radius: 42px; position: relative; background: #000; overflow: hidden; box-shadow: 0 0 0 2px #000, 0 20px 50px rgba(0,0,0,0.5); }
+        .notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 75px; height: 22px; background: #000; border-radius: 20px; z-index: 50; border: 1px solid #222; }
+        .video-container { width: 100%; height: 100%; position: relative; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
         #caption-overlay {
             position: absolute;
             cursor: move;
             user-select: none;
             text-align: center;
             max-width: 85%;
-            word-wrap: break-word;
             z-index: 30;
-            display: block;
             line-height: 1.1;
             left: 50%;
             transform: translateX(-50%);
             --outline-color: #000000;
-            paint-order: stroke fill;
-            /* FIX: pre-wrap rende i \n visibili nativamente */
-            white-space: pre-wrap;
+            white-space: pre;
         }
-        
-        #caption-overlay:not(.dragging) {
-            transition: top 0.1s ease-out;
-        }
-
+        #caption-overlay:not(.dragging) { transition: top 0.1s ease-out; }
         .text-bold-outline {
-            text-shadow: 
-                0 0 1px var(--outline-color),
-                -1.5px -1.5px 0 var(--outline-color),  
-                 1.5px -1.5px 0 var(--outline-color),
-                -1.5px  1.5px 0 var(--outline-color),
-                 1.5px  1.5px 0 var(--outline-color),
-                 0px 3px 8px rgba(0,0,0,0.6);
+            text-shadow: 0 0 1px var(--outline-color),
+                -1.5px -1.5px 0 var(--outline-color), 1.5px -1.5px 0 var(--outline-color),
+                -1.5px 1.5px 0 var(--outline-color), 1.5px 1.5px 0 var(--outline-color),
+                0px 3px 8px rgba(0,0,0,0.6);
         }
-
-        .tiktok-ui-overlay {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 40;
-            display: block;
-            background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%);
-        }
-
-        .right-actions {
-            position: absolute;
-            right: 8px;
-            bottom: 85px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-        }
-
+        .tiktok-ui-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 40; display: block; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%); }
+        .right-actions { position: absolute; right: 8px; bottom: 85px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
         .action-text { font-size: 8px; font-weight: 600; }
-
-        .bottom-info {
-            position: absolute;
-            left: 12px;
-            bottom: 20px;
-            max-width: 190px;
-        }
-
-        .trimmer-track {
-            position: relative;
-            width: 100%;
-            background: #111;
-            border-radius: 12px;
-            border: 1px solid #333;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .thumbnail-track {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            pointer-events: none;
-            opacity: 0.4;
-        }
-
-        .thumbnail-track canvas {
-            height: 100%;
-            flex: 1;
-            object-fit: cover;
-        }
-
-        .trim-overlay {
-            position: absolute;
-            top: 0;
-            height: 100%;
-            z-index: 5;
-            cursor: grab;
-            border-radius: 6px;
-        }
-
-        #video-trim-overlay {
-            background: rgba(59, 130, 246, 0.2);
-            border: 3px solid var(--sv-blue);
-        }
-
-        #audio-trim-overlay {
-            background: rgba(139, 92, 246, 0.15);
-            border: 3px solid var(--sv-purple);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-        }
-
-        .playhead-cursor {
-            position: absolute;
-            top: 0;
-            width: 2px;
-            height: 100%;
-            background: #ffffff;
-            z-index: 20;
-            pointer-events: none;
-            box-shadow: 0 0 10px rgba(255,255,255,0.8);
-        }
-
-        .trim-handle {
-            position: absolute;
-            top: 0;
-            width: 16px;
-            height: 100%;
-            background: inherit;
-            cursor: ew-resize;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-        
+        .bottom-info { position: absolute; left: 12px; bottom: 20px; max-width: 190px; }
+        .trimmer-track { position: relative; width: 100%; background: #111; border-radius: 12px; border: 1px solid #333; overflow: hidden; cursor: pointer; }
+        .thumbnail-track { position: absolute; inset: 0; display: flex; pointer-events: none; opacity: 0.4; }
+        .thumbnail-track canvas { height: 100%; flex: 1; object-fit: cover; }
+        .trim-overlay { position: absolute; top: 0; height: 100%; z-index: 5; cursor: grab; border-radius: 6px; }
+        #video-trim-overlay { background: rgba(59,130,246,0.2); border: 3px solid var(--sv-blue); }
+        #audio-trim-overlay { background: rgba(139,92,246,0.15); border: 3px solid var(--sv-purple); box-shadow: 0 0 20px rgba(139,92,246,0.3); }
+        .playhead-cursor { position: absolute; top: 0; width: 2px; height: 100%; background: #fff; z-index: 20; pointer-events: none; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
+        .trim-handle { position: absolute; top: 0; width: 16px; height: 100%; background: inherit; cursor: ew-resize; display: flex; align-items: center; justify-content: center; z-index: 10; }
         #video-trim-overlay .trim-handle { background-color: var(--sv-blue); }
         #audio-trim-overlay .trim-handle { display: none; }
-
-        .trim-handle::after {
-            content: '';
-            width: 2px;
-            height: 14px;
-            background: white;
-            border-radius: 1px;
-        }
+        .trim-handle::after { content: ''; width: 2px; height: 14px; background: white; border-radius: 1px; }
         .handle-left { left: -8px; border-radius: 6px 0 0 6px; }
         .handle-right { right: -8px; border-radius: 0 6px 6px 0; }
-
-        .waveform-wrapper {
-            position: relative;
-            width: 100%;
-            height: 70px;
-            background: #000;
-        }
-
+        .waveform-wrapper { position: relative; width: 100%; height: 70px; background: #000; }
         #waveform { width: 100%; height: 100%; pointer-events: none; }
-
-        .btn-sv {
-            background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%);
-            transition: all 0.3s ease;
-        }
+        .btn-sv { background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%); transition: all 0.3s ease; }
         .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
         .btn-sv:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
-
         .font-tiktok { font-family: 'Montserrat', sans-serif; font-weight: 800; letter-spacing: -0.5px; }
         .font-typewriter { font-family: 'Courier Prime', monospace; }
         .font-classic { font-family: 'Inter', sans-serif; font-weight: 800; }
         .font-handwriting { font-family: 'Dancing Script', cursive; font-weight: 700; }
-
-        .font-btn {
-            background: #000;
-            border: 1px solid #333;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 10px;
-            transition: all 0.2s;
-            color: #666;
-        }
-        .font-btn.active {
-            border-color: var(--sv-blue);
-            background: rgba(59, 130, 246, 0.1);
-            color: #fff;
-        }
-
-        .color-wrapper {
-            position: relative;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            overflow: hidden;
-            background: #000;
-            flex-shrink: 0;
-        }
-        
-        .color-input {
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            top: -50%;
-            left: -50%;
-            cursor: pointer;
-        }
-
-        .toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 12px;
-            background: #111;
-            border: 1px solid #333;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            transition: all 0.2s;
-            color: #666;
-            cursor: pointer;
-        }
-        .toggle-btn.active {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: var(--sv-blue);
-            color: #fff;
-        }
-
-        .caption-cat-btn {
-            background: #000;
-            border: 1px solid #333;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            transition: all 0.2s;
-            color: #666;
-            cursor: pointer;
-        }
-        .caption-cat-btn.active {
-            border-color: var(--sv-purple);
-            background: rgba(139, 92, 246, 0.15);
-            color: #fff;
-        }
-        .caption-cat-btn:hover {
-            border-color: var(--sv-purple);
-            color: #fff;
-        }
-
+        .font-btn { background: #000; border: 1px solid #333; padding: 8px 12px; border-radius: 10px; font-size: 10px; transition: all 0.2s; color: #666; }
+        .font-btn.active { border-color: var(--sv-blue); background: rgba(59,130,246,0.1); color: #fff; }
+        .color-wrapper { position: relative; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #333; overflow: hidden; background: #000; flex-shrink: 0; }
+        .color-input { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; cursor: pointer; }
+        .toggle-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 12px; background: #111; border: 1px solid #333; font-size: 10px; font-weight: 800; text-transform: uppercase; transition: all 0.2s; color: #666; cursor: pointer; }
+        .toggle-btn.active { background: rgba(59,130,246,0.15); border-color: var(--sv-blue); color: #fff; }
+        .caption-cat-btn { background: #000; border: 1px solid #333; padding: 6px 10px; border-radius: 8px; font-size: 9px; font-weight: 800; text-transform: uppercase; transition: all 0.2s; color: #666; cursor: pointer; }
+        .caption-cat-btn.active { border-color: var(--sv-purple); background: rgba(139,92,246,0.15); color: #fff; }
+        .caption-cat-btn:hover { border-color: var(--sv-purple); color: #fff; }
         #render-canvas { display: none; }
-
-        .queue-item {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid #333;
-            padding: 8px 12px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-        .queue-item.active {
-            border-color: var(--sv-blue);
-            background: rgba(59, 130, 246, 0.15);
-        }
+        .queue-item { background: rgba(0,0,0,0.4); border: 1px solid #333; padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all 0.2s; }
+        .queue-item.active { border-color: var(--sv-blue); background: rgba(59,130,246,0.15); }
         .queue-item:hover { border-color: var(--sv-blue); }
         .queue-item-info { flex: 1; min-width: 0; }
-        .queue-item-caption {
-            font-size: 10px; font-weight: 700; color: #fff;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .queue-item-meta { font-size: 8px; color: #888; margin-top: 2px; }
+        .queue-item-caption { font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .queue-item-meta { font-size: 8px; color: #888; margin-top: 1px; }
         .queue-item-actions { display: flex; gap: 4px; }
-        .queue-item-btn {
-            padding: 4px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid #444;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .queue-item-btn { padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
         .queue-item-btn:hover { background: rgba(255,255,255,0.1); border-color: #666; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-6">
+<div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
-<div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-    
-    <!-- Preview Column -->
-    <div class="preview-column space-y-6 order-2 lg:order-1">
+    <!-- LEFT: Preview + Bulk Panel -->
+    <div class="preview-column space-y-4 order-2 lg:order-1">
+
+        <!-- BULK PANEL — in cima alla colonna sinistra -->
+        <div class="w-full space-y-3 p-4 bg-gradient-to-br from-blue-950/40 to-violet-950/40 rounded-2xl border border-blue-800/30">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black uppercase text-blue-300 tracking-widest">🎬 Bulk</span>
+                    <span id="queue-count" class="text-violet-400 font-mono text-[10px] font-bold">0/20</span>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <button id="auto-queue-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"><i data-lucide="zap" class="w-3 h-3"></i>Auto</button>
+                    <button id="prev-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"><i data-lucide="chevron-left" class="w-3 h-3"></i>Prev</button>
+                    <button id="add-to-queue-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"><i data-lucide="plus" class="w-3 h-3"></i>Add</button>
+                    <button id="next-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">Next<i data-lucide="chevron-right" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+            <div id="queue-list" class="space-y-1 max-h-28 overflow-y-auto"></div>
+        </div>
+
+        <!-- iPhone Preview -->
         <div class="iphone-frame" id="iphone">
             <div class="notch"></div>
             <div class="video-container" id="drop-zone">
                 <video id="main-video" crossorigin="anonymous" playsinline loop muted></video>
-                <div id="caption-overlay" class="font-tiktok text-bold-outline" style="top: 35%; font-size: 12px; color: white;">Scrivi il tuo testo</div>
+                <div id="caption-overlay" class="font-tiktok text-bold-outline" style="top:35%;font-size:12px;color:white;">Scrivi il tuo testo</div>
                 <div id="safe-guide" class="tiktok-ui-overlay">
                     <div class="right-actions">
                         <div class="action-item flex flex-col items-center">
@@ -388,19 +135,15 @@
                 </div>
             </div>
         </div>
+
         <div class="flex gap-3">
-            <button id="toggle-guide" class="flex-1 px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">
-               Anteprima TikTok UI
-            </button>
-            <button id="toggle-watermark" class="toggle-btn">
-                <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
-                Remove VEO
-            </button>
+            <button id="toggle-guide" class="flex-1 px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">Anteprima TikTok UI</button>
+            <button id="toggle-watermark" class="toggle-btn"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO</button>
         </div>
     </div>
 
-    <!-- Editor Controls -->
-    <div class="bg-zinc-900/40 border border-zinc-800 p-6 md:p-8 rounded-[2.5rem] space-y-6 backdrop-blur-xl order-1 lg:order-2">
+    <!-- RIGHT: Editor -->
+    <div class="bg-zinc-900/40 border border-zinc-800 p-6 rounded-[2rem] space-y-5 backdrop-blur-xl order-1 lg:order-2">
         <header class="flex justify-between items-end border-b border-zinc-800/50 pb-4">
             <div>
                 <h1 class="text-xl font-black italic uppercase">Video <span class="text-blue-400">Ads Creator</span></h1>
@@ -408,40 +151,39 @@
             </div>
             <div class="text-right">
                 <span id="video-dur-label" class="text-blue-400 font-mono text-xs font-bold uppercase block">Video: 15.0s</span>
-                <span id="queue-count" class="text-violet-400 font-mono text-[10px] font-bold uppercase">Coda: 0/20</span>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- File inputs -->
+        <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1">
-                <label class="text-[9px] font-black uppercase text-zinc-500">File Video (Max 20)</label>
-                <label for="video-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
-                    <i data-lucide="video" class="w-4 h-4 text-blue-400"></i>
-                    <span class="text-[11px] text-zinc-400 truncate" id="video-label">Carica Video (Multipli)</span>
+                <label class="text-[9px] font-black uppercase text-zinc-500">Video (Max 20)</label>
+                <label for="video-input" class="flex items-center gap-2 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-blue-500 transition-all">
+                    <i data-lucide="video" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                    <span class="text-[10px] text-zinc-400 truncate" id="video-label">Carica Video</span>
                     <input type="file" id="video-input" accept="video/*" multiple class="hidden">
                 </label>
-                <div id="video-files-list" class="text-[9px] text-zinc-500 mt-1"></div>
+                <div id="video-files-list" class="text-[9px] text-zinc-500"></div>
             </div>
             <div class="space-y-1">
-                <label class="text-[9px] font-black uppercase text-zinc-500">File Audio (Max 20)</label>
-                <label for="audio-input" class="flex items-center gap-3 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-violet-500 transition-all">
-                    <i data-lucide="music" class="w-4 h-4 text-violet-400"></i>
-                    <span class="text-[11px] text-zinc-400 truncate" id="audio-label">Carica Audio (Multipli)</span>
+                <label class="text-[9px] font-black uppercase text-zinc-500">Audio (Max 20)</label>
+                <label for="audio-input" class="flex items-center gap-2 bg-black border border-zinc-800 p-3 rounded-xl cursor-pointer hover:border-violet-500 transition-all">
+                    <i data-lucide="music" class="w-4 h-4 text-violet-400 shrink-0"></i>
+                    <span class="text-[10px] text-zinc-400 truncate" id="audio-label">Carica Audio</span>
                     <input type="file" id="audio-input" accept="audio/*" multiple class="hidden">
                 </label>
-                <div id="audio-files-list" class="text-[9px] text-zinc-500 mt-1"></div>
+                <div id="audio-files-list" class="text-[9px] text-zinc-500"></div>
             </div>
         </div>
 
         <!-- Video Trimmer -->
         <div class="space-y-2">
             <div class="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
-                <span>Ritaglia Clip Video (Max 30s)</span>
-                <span id="v-range-text">0.0s - 15.0s</span>
+                <span>Ritaglia Clip (Max 30s)</span><span id="v-range-text">0.0s - 15.0s</span>
             </div>
-            <div class="trimmer-track h-[54px]" id="v-trimmer-track">
+            <div class="trimmer-track h-[50px]" id="v-trimmer-track">
                 <div class="thumbnail-track" id="v-thumbs"></div>
-                <div id="video-playhead" class="playhead-cursor" style="left: 0; display: none;"></div>
+                <div id="video-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
                 <div id="video-trim-overlay" class="trim-overlay">
                     <div class="trim-handle handle-left" id="v-handle-l"></div>
                     <div class="trim-handle handle-right" id="v-handle-r"></div>
@@ -449,45 +191,42 @@
             </div>
         </div>
 
-        <!-- Audio Waveform Trimmer -->
-        <div class="space-y-3 bg-black p-4 rounded-3xl border border-zinc-800/50">
-            <div class="flex items-center gap-4">
-                <button id="play-btn" class="w-12 h-12 rounded-xl btn-sv text-white flex items-center justify-center shadow-lg shrink-0">
-                    <i data-lucide="play" id="play-icon" class="w-5 h-5 fill-white"></i>
+        <!-- Audio -->
+        <div class="space-y-2 bg-black p-3 rounded-2xl border border-zinc-800/50">
+            <div class="flex items-center gap-3">
+                <button id="play-btn" class="w-10 h-10 rounded-xl btn-sv text-white flex items-center justify-center shadow-lg shrink-0">
+                    <i data-lucide="play" id="play-icon" class="w-4 h-4 fill-white"></i>
                 </button>
                 <div class="flex-1 space-y-1">
                     <div class="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
-                        <span>Onda Sonora (Loop Anteprima)</span>
+                        <span>Waveform</span>
                         <div class="flex items-center gap-2">
                             <select id="audio-selector" class="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-[9px] text-zinc-300 font-bold cursor-pointer hover:border-violet-500 transition-all">
                                 <option value="">Nessun Audio</option>
                             </select>
-                            <span id="audio-start-label">Start: 0.0s</span>
+                            <span id="audio-start-label" class="text-zinc-500">Start: 0.0s</span>
                         </div>
                     </div>
-                    <div class="trimmer-track h-[70px]" id="a-trimmer-track">
-                        <div class="waveform-wrapper">
-                            <canvas id="waveform"></canvas>
-                        </div>
-                        <div id="audio-playhead" class="playhead-cursor" style="left: 0; display: none;"></div>
+                    <div class="trimmer-track h-[60px]" id="a-trimmer-track">
+                        <div class="waveform-wrapper"><canvas id="waveform"></canvas></div>
+                        <div id="audio-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
                         <div id="audio-trim-overlay" class="trim-overlay"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Content Editor -->
-        <div class="p-5 bg-zinc-900/60 rounded-3xl border border-zinc-800 space-y-4">
-            <!-- Viral Captions Generator -->
-            <div class="space-y-3 p-4 bg-gradient-to-br from-violet-950/30 to-blue-950/30 rounded-2xl border border-violet-800/30">
+        <!-- Caption Editor -->
+        <div class="p-4 bg-zinc-900/60 rounded-2xl border border-zinc-800 space-y-3">
+            <!-- Viral captions -->
+            <div class="space-y-2 p-3 bg-gradient-to-br from-violet-950/30 to-blue-950/30 rounded-xl border border-violet-800/30">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] font-black uppercase text-violet-300 tracking-widest">✨ Caption Virali</span>
-                    <button id="random-caption-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        <i data-lucide="shuffle" class="w-3 h-3"></i>
-                        Random
+                    <button id="random-caption-btn" class="px-3 py-1 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1">
+                        <i data-lucide="shuffle" class="w-3 h-3"></i>Random
                     </button>
                 </div>
-                <div class="grid grid-cols-5 gap-2">
+                <div class="grid grid-cols-5 gap-1">
                     <button class="caption-cat-btn active" data-category="energy">Energy</button>
                     <button class="caption-cat-btn" data-category="chill">Chill</button>
                     <button class="caption-cat-btn" data-category="emotional">Emotional</button>
@@ -502,86 +241,58 @@
                     <button class="caption-cat-btn" data-category="savage">Savage</button>
                     <button class="caption-cat-btn" data-category="aesthetic">Aesthetic</button>
                     <button class="caption-cat-btn" data-category="chaotic">Chaotic</button>
-                    <button class="caption-cat-btn" data-category="main">Main Character</button>
+                    <button class="caption-cat-btn" data-category="main">Main Char</button>
                 </div>
             </div>
 
             <textarea id="caption-input" rows="2" placeholder="Scrivi il testo qui..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none font-semibold"></textarea>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+
+            <div class="grid grid-cols-4 gap-2">
                 <button class="font-btn active" data-font="font-tiktok">TIKTOK</button>
                 <button class="font-btn" data-font="font-typewriter">RETRO</button>
                 <button class="font-btn" data-font="font-classic">BOLD</button>
                 <button class="font-btn" data-font="font-handwriting">SCRIPT</button>
             </div>
 
-            <div class="space-y-4 pt-2">
-                <div class="flex-1 space-y-2">
+            <div class="space-y-3">
+                <div class="space-y-1">
                     <div class="flex justify-between text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                        <span>Dimensione Carattere</span>
-                        <span id="fs-val" class="text-blue-400">12px</span>
+                        <span>Dimensione</span><span id="fs-val" class="text-blue-400">12px</span>
                     </div>
                     <input type="range" id="font-size" min="12" max="60" value="12" class="w-full accent-blue-500 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
                 </div>
-                <div class="flex flex-col gap-4 p-4 bg-black/40 rounded-2xl border border-zinc-800/50">
+                <div class="flex flex-col gap-3 p-3 bg-black/40 rounded-xl border border-zinc-800/50">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="color-wrapper shadow-lg"><input type="color" id="text-color" value="#ffffff" class="color-input"></div>
-                            <span class="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Colore Testo</span>
+                            <div class="color-wrapper"><input type="color" id="text-color" value="#ffffff" class="color-input"></div>
+                            <span class="text-[9px] font-black text-zinc-400 uppercase">Colore Testo</span>
                         </div>
-                        <div class="h-6 w-[1px] bg-zinc-800"></div>
+                        <div class="h-5 w-[1px] bg-zinc-800"></div>
                         <div class="flex items-center gap-3">
-                            <span class="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Contorno</span>
-                            <div class="color-wrapper shadow-lg"><input type="color" id="outline-color" value="#000000" class="color-input"></div>
+                            <span class="text-[9px] font-black text-zinc-400 uppercase">Contorno</span>
+                            <div class="color-wrapper"><input type="color" id="outline-color" value="#000000" class="color-input"></div>
                         </div>
                     </div>
                     <button id="outline-toggle" class="toggle-btn active justify-center w-full">
-                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                        Stile Contorno Attivo
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Contorno Attivo
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Bulk Video Queue -->
-        <div class="space-y-3 p-4 bg-gradient-to-br from-blue-950/30 to-violet-950/30 rounded-2xl border border-blue-800/30">
-            <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase text-blue-300 tracking-widest">🎬 Creazione Bulk</span>
-                <div class="flex gap-2">
-                    <button id="auto-queue-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        <i data-lucide="zap" class="w-3 h-3"></i>
-                        Auto-Coda
-                    </button>
-                    <button id="prev-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5 disabled:opacity-30">
-                        <i data-lucide="chevron-left" class="w-3 h-3"></i>
-                        Prev
-                    </button>
-                    <button id="add-to-queue-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        <i data-lucide="plus" class="w-3 h-3"></i>
-                        Aggiungi
-                    </button>
-                    <button id="next-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5 disabled:opacity-30">
-                        Next
-                        <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                    </button>
-                </div>
-            </div>
-            <div id="queue-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
-        </div>
-
+        <!-- Export buttons -->
         <div class="grid grid-cols-2 gap-3">
-            <button id="export-btn" class="btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                <i data-lucide="download" class="w-4 h-4"></i> Esporta Video Singolo
+            <button id="export-btn" class="btn-sv text-white font-black py-3 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
+                <i data-lucide="download" class="w-4 h-4"></i> Esporta
             </button>
-            <button id="export-all-btn" class="bg-gradient-to-r from-violet-600 to-blue-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed hover:from-violet-500 hover:to-blue-500 transition-all">
+            <button id="export-all-btn" class="bg-gradient-to-r from-violet-600 to-blue-600 text-white font-black py-3 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed hover:from-violet-500 hover:to-blue-500 transition-all">
                 <i data-lucide="download-cloud" class="w-4 h-4"></i> Esporta Tutti (<span id="export-count">0</span>)
             </button>
         </div>
-        
+
         <div id="export-status" class="hidden bg-black border border-zinc-800 p-4 rounded-2xl">
             <div class="flex justify-between text-[10px] mb-2 font-black uppercase text-blue-400">
-                <span id="status-text">Preparazione...</span>
-                <span id="percent-text">0%</span>
+                <span id="status-text">Preparazione...</span><span id="percent-text">0%</span>
             </div>
             <div class="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
                 <div id="progress-bar" class="bg-blue-500 h-full w-0 transition-all"></div>
@@ -592,985 +303,460 @@
 
 <audio id="bg-music" crossorigin="anonymous"></audio>
 <canvas id="render-canvas"></canvas>
-<video id="source-video" style="display: none;"></video>
+<video id="source-video" style="display:none;"></video>
 
 <script>
+lucide.createIcons();
+
+const video          = document.getElementById('main-video');
+const audio          = document.getElementById('bg-music');
+const caption        = document.getElementById('caption-overlay');
+const videoContainer = document.getElementById('drop-zone');
+const vTrimOverlay   = document.getElementById('video-trim-overlay');
+const aTrimOverlay   = document.getElementById('audio-trim-overlay');
+const vTrimmerTrack  = document.getElementById('v-trimmer-track');
+const aTrimmerTrack  = document.getElementById('a-trimmer-track');
+const vPlayhead      = document.getElementById('video-playhead');
+const aPlayhead      = document.getElementById('audio-playhead');
+const waveCanvas     = document.getElementById('waveform');
+const waveCtx        = waveCanvas.getContext('2d');
+
+let videoFile, audioFile;
+let videoDuration = 0, audioDuration = 0;
+let vStart = 0, vEnd = 15, aStart = 0;
+const MAX_DUR = 30;
+let outlineEnabled = true, removeWatermark = false;
+let isDraggingV = null, isDraggingA = false, dragOffsetV = 0, dragOffsetA = 0;
+let videoLibrary = [], audioLibrary = [];
+let currentVideoIndex = 0, currentAudioIndex = -1;
+const MAX_QUEUE_SIZE = 20;
+let videoQueue = [], currentQueueIndex = -1;
+
+function notify(msg, color = 'green') {
+    const d = document.createElement('div');
+    d.className = `fixed top-4 right-4 bg-${color}-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50`;
+    d.innerText = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 2000);
+}
+
+// ── Caption text ──
+function setCaptionText(t) { caption.textContent = t || 'Scrivi il tuo testo'; }
+document.getElementById('caption-input').oninput = (e) => setCaptionText(e.target.value);
+
+// ════════════════════════════════════════════════════════════
+// SNAPSHOT — cattura posizione e stile del caption
+// ════════════════════════════════════════════════════════════
+function snapshotCaption() {
+    const cr = videoContainer.getBoundingClientRect();
+    const br = caption.getBoundingClientRect();
+
+    // Centro del caption come ratio — per textAlign: 'center' nel canvas
+    const centerXRatio = (br.left - cr.left + br.width / 2) / cr.width;
+    const topRatio     = (br.top  - cr.top) / cr.height;
+    const fontSizeRatio = (parseInt(caption.style.fontSize) || 12) / cr.height;
+    const lineHeightRatio = (parseInt(caption.style.fontSize) || 12) * 1.1 / cr.height;
+
+    let fontFamily = 'Montserrat';
+    if (caption.className.includes('font-typewriter'))    fontFamily = 'Courier Prime';
+    else if (caption.className.includes('font-classic'))  fontFamily = 'Inter';
+    else if (caption.className.includes('font-handwriting')) fontFamily = 'Dancing Script';
+
+    return {
+        text: caption.textContent,
+        centerXRatio,   // ← centro orizzontale come ratio
+        topRatio,
+        fontSizeRatio,
+        lineHeightRatio,
+        fontFamily,
+        color:        caption.style.color || '#ffffff',
+        outlineColor: getComputedStyle(caption).getPropertyValue('--outline-color').trim() || '#000000',
+        hasOutline:   caption.classList.contains('text-bold-outline'),
+    };
+}
+
+// ════════════════════════════════════════════════════════════
+// DRAW CAPTION — textAlign: 'center' sul centro X scalato
+// Identico alla preview: centrato, \n rispettati, spazi multipli preservati
+// ════════════════════════════════════════════════════════════
+function drawCaptionOnCanvas(ctx, snap, canvasW, canvasH) {
+    if (!snap || !snap.text || snap.text.trim() === 'Scrivi il tuo testo') return;
+
+    const fontSize   = snap.fontSizeRatio   * canvasH;
+    const lineHeight = snap.lineHeightRatio * canvasH;
+    const centerX    = snap.centerXRatio    * canvasW;  // ← centro X sul canvas
+    const startY     = snap.topRatio        * canvasH;
+
+    ctx.font         = `800 ${fontSize}px ${snap.fontFamily}`;
+    ctx.textAlign    = 'center';   // ← centrato come nel preview CSS
+    ctx.textBaseline = 'top';
+
+    const lines = snap.text.split('\n');
+
+    lines.forEach((line, i) => {
+        const y = startY + i * lineHeight;
+        if (snap.hasOutline) {
+            ctx.strokeStyle = snap.outlineColor;
+            ctx.lineWidth   = Math.max(fontSize * 0.12, 2);
+            ctx.lineJoin    = 'round';
+            ctx.miterLimit  = 2;
+            ctx.strokeText(line, centerX, y);
+        }
+        ctx.fillStyle = snap.color;
+        ctx.fillText(line, centerX, y);
+    });
+}
+
+// ── Font / color / outline controls ──
+document.getElementById('font-size').oninput = (e) => { caption.style.fontSize = e.target.value + 'px'; document.getElementById('fs-val').innerText = e.target.value + 'px'; };
+document.getElementById('text-color').oninput = (e) => caption.style.color = e.target.value;
+
+const outlineBtn = document.getElementById('outline-toggle');
+const outlineColorInput = document.getElementById('outline-color');
+function updateOutlineUI() {
+    if (outlineEnabled) { caption.classList.add('text-bold-outline'); outlineBtn.classList.add('active'); outlineBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Contorno Attivo'; }
+    else { caption.classList.remove('text-bold-outline'); outlineBtn.classList.remove('active'); outlineBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Contorno Spento'; }
     lucide.createIcons();
-
-    // ════════════════════════════════════════════════════════════
-    // FIX CORE: setCaptionText usa textContent (non innerHTML).
-    // Con white-space:pre-wrap sull'overlay, i \n vengono renderizzati
-    // nativamente → preview e export usano sempre la stessa stringa raw.
-    // ════════════════════════════════════════════════════════════
-    function setCaptionText(text) {
-        caption.textContent = text || 'Scrivi il tuo testo';
-    }
-
-    const video          = document.getElementById('main-video');
-    const audio          = document.getElementById('bg-music');
-    const caption        = document.getElementById('caption-overlay');
-    const captionElement = document.getElementById('caption-overlay');
-    const videoContainer = document.getElementById('drop-zone');
-    const vTrimOverlay   = document.getElementById('video-trim-overlay');
-    const aTrimOverlay   = document.getElementById('audio-trim-overlay');
-    const vTrimmerTrack  = document.getElementById('v-trimmer-track');
-    const aTrimmerTrack  = document.getElementById('a-trimmer-track');
-    const vPlayhead      = document.getElementById('video-playhead');
-    const aPlayhead      = document.getElementById('audio-playhead');
-    const canvas         = document.getElementById('waveform');
-    const ctx            = canvas.getContext('2d');
-
-    let videoFile, audioFile;
-    let videoDuration = 0, audioDuration = 0;
-    let vStart = 0, vEnd = 15;
-    let aStart = 0;
-    const MAX_DUR = 30;
-    let outlineEnabled  = true;
-    let removeWatermark = false;
-    let isDraggingV = null;
-    let isDraggingA = false;
-    let dragOffsetV = 0;
-    let dragOffsetA = 0;
-
-    let videoLibrary     = [];
-    let audioLibrary     = [];
-    let currentVideoIndex = 0;
-    let currentAudioIndex = -1;
-
-    // ─────────────────────────────────────────────
-    // File library UI
-    // ─────────────────────────────────────────────
-    function updateFileLibraryUI() {
-        const videoList = document.getElementById('video-files-list');
-        const audioList = document.getElementById('audio-files-list');
-        if (videoLibrary.length > 0) {
-            videoList.innerHTML = `📁 ${videoLibrary.length} video caricati`;
-            document.getElementById('video-label').innerText = `${videoLibrary.length} video pronti`;
-        } else {
-            videoList.innerHTML = '';
-            document.getElementById('video-label').innerText = 'Carica Video (Multipli)';
-        }
-        if (audioLibrary.length > 0) {
-            audioList.innerHTML = `🎵 ${audioLibrary.length} audio caricati`;
-            document.getElementById('audio-label').innerText = `${audioLibrary.length} audio pronti`;
-            const selector = document.getElementById('audio-selector');
-            selector.innerHTML = '<option value="">Nessun Audio</option>';
-            audioLibrary.forEach((f, i) => {
-                const o = document.createElement('option');
-                o.value = i; o.textContent = f.name;
-                selector.appendChild(o);
-            });
-        } else {
-            audioList.innerHTML = '';
-            document.getElementById('audio-label').innerText = 'Carica Audio (Multipli)';
-        }
-    }
-
-    function loadVideoFromLibrary(index) {
-        if (index < 0 || index >= videoLibrary.length) return;
-        currentVideoIndex = index;
-        videoFile = videoLibrary[index];
-        video.src = URL.createObjectURL(videoFile);
-        video.onloadedmetadata = () => {
-            videoDuration = video.duration;
-            vStart = 0;
-            vEnd   = Math.min(videoDuration, 15);
-            updateTrimmers();
-            video.currentTime = vStart;
-        };
-        generateThumbnails(videoFile);
-    }
-
-    function loadAudioFromSelector() {
-        const selector     = document.getElementById('audio-selector');
-        const selectedIndex = parseInt(selector.value);
-        if (isNaN(selectedIndex) || selectedIndex < 0) {
-            currentAudioIndex = -1; audioFile = null;
-            audio.src = ''; audioDuration = 0;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            updateTrimmers(); return;
-        }
-        currentAudioIndex = selectedIndex;
-        audioFile = audioLibrary[selectedIndex];
-        audio.src = URL.createObjectURL(audioFile);
-        audio.onloadedmetadata = () => {
-            audioDuration = audio.duration;
-            drawWaveform(audioFile);
-            updateTrimmers();
-            audio.currentTime = aStart;
-        };
-    }
-
-    document.getElementById('toggle-watermark').onclick = function() {
-        removeWatermark = !removeWatermark;
-        this.classList.toggle('active');
-        if (removeWatermark) {
-            video.style.transform = 'scale(1.1)';
-            this.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom';
-        } else {
-            video.style.transform = 'scale(1)';
-            this.innerHTML = '<i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO';
-        }
-        lucide.createIcons();
+}
+outlineBtn.onclick = () => { outlineEnabled = !outlineEnabled; updateOutlineUI(); };
+outlineColorInput.oninput = (e) => { caption.style.setProperty('--outline-color', e.target.value); if (!outlineEnabled) { outlineEnabled = true; updateOutlineUI(); } };
+document.querySelectorAll('.font-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+        caption.className = btn.dataset.font + (caption.classList.contains('text-bold-outline') ? ' text-bold-outline' : '');
     };
+});
 
-    function updateTrimmers() {
-        if (videoDuration > 0) {
-            vTrimOverlay.style.left  = (vStart / videoDuration * 100) + '%';
-            vTrimOverlay.style.width = ((vEnd - vStart) / videoDuration * 100) + '%';
-            document.getElementById('v-range-text').innerText    = `${vStart.toFixed(1)}s - ${vEnd.toFixed(1)}s`;
-            document.getElementById('video-dur-label').innerText = `Video: ${(vEnd - vStart).toFixed(1)}s`;
-            if (audioDuration > 0) {
-                const dur = vEnd - vStart;
-                if (aStart + dur > audioDuration) aStart = Math.max(0, audioDuration - dur);
-                aTrimOverlay.style.left  = (aStart / audioDuration * 100) + '%';
-                aTrimOverlay.style.width = (dur / audioDuration * 100) + '%';
-                document.getElementById('audio-start-label').innerText = `Start Audio: ${aStart.toFixed(1)}s`;
-            }
-        }
-    }
+// ── Drag caption ──
+let dragText = false, dragStartY, dragStartTop;
+caption.onmousedown = (e) => { dragText = true; dragStartY = e.clientY; dragStartTop = caption.offsetTop; caption.style.cursor = 'grabbing'; caption.classList.add('dragging'); e.preventDefault(); };
+window.addEventListener('mousemove', (e) => { if (!dragText) return; const rect = videoContainer.getBoundingClientRect(); let t = dragStartTop + (e.clientY - dragStartY); t = Math.max(10, Math.min(t, rect.height - caption.offsetHeight - 10)); caption.style.top = t + 'px'; });
+window.addEventListener('mouseup', () => { if (dragText) { dragText = false; caption.style.cursor = 'move'; caption.classList.remove('dragging'); } });
 
-    function loopMonitor() {
-        if (!video.paused) {
-            if (videoDuration > 0) {
-                vPlayhead.style.left    = (video.currentTime / videoDuration * 100) + '%';
-                vPlayhead.style.display = 'block';
-            }
-            if (audio.src && audioDuration > 0) {
-                aPlayhead.style.left    = (audio.currentTime / audioDuration * 100) + '%';
-                aPlayhead.style.display = 'block';
-            }
-            if (video.currentTime >= vEnd - 0.05) {
-                video.currentTime = vStart;
-                if (audio.src) { audio.currentTime = aStart; audio.play().catch(() => {}); }
-            }
-            if (audio.src && !audio.paused) {
-                const expected = aStart + (video.currentTime - vStart);
-                if (Math.abs(audio.currentTime - expected) > 0.2) audio.currentTime = expected;
-            }
-        } else {
-            vPlayhead.style.display = 'none';
-            aPlayhead.style.display = 'none';
-        }
-        requestAnimationFrame(loopMonitor);
+// ── File library ──
+function updateFileLibraryUI() {
+    const vl = document.getElementById('video-files-list'), al = document.getElementById('audio-files-list');
+    vl.innerHTML = videoLibrary.length ? `📁 ${videoLibrary.length} video` : '';
+    document.getElementById('video-label').innerText = videoLibrary.length ? `${videoLibrary.length} pronti` : 'Carica Video';
+    if (audioLibrary.length) {
+        al.innerHTML = `🎵 ${audioLibrary.length} audio`;
+        document.getElementById('audio-label').innerText = `${audioLibrary.length} pronti`;
+        const sel = document.getElementById('audio-selector'); sel.innerHTML = '<option value="">Nessun Audio</option>';
+        audioLibrary.forEach((f, i) => { const o = document.createElement('option'); o.value = i; o.textContent = f.name; sel.appendChild(o); });
+    } else { al.innerHTML = ''; document.getElementById('audio-label').innerText = 'Carica Audio'; }
+}
+function loadVideoFromLibrary(index) {
+    if (index < 0 || index >= videoLibrary.length) return;
+    currentVideoIndex = index; videoFile = videoLibrary[index];
+    video.src = URL.createObjectURL(videoFile);
+    video.onloadedmetadata = () => { videoDuration = video.duration; vStart = 0; vEnd = Math.min(videoDuration, 15); updateTrimmers(); video.currentTime = vStart; };
+    generateThumbnails(videoFile);
+}
+function loadAudioFromSelector() {
+    const sel = document.getElementById('audio-selector'), idx = parseInt(sel.value);
+    if (isNaN(idx) || idx < 0) { currentAudioIndex = -1; audioFile = null; audio.src = ''; audioDuration = 0; waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height); updateTrimmers(); return; }
+    currentAudioIndex = idx; audioFile = audioLibrary[idx];
+    audio.src = URL.createObjectURL(audioFile);
+    audio.onloadedmetadata = () => { audioDuration = audio.duration; drawWaveform(audioFile); updateTrimmers(); audio.currentTime = aStart; };
+}
+
+document.getElementById('toggle-watermark').onclick = function () {
+    removeWatermark = !removeWatermark; this.classList.toggle('active');
+    if (removeWatermark) { video.style.transform = 'scale(1.1)'; this.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom'; }
+    else { video.style.transform = 'scale(1)'; this.innerHTML = '<i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO'; }
+    lucide.createIcons();
+};
+function updateTrimmers() {
+    if (videoDuration > 0) {
+        vTrimOverlay.style.left = (vStart / videoDuration * 100) + '%'; vTrimOverlay.style.width = ((vEnd - vStart) / videoDuration * 100) + '%';
+        document.getElementById('v-range-text').innerText = `${vStart.toFixed(1)}s - ${vEnd.toFixed(1)}s`; document.getElementById('video-dur-label').innerText = `Video: ${(vEnd - vStart).toFixed(1)}s`;
+        if (audioDuration > 0) { const dur = vEnd - vStart; if (aStart + dur > audioDuration) aStart = Math.max(0, audioDuration - dur); aTrimOverlay.style.left = (aStart / audioDuration * 100) + '%'; aTrimOverlay.style.width = (dur / audioDuration * 100) + '%'; document.getElementById('audio-start-label').innerText = `Start: ${aStart.toFixed(1)}s`; }
     }
+}
+function loopMonitor() {
+    if (!video.paused) {
+        if (videoDuration > 0) { vPlayhead.style.left = (video.currentTime / videoDuration * 100) + '%'; vPlayhead.style.display = 'block'; }
+        if (audio.src && audioDuration > 0) { aPlayhead.style.left = (audio.currentTime / audioDuration * 100) + '%'; aPlayhead.style.display = 'block'; }
+        if (video.currentTime >= vEnd - 0.05) { video.currentTime = vStart; if (audio.src) { audio.currentTime = aStart; audio.play().catch(() => {}); } }
+        if (audio.src && !audio.paused) { const exp = aStart + (video.currentTime - vStart); if (Math.abs(audio.currentTime - exp) > 0.2) audio.currentTime = exp; }
+    } else { vPlayhead.style.display = 'none'; aPlayhead.style.display = 'none'; }
     requestAnimationFrame(loopMonitor);
+}
+requestAnimationFrame(loopMonitor);
 
-    vTrimmerTrack.onmousedown = (e) => {
-        if (videoDuration === 0) return;
-        const rect = vTrimmerTrack.getBoundingClientRect();
-        const t    = ((e.clientX - rect.left) / rect.width) * videoDuration;
-        if (e.target.id === 'v-handle-l')                    isDraggingV = 'left';
-        else if (e.target.id === 'v-handle-r')               isDraggingV = 'right';
-        else if (e.target.closest('#video-trim-overlay')) { isDraggingV = 'center'; dragOffsetV = t - vStart; }
-        else {
-            video.currentTime = t;
-            if (audio.src) audio.currentTime = Math.max(0, aStart + (t - vStart));
-        }
-    };
+vTrimmerTrack.onmousedown = (e) => {
+    if (!videoDuration) return; const rect = vTrimmerTrack.getBoundingClientRect(), t = ((e.clientX - rect.left) / rect.width) * videoDuration;
+    if (e.target.id === 'v-handle-l') isDraggingV = 'left'; else if (e.target.id === 'v-handle-r') isDraggingV = 'right';
+    else if (e.target.closest('#video-trim-overlay')) { isDraggingV = 'center'; dragOffsetV = t - vStart; }
+    else { video.currentTime = t; if (audio.src) audio.currentTime = Math.max(0, aStart + (t - vStart)); }
+};
+aTrimmerTrack.onmousedown = (e) => {
+    if (!audioDuration) return; const rect = aTrimmerTrack.getBoundingClientRect(), t = ((e.clientX - rect.left) / rect.width) * audioDuration;
+    if (e.target.closest('#audio-trim-overlay')) { isDraggingA = true; dragOffsetA = t - aStart; }
+    else { const dur = vEnd - vStart; aStart = Math.max(0, Math.min(t - dur / 2, audioDuration - dur)); updateTrimmers(); audio.currentTime = aStart; video.currentTime = vStart; }
+};
+window.onmousemove = (e) => {
+    if (isDraggingV && videoDuration > 0) {
+        const rect = vTrimmerTrack.getBoundingClientRect(), t = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * videoDuration;
+        if (isDraggingV === 'left') { if (t < vEnd && vEnd - t <= MAX_DUR) vStart = t; else if (vEnd - t > MAX_DUR) vStart = vEnd - MAX_DUR; }
+        else if (isDraggingV === 'right') { if (t > vStart && t - vStart <= MAX_DUR) vEnd = t; else if (t - vStart > MAX_DUR) vEnd = vStart + MAX_DUR; }
+        else if (isDraggingV === 'center') { const dur = vEnd - vStart, ns = t - dragOffsetV; if (ns >= 0 && ns + dur <= videoDuration) { vStart = ns; vEnd = ns + dur; } }
+        updateTrimmers(); syncPlayback();
+    }
+    if (isDraggingA && audioDuration > 0) {
+        const rect = aTrimmerTrack.getBoundingClientRect(), ns = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * audioDuration - dragOffsetA;
+        if (ns >= 0 && ns + (vEnd - vStart) <= audioDuration) aStart = ns; updateTrimmers(); syncPlayback();
+    }
+};
+window.onmouseup = () => { isDraggingV = null; isDraggingA = false; };
 
-    aTrimmerTrack.onmousedown = (e) => {
-        if (audioDuration === 0) return;
-        const rect = aTrimmerTrack.getBoundingClientRect();
-        const t    = ((e.clientX - rect.left) / rect.width) * audioDuration;
-        if (e.target.closest('#audio-trim-overlay')) { isDraggingA = true; dragOffsetA = t - aStart; }
-        else {
-            const dur = vEnd - vStart;
-            let ns = t - dur / 2;
-            ns = Math.max(0, Math.min(ns, audioDuration - dur));
-            aStart = ns; updateTrimmers();
-            audio.currentTime = aStart; video.currentTime = vStart;
-        }
-    };
+document.getElementById('video-input').onchange = (e) => { const f = Array.from(e.target.files); if (!f.length) return; videoLibrary = f.slice(0, MAX_QUEUE_SIZE); updateFileLibraryUI(); loadVideoFromLibrary(0); notify(`✓ ${videoLibrary.length} video`, 'blue'); };
+document.getElementById('audio-input').onchange = (e) => { const f = Array.from(e.target.files); if (!f.length) return; audioLibrary = f.slice(0, MAX_QUEUE_SIZE); updateFileLibraryUI(); notify(`✓ ${audioLibrary.length} audio`, 'violet'); };
+document.getElementById('audio-selector').onchange = () => loadAudioFromSelector();
 
-    window.onmousemove = (e) => {
-        if (isDraggingV && videoDuration > 0) {
-            const rect = vTrimmerTrack.getBoundingClientRect();
-            const t    = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * videoDuration;
-            if (isDraggingV === 'left') {
-                if (t < vEnd && vEnd - t <= MAX_DUR) vStart = t;
-                else if (vEnd - t > MAX_DUR) vStart = vEnd - MAX_DUR;
-            } else if (isDraggingV === 'right') {
-                if (t > vStart && t - vStart <= MAX_DUR) vEnd = t;
-                else if (t - vStart > MAX_DUR) vEnd = vStart + MAX_DUR;
-            } else if (isDraggingV === 'center') {
-                const dur = vEnd - vStart, ns = t - dragOffsetV;
-                if (ns >= 0 && ns + dur <= videoDuration) { vStart = ns; vEnd = ns + dur; }
-            }
-            updateTrimmers(); syncPlayback();
-        }
-        if (isDraggingA && audioDuration > 0) {
-            const rect = aTrimmerTrack.getBoundingClientRect();
-            const t    = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * audioDuration;
-            const dur  = vEnd - vStart, ns = t - dragOffsetA;
-            if (ns >= 0 && ns + dur <= audioDuration) aStart = ns;
-            updateTrimmers(); syncPlayback();
-        }
-    };
-    window.onmouseup = () => { isDraggingV = null; isDraggingA = false; };
+document.getElementById('play-btn').onclick = () => {
+    if (video.paused) { video.play(); if (audio.src) { audio.currentTime = aStart + (video.currentTime - vStart); audio.play().catch(() => {}); } updatePlayIcon(true); }
+    else { video.pause(); audio.pause(); updatePlayIcon(false); }
+};
+function syncPlayback() { video.currentTime = vStart; if (audio.src) audio.currentTime = aStart; if (!video.paused) { video.play(); if (audio.src) audio.play().catch(() => {}); } }
+function updatePlayIcon(p) { document.getElementById('play-icon').setAttribute('data-lucide', p ? 'pause' : 'play'); lucide.createIcons(); }
 
-    const MAX_QUEUE_SIZE = 20;
+async function drawWaveform(file) {
+    const ac = new (window.AudioContext || window.webkitAudioContext)(), decoded = await ac.decodeAudioData(await file.arrayBuffer()), raw = decoded.getChannelData(0), samples = 120, block = Math.floor(raw.length / samples);
+    const data = Array.from({ length: samples }, (_, i) => { let s = 0; for (let j = 0; j < block; j++) s += Math.abs(raw[i * block + j]); return s / block; });
+    const max = Math.max(...data); waveCanvas.width = waveCanvas.offsetWidth * 2; waveCanvas.height = waveCanvas.offsetHeight * 2;
+    const step = waveCanvas.width / samples, grad = waveCtx.createLinearGradient(0, 0, waveCanvas.width, 0);
+    grad.addColorStop(0, '#3B82F6'); grad.addColorStop(1, '#8B5CF6'); waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height); waveCtx.fillStyle = grad;
+    data.forEach((v, i) => { const h = (v / max) * waveCanvas.height * 0.8; waveCtx.beginPath(); waveCtx.roundRect(i * step, (waveCanvas.height - h) / 2, step - 3, h, 2); waveCtx.fill(); });
+}
+async function generateThumbnails(file) {
+    const container = document.getElementById('v-thumbs'); container.innerHTML = '';
+    const tv = document.createElement('video'); tv.src = URL.createObjectURL(file); tv.muted = true; tv.playsInline = true;
+    await new Promise(r => tv.onloadedmetadata = r);
+    for (let i = 0; i < 10; i++) { tv.currentTime = i * tv.duration / 10; await new Promise(r => tv.onseeked = r); const c = document.createElement('canvas'); c.width = 100; c.height = 100 / (tv.videoWidth / tv.videoHeight); c.getContext('2d').drawImage(tv, 0, 0, c.width, c.height); container.appendChild(c); }
+    URL.revokeObjectURL(tv.src);
+}
 
-    document.getElementById('video-input').onchange = async (e) => {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
-        videoLibrary = files.length > MAX_QUEUE_SIZE ? files.slice(0, MAX_QUEUE_SIZE) : files;
-        if (files.length > MAX_QUEUE_SIZE) alert(`Max ${MAX_QUEUE_SIZE} video!`);
-        updateFileLibraryUI();
-        loadVideoFromLibrary(0);
-        notify(`✓ ${videoLibrary.length} video caricati!`, 'blue');
-    };
+// ════════════════════════════════════════════════════════════
+// EXPORT CORE
+// ════════════════════════════════════════════════════════════
+async function runExport(item, filename, onProgress) {
+    const sv = document.getElementById('source-video');
+    sv.src = URL.createObjectURL(item.videoFile);
+    await new Promise(r => sv.onloadedmetadata = r);
 
-    document.getElementById('audio-input').onchange = (e) => {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
-        audioLibrary = files.length > MAX_QUEUE_SIZE ? files.slice(0, MAX_QUEUE_SIZE) : files;
-        if (files.length > MAX_QUEUE_SIZE) alert(`Max ${MAX_QUEUE_SIZE} audio!`);
-        updateFileLibraryUI();
-        notify(`✓ ${audioLibrary.length} audio caricati!`, 'violet');
-    };
+    const rc = document.getElementById('render-canvas'), rx = rc.getContext('2d');
+    rc.width = 720; rc.height = 1280;
 
-    document.getElementById('audio-selector').onchange = () => loadAudioFromSelector();
+    const fps = 30, dur = item.vEnd - item.vStart;
+    const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
+    const muxerCfg = { target: new ArrayBufferTarget(), video: { codec: 'avc', width: 720, height: 1280 }, fastStart: 'in-memory' };
+    if (item.audioFile) muxerCfg.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
+    const muxer = new Muxer(muxerCfg);
 
-    document.getElementById('play-btn').onclick = () => {
-        if (video.paused) {
-            video.play();
-            if (audio.src) {
-                audio.currentTime = aStart + (video.currentTime - vStart);
-                audio.play().catch(() => {});
-            }
-            updatePlayIcon(true);
-        } else {
-            video.pause(); audio.pause(); updatePlayIcon(false);
-        }
-    };
+    const ve = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { throw new Error(e.message); } });
+    ve.configure({ codec: 'avc1.42001F', width: 720, height: 1280, bitrate: 8_000_000, framerate: fps, avc: { format: 'avc' } });
 
-    function syncPlayback() {
-        video.currentTime = vStart;
-        if (audio.src) audio.currentTime = aStart;
-        if (!video.paused) { video.play(); if (audio.src) audio.play().catch(() => {}); }
+    let ae = null, ad = null;
+    if (item.audioFile) {
+        const ac = new AudioContext({ sampleRate: 48000 }), dec = await ac.decodeAudioData(await item.audioFile.arrayBuffer());
+        const ss = Math.floor(item.aStart * dec.sampleRate), sc = Math.floor((item.aStart + dur) * dec.sampleRate) - ss;
+        ad = { left: new Float32Array(sc), right: new Float32Array(sc), sampleRate: dec.sampleRate };
+        const lc = dec.getChannelData(0), rch = dec.numberOfChannels > 1 ? dec.getChannelData(1) : lc;
+        for (let i = 0; i < sc; i++) { ad.left[i] = lc[ss + i] || 0; ad.right[i] = rch[ss + i] || 0; }
+        ae = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { throw new Error(e.message); } });
+        ae.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 });
     }
 
-    function updatePlayIcon(playing) {
-        document.getElementById('play-icon').setAttribute('data-lucide', playing ? 'pause' : 'play');
-        lucide.createIcons();
-    }
+    sv.currentTime = item.vStart; await new Promise(r => sv.onseeked = r);
+    const totalFrames = Math.ceil(dur * fps), tsr = 48000, ssr = ad ? ad.sampleRate : 48000, spf = Math.floor(tsr / fps);
+    let aso = 0;
 
-    async function drawWaveform(file) {
-        const ac      = new (window.AudioContext || window.webkitAudioContext)();
-        const buf     = await file.arrayBuffer();
-        const decoded = await ac.decodeAudioData(buf);
-        const raw     = decoded.getChannelData(0);
-        const samples = 120, block = Math.floor(raw.length / samples);
-        const data    = Array.from({ length: samples }, (_, i) => {
-            let s = 0;
-            for (let j = 0; j < block; j++) s += Math.abs(raw[i * block + j]);
-            return s / block;
-        });
-        const max = Math.max(...data);
-        canvas.width  = canvas.offsetWidth * 2;
-        canvas.height = canvas.offsetHeight * 2;
-        const step = canvas.width / samples;
-        const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
-        grad.addColorStop(0, '#3B82F6'); grad.addColorStop(1, '#8B5CF6');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = grad;
-        data.forEach((v, i) => {
-            const h = (v / max) * canvas.height * 0.8;
-            ctx.beginPath();
-            ctx.roundRect(i * step, (canvas.height - h) / 2, step - 3, h, 2);
-            ctx.fill();
-        });
-    }
+    for (let i = 0; i < totalFrames; i++) {
+        sv.currentTime = item.vStart + i / fps; await new Promise(r => sv.onseeked = r);
+        if (item.removeWatermark) { const s = 1.1; rx.drawImage(sv, -(sv.videoWidth * s - 720) / 2, -(sv.videoHeight * s - 1280) / 2, sv.videoWidth * s, sv.videoHeight * s); }
+        else rx.drawImage(sv, 0, 0, 720, 1280);
 
-    // FIX: oninput usa textContent — i \n della textarea vengono preservati
-    document.getElementById('caption-input').oninput = (e) => {
-        caption.textContent = e.target.value || 'Scrivi il tuo testo';
-    };
+        drawCaptionOnCanvas(rx, item.captionSnap, 720, 1280);
 
-    document.getElementById('font-size').oninput = (e) => {
-        caption.style.fontSize = e.target.value + 'px';
-        document.getElementById('fs-val').innerText = e.target.value + 'px';
-    };
-    document.getElementById('text-color').oninput   = (e) => caption.style.color = e.target.value;
+        const vf = new VideoFrame(rc, { timestamp: i * 1_000_000 / fps });
+        ve.encode(vf, { keyFrame: i % 30 === 0 }); vf.close();
 
-    const outlineBtn        = document.getElementById('outline-toggle');
-    const outlineColorInput = document.getElementById('outline-color');
-
-    function updateOutlineUI() {
-        if (outlineEnabled) {
-            caption.classList.add('text-bold-outline');
-            outlineBtn.classList.add('active');
-            outlineBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Stile Contorno Attivo';
-        } else {
-            caption.classList.remove('text-bold-outline');
-            outlineBtn.classList.remove('active');
-            outlineBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Stile Contorno Spento';
+        if (ae && ad) {
+            const rr = ssr / tsr, lc = new Float32Array(spf), rch = new Float32Array(spf);
+            for (let j = 0; j < spf; j++) { const si = Math.floor(aso + j * rr); lc[j] = si < ad.left.length ? ad.left[si] : 0; rch[j] = si < ad.right.length ? ad.right[si] : 0; }
+            const af = new AudioData({ format: 'f32-planar', sampleRate: tsr, numberOfFrames: spf, numberOfChannels: 2, timestamp: i * 1_000_000 / fps, data: new Float32Array([...lc, ...rch]) });
+            ae.encode(af); af.close(); aso += Math.floor(spf * rr);
         }
-        lucide.createIcons();
+        if (onProgress) onProgress(Math.round(i / totalFrames * 100));
+        if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
     }
+    await ve.flush(); if (ae) await ae.flush(); muxer.finalize();
+    const blob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+}
 
-    outlineBtn.onclick = () => { outlineEnabled = !outlineEnabled; updateOutlineUI(); };
+// ── Export singolo ──
+document.getElementById('export-btn').onclick = async () => {
+    if (!videoFile) { notify('Carica un video prima!', 'red'); return; }
+    const exportBtn = document.getElementById('export-btn'), status = document.getElementById('export-status'), statusText = document.getElementById('status-text'), progress = document.getElementById('progress-bar'), percentText = document.getElementById('percent-text');
+    exportBtn.disabled = true; status.classList.remove('hidden'); statusText.innerText = 'Preparazione...';
+    try {
+        const item = { videoFile, vStart, vEnd, audioFile, aStart, removeWatermark, captionSnap: snapshotCaption() };
+        statusText.innerText = 'Codifica...';
+        await runExport(item, 'TikTok_Clip.mp4', p => { progress.style.width = p + '%'; percentText.innerText = p + '%'; });
+        statusText.innerText = 'Completato!'; percentText.innerText = '100%'; progress.style.width = '100%';
+        setTimeout(() => { status.classList.add('hidden'); exportBtn.disabled = false; }, 2000);
+    } catch (err) { console.error(err); statusText.innerText = 'Errore: ' + err.message; setTimeout(() => { status.classList.add('hidden'); exportBtn.disabled = false; }, 3000); }
+};
 
-    outlineColorInput.oninput = (e) => {
-        caption.style.setProperty('--outline-color', e.target.value);
-        if (!outlineEnabled) { outlineEnabled = true; updateOutlineUI(); }
+document.getElementById('toggle-guide').onclick = () => { const g = document.getElementById('safe-guide'); g.style.display = g.style.display === 'none' ? 'block' : 'none'; };
+
+// ── Queue ──
+function updateQueueUI() {
+    const list = document.getElementById('queue-list');
+    document.getElementById('queue-count').innerText = `${videoQueue.length}/20`;
+    document.getElementById('export-count').innerText = videoQueue.length;
+    document.getElementById('export-all-btn').disabled = videoQueue.length === 0;
+    document.getElementById('prev-video-btn').disabled = currentQueueIndex <= 0;
+    document.getElementById('next-video-btn').disabled = currentQueueIndex >= videoQueue.length - 1;
+    if (!videoQueue.length) { list.innerHTML = '<div class="text-center text-zinc-500 text-[10px] py-3">Nessun video in coda</div>'; return; }
+    list.innerHTML = videoQueue.map((item, i) => `
+        <div class="queue-item ${i === currentQueueIndex ? 'active' : ''}">
+            <div class="queue-item-info">
+                <div class="queue-item-caption">${i + 1}. ${(item.rawCaption || '').replace(/\n/g, ' ').substring(0, 40) || 'Senza testo'}</div>
+                <div class="queue-item-meta">${item.duration.toFixed(1)}s • ${item.hasAudio ? 'Con audio' : 'Solo video'}</div>
+            </div>
+            <div class="queue-item-actions">
+                <button class="queue-item-btn load-queue-item" data-index="${i}"><i data-lucide="eye" class="w-3 h-3 text-blue-400"></i></button>
+                <button class="queue-item-btn delete-queue-item" data-index="${i}"><i data-lucide="trash-2" class="w-3 h-3 text-red-400"></i></button>
+            </div>
+        </div>`).join('');
+    lucide.createIcons();
+    document.querySelectorAll('.load-queue-item').forEach(b => b.onclick = () => loadQueueItem(+b.dataset.index));
+    document.querySelectorAll('.delete-queue-item').forEach(b => b.onclick = (e) => { e.stopPropagation(); deleteQueueItem(+b.dataset.index); });
+}
+
+function captureCurrentState() {
+    if (!videoFile) { notify('Carica prima un video!', 'red'); return null; }
+    const rawCaption = document.getElementById('caption-input').value;
+    return {
+        videoFile, videoFileName: videoFile.name, videoLibraryIndex: currentVideoIndex,
+        vStart, vEnd, duration: vEnd - vStart,
+        audioFile, audioFileName: audioFile?.name ?? null, audioLibraryIndex: currentAudioIndex,
+        aStart, hasAudio: !!audioFile, rawCaption,
+        captionSnap: snapshotCaption(),
+        fontSize: parseInt(caption.style.fontSize) || 12,
+        textColor: caption.style.color || '#ffffff',
+        outlineColor: getComputedStyle(caption).getPropertyValue('--outline-color').trim() || '#000000',
+        hasOutline: caption.classList.contains('text-bold-outline'),
+        fontClass: caption.className,
+        removeWatermark, timestamp: Date.now()
     };
+}
 
-    document.querySelectorAll('.font-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const hasOutline = caption.classList.contains('text-bold-outline');
-            caption.className = btn.dataset.font + (hasOutline ? ' text-bold-outline' : '');
-        };
-    });
+function loadQueueItem(index) {
+    if (index < 0 || index >= videoQueue.length) return;
+    const item = videoQueue[index]; currentQueueIndex = index;
+    videoFile = item.videoFile; currentVideoIndex = item.videoLibraryIndex || 0;
+    video.src = URL.createObjectURL(item.videoFile);
+    video.onloadedmetadata = () => { videoDuration = video.duration; vStart = item.vStart; vEnd = item.vEnd; updateTrimmers(); video.currentTime = vStart; };
+    generateThumbnails(item.videoFile);
+    if (item.audioFile) {
+        audioFile = item.audioFile; currentAudioIndex = item.audioLibraryIndex || -1;
+        audio.src = URL.createObjectURL(item.audioFile);
+        audio.onloadedmetadata = () => { audioDuration = audio.duration; aStart = item.aStart; drawWaveform(item.audioFile); updateTrimmers(); };
+        const sel = document.getElementById('audio-selector'); if (currentAudioIndex >= 0) sel.value = currentAudioIndex;
+    } else { audioFile = null; currentAudioIndex = -1; audio.src = ''; document.getElementById('audio-selector').value = ''; waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height); }
+    caption.textContent = item.rawCaption || '';
+    document.getElementById('caption-input').value = item.rawCaption || '';
+    caption.style.fontSize = item.fontSize + 'px'; document.getElementById('fs-val').innerText = item.fontSize + 'px'; document.getElementById('font-size').value = item.fontSize;
+    caption.style.color = item.textColor; document.getElementById('text-color').value = item.textColor;
+    caption.style.setProperty('--outline-color', item.outlineColor); document.getElementById('outline-color').value = item.outlineColor;
+    caption.className = item.fontClass; outlineEnabled = item.hasOutline; updateOutlineUI();
+    document.querySelectorAll('.font-btn').forEach(b => b.classList.toggle('active', item.fontClass.includes(b.dataset.font)));
+    removeWatermark = item.removeWatermark;
+    const wb = document.getElementById('toggle-watermark');
+    if (removeWatermark) { video.style.transform = 'scale(1.1)'; wb.classList.add('active'); wb.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom'; }
+    else { video.style.transform = 'scale(1)'; wb.classList.remove('active'); wb.innerHTML = '<i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO'; }
+    lucide.createIcons(); updateQueueUI();
+}
 
-    let dragText = false, dragStartY, dragStartTop;
-    caption.onmousedown = (e) => {
-        dragText = true; dragStartY = e.clientY; dragStartTop = caption.offsetTop;
-        caption.style.cursor = 'grabbing';
-        caption.classList.add('dragging');
-        e.preventDefault();
-    };
-    window.addEventListener('mousemove', (e) => {
-        if (!dragText) return;
-        const rect = videoContainer.getBoundingClientRect();
-        let newTop = dragStartTop + (e.clientY - dragStartY);
-        newTop = Math.max(10, Math.min(newTop, rect.height - caption.offsetHeight - 10));
-        caption.style.top = newTop + 'px';
-    });
-    window.addEventListener('mouseup', () => {
-        if (dragText) { dragText = false; caption.style.cursor = 'move'; caption.classList.remove('dragging'); }
-    });
-
-    async function generateThumbnails(file) {
-        const container = document.getElementById('v-thumbs');
-        container.innerHTML = '';
-        const tv = document.createElement('video');
-        tv.src = URL.createObjectURL(file); tv.muted = true; tv.playsInline = true;
-        await new Promise(r => tv.onloadedmetadata = r);
-        const count = 10, interval = tv.duration / count;
-        for (let i = 0; i < count; i++) {
-            tv.currentTime = i * interval;
-            await new Promise(r => tv.onseeked = r);
-            const c = document.createElement('canvas');
-            c.width = 100; c.height = 100 / (tv.videoWidth / tv.videoHeight);
-            c.getContext('2d').drawImage(tv, 0, 0, c.width, c.height);
-            container.appendChild(c);
-        }
-        URL.revokeObjectURL(tv.src);
-    }
-
-    function notify(msg, color = 'green') {
-        const d = document.createElement('div');
-        d.className = `fixed top-4 right-4 bg-${color}-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50`;
-        d.innerText = msg;
-        document.body.appendChild(d);
-        setTimeout(() => d.remove(), 2000);
-    }
-
-    // ════════════════════════════════════════════════════════════
-    // CAPTION SYSTEM
-    //
-    // extractCaptionLines():
-    //   Fonte di verità = rawText (da textarea .value, con \n reali).
-    //   Split su \n → ogni \n è un "a capo" esplicito dell'utente.
-    //   Paragrafi vuoti → riga vuota → gap visivo identico al preview.
-    //   Tutte le misure salvate come ratio → scalano su qualunque canvas.
-    //
-    // drawCaptionOnCanvas():
-    //   Riproduce esattamente il layout del preview.
-    // ════════════════════════════════════════════════════════════
-
-    function extractCaptionLines(el, containerRect, rawText) {
-        // Normalizza da rawText (textarea .value) → fonte di verità
-        let text = (rawText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-        // Fallback su textContent dell'overlay (white-space:pre-wrap)
-        if (!text) text = (el.textContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-        const stripped = text.trim();
-        if (!stripped || stripped === 'Scrivi il tuo testo') return { skip: true };
-
-        const fontSize = parseInt(el.style.fontSize) || 12;
-        let fontFamily = 'Montserrat';
-        if (el.className.includes('font-typewriter'))    fontFamily = 'Courier Prime';
-        else if (el.className.includes('font-classic'))  fontFamily = 'Inter';
-        else if (el.className.includes('font-handwriting')) fontFamily = 'Dancing Script';
-
-        const maxCssPx = el.offsetWidth;
-        const mc = document.createElement('canvas').getContext('2d');
-        mc.font  = `800 ${fontSize}px ${fontFamily}`;
-
-        // ── FIX: split su \n → ogni riga è un "a capo" voluto ────────────
-        // Paragrafo vuoto ("") = riga vuota = gap visivo (identico a pre-wrap)
-        const paragraphs = text.split('\n');
-        const allLines   = [];
-
-        paragraphs.forEach(para => {
-            // Riga vuota → conserva come gap (non trimmare!)
-            if (para === '') { allLines.push(''); return; }
-
-            // Word-wrap del paragrafo dentro maxCssPx
-            const words = para.split(/\s+/).filter(w => w.length > 0);
-            if (!words.length) { allLines.push(''); return; }
-
-            let cur = words[0];
-            for (let i = 1; i < words.length; i++) {
-                const test = cur + ' ' + words[i];
-                if (mc.measureText(test).width <= maxCssPx) cur = test;
-                else { allLines.push(cur); cur = words[i]; }
-            }
-            allLines.push(cur);
-        });
-
-        return {
-            skip: false,
-            allLines,
-            topRatio:        el.offsetTop / containerRect.height,
-            fontSizeRatio:   fontSize / containerRect.height,
-            widthRatio:      maxCssPx / containerRect.width,
-            lineHeightRatio: (fontSize * 1.1) / containerRect.height,
-            color:        el.style.color || '#ffffff',
-            outlineColor: getComputedStyle(el).getPropertyValue('--outline-color').trim() || '#000000',
-            fontClass:    el.className,
-            hasOutline:   el.classList.contains('text-bold-outline')
-        };
-    }
-
-    function drawCaptionOnCanvas(ctx, cp, canvasW, canvasH) {
-        if (!cp || cp.skip || !cp.allLines?.length) return;
-
-        const fontSize = cp.fontSizeRatio * canvasH;
-        const lineH    = cp.lineHeightRatio * canvasH;
-        const maxW     = cp.widthRatio * canvasW;
-        const startY   = cp.topRatio * canvasH;
-
-        let fontFamily = 'Montserrat';
-        if (cp.fontClass.includes('font-typewriter'))    fontFamily = 'Courier Prime';
-        else if (cp.fontClass.includes('font-classic'))  fontFamily = 'Inter';
-        else if (cp.fontClass.includes('font-handwriting')) fontFamily = 'Dancing Script';
-
-        ctx.font         = `800 ${fontSize}px ${fontFamily}`;
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'top';
-
-        cp.allLines.forEach((lineText, idx) => {
-            const y = startY + idx * lineH;
-            // Riga vuota → gap già contabilizzato nell'offset Y, non disegnare
-            if (!lineText.trim()) return;
-
-            // Safety sub-wrap (metriche canvas vs CSS possono differire leggermente)
-            const words = lineText.split(' ');
-            const sub   = []; let cur = words[0];
-            for (let wi = 1; wi < words.length; wi++) {
-                const test = cur + ' ' + words[wi];
-                if (ctx.measureText(test).width <= maxW) cur = test;
-                else { sub.push(cur); cur = words[wi]; }
-            }
-            sub.push(cur);
-
-            sub.forEach((s, si) => {
-                const sy = y + si * lineH;
-                if (cp.hasOutline) {
-                    ctx.strokeStyle = cp.outlineColor;
-                    ctx.lineWidth   = Math.max(fontSize * 0.10, 2);
-                    ctx.lineJoin    = 'round';
-                    ctx.miterLimit  = 2;
-                    ctx.strokeText(s, canvasW / 2, sy);
-                }
-                ctx.fillStyle = cp.color;
-                ctx.fillText(s, canvasW / 2, sy);
-            });
-        });
-    }
-
-    // ─────────────────────────────────────────────
-    // EXPORT SINGOLO
-    // ─────────────────────────────────────────────
-    document.getElementById('export-btn').onclick = async () => {
-        if (!videoFile) { alert('Carica un video prima di esportare!'); return; }
-
-        const exportBtn   = document.getElementById('export-btn');
-        const status      = document.getElementById('export-status');
-        const progress    = document.getElementById('progress-bar');
-        const statusText  = document.getElementById('status-text');
-        const percentText = document.getElementById('percent-text');
-
-        exportBtn.disabled = true;
-        status.classList.remove('hidden');
-        progress.style.width = '0%'; percentText.innerText = '0%';
-        statusText.innerText = 'Inizializzazione...';
-
-        try {
-            const sourceVideo = document.getElementById('source-video');
-            sourceVideo.src   = URL.createObjectURL(videoFile);
-            await new Promise(r => sourceVideo.onloadedmetadata = r);
-
-            const renderCanvas = document.getElementById('render-canvas');
-            const renderCtx    = renderCanvas.getContext('2d');
-            renderCanvas.width = 720; renderCanvas.height = 1280;
-
-            const fps = 30, duration = vEnd - vStart;
-            statusText.innerText = 'Creazione muxer...';
-
-            const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
-            const muxerConfig = {
-                target: new ArrayBufferTarget(),
-                video:  { codec: 'avc', width: 720, height: 1280 },
-                fastStart: 'in-memory'
-            };
-            if (audioFile) muxerConfig.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
-            const muxer = new Muxer(muxerConfig);
-
-            const videoEncoder = new VideoEncoder({
-                output: (c, m) => muxer.addVideoChunk(c, m),
-                error:  e => { throw new Error('Video encoder: ' + e.message); }
-            });
-            videoEncoder.configure({ codec: 'avc1.42001F', width: 720, height: 1280, bitrate: 8_000_000, framerate: fps, avc: { format: 'avc' } });
-
-            let audioEncoder = null, audioData = null;
-            if (audioFile) {
-                statusText.innerText = 'Preparazione audio...';
-                const ac = new AudioContext({ sampleRate: 48000 });
-                const decoded = await ac.decodeAudioData(await audioFile.arrayBuffer());
-                const ss = Math.floor(aStart * decoded.sampleRate);
-                const se = Math.floor((aStart + duration) * decoded.sampleRate);
-                const sc = se - ss;
-                audioData = { left: new Float32Array(sc), right: new Float32Array(sc), sampleRate: decoded.sampleRate };
-                const lc = decoded.getChannelData(0);
-                const rc = decoded.numberOfChannels > 1 ? decoded.getChannelData(1) : lc;
-                for (let i = 0; i < sc; i++) { audioData.left[i] = lc[ss + i] || 0; audioData.right[i] = rc[ss + i] || 0; }
-                audioEncoder = new AudioEncoder({
-                    output: (c, m) => muxer.addAudioChunk(c, m),
-                    error:  e => { throw new Error('Audio encoder: ' + e.message); }
-                });
-                audioEncoder.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 });
-            }
-
-            sourceVideo.currentTime = vStart;
-            await new Promise(r => sourceVideo.onseeked = r);
-
-            const totalFrames = Math.ceil(duration * fps);
-            const containerRect = videoContainer.getBoundingClientRect();
-
-            // ── Legge rawCaption dal textarea → fonte di verità per i \n ──
-            const rawCaption      = document.getElementById('caption-input').value;
-            const captionPosition = extractCaptionLines(captionElement, containerRect, rawCaption);
-
-            const targetSR = 48000;
-            const sourceSR = audioData ? audioData.sampleRate : 48000;
-            const spf      = Math.floor(targetSR / fps);
-            let   aso      = 0;
-
-            statusText.innerText = 'Codifica video...';
-
-            for (let i = 0; i < totalFrames; i++) {
-                sourceVideo.currentTime = vStart + i / fps;
-                await new Promise(r => sourceVideo.onseeked = r);
-
-                if (removeWatermark) {
-                    const sc = 1.1;
-                    renderCtx.drawImage(sourceVideo,
-                        -(sourceVideo.videoWidth  * sc - 720)  / 2,
-                        -(sourceVideo.videoHeight * sc - 1280) / 2,
-                        sourceVideo.videoWidth * sc, sourceVideo.videoHeight * sc);
-                } else {
-                    renderCtx.drawImage(sourceVideo, 0, 0, 720, 1280);
-                }
-
-                drawCaptionOnCanvas(renderCtx, captionPosition, 720, 1280);
-
-                const vf = new VideoFrame(renderCanvas, { timestamp: i * 1_000_000 / fps });
-                videoEncoder.encode(vf, { keyFrame: i % 30 === 0 }); vf.close();
-
-                if (audioEncoder && audioData) {
-                    const rr = sourceSR / targetSR;
-                    const lc = new Float32Array(spf), rc = new Float32Array(spf);
-                    for (let j = 0; j < spf; j++) {
-                        const si = Math.floor(aso + j * rr);
-                        lc[j] = si < audioData.left.length  ? audioData.left[si]  : 0;
-                        rc[j] = si < audioData.right.length ? audioData.right[si] : 0;
-                    }
-                    const af = new AudioData({ format: 'f32-planar', sampleRate: targetSR, numberOfFrames: spf, numberOfChannels: 2, timestamp: i * 1_000_000 / fps, data: new Float32Array([...lc, ...rc]) });
-                    audioEncoder.encode(af); af.close();
-                    aso += Math.floor(spf * rr);
-                }
-
-                const pct = Math.round(i / totalFrames * 100);
-                progress.style.width = pct + '%'; percentText.innerText = pct + '%';
-                if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
-            }
-
-            statusText.innerText = 'Finalizzazione...';
-            await videoEncoder.flush();
-            if (audioEncoder) await audioEncoder.flush();
-            muxer.finalize();
-
-            const blob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
-            const a    = document.createElement('a');
-            a.href = URL.createObjectURL(blob); a.download = 'TikTok_Clip.mp4'; a.click();
-
-            statusText.innerText = 'Completato!'; percentText.innerText = '100%'; progress.style.width = '100%';
-            setTimeout(() => { status.classList.add('hidden'); exportBtn.disabled = false; }, 2000);
-
-        } catch (err) {
-            console.error(err);
-            statusText.innerText = 'Errore: ' + err.message;
-            alert('Errore export. Usa Chrome o Edge aggiornati.');
-            setTimeout(() => status.classList.add('hidden'), 3000);
-            exportBtn.disabled = false;
-        }
-    };
-
-    document.getElementById('toggle-guide').onclick = () => {
-        const g = document.getElementById('safe-guide');
-        g.style.display = g.style.display === 'none' ? 'block' : 'none';
-    };
-
-    // ─────────────────────────────────────────────
-    // BULK QUEUE SYSTEM
-    // ─────────────────────────────────────────────
-    let videoQueue = [], currentQueueIndex = -1;
-
-    function updateQueueUI() {
-        const list        = document.getElementById('queue-list');
-        const count       = document.getElementById('queue-count');
-        const exportCount = document.getElementById('export-count');
-        const exportAll   = document.getElementById('export-all-btn');
-        const prev        = document.getElementById('prev-video-btn');
-        const next        = document.getElementById('next-video-btn');
-
-        count.innerText  = `Coda: ${videoQueue.length}/20`;
-        exportCount.innerText = videoQueue.length;
-        exportAll.disabled    = videoQueue.length === 0;
-
-        if (!videoQueue.length) {
-            list.innerHTML     = '<div class="text-center text-zinc-500 text-[10px] py-4">Nessun video in coda</div>';
-            prev.disabled = next.disabled = true;
-        } else {
-            list.innerHTML = videoQueue.map((item, i) => `
-                <div class="queue-item ${i === currentQueueIndex ? 'active' : ''}" data-index="${i}">
-                    <div class="queue-item-info">
-                        <div class="queue-item-caption">${i + 1}. ${(item.rawCaption || '').replace(/\n/g, ' ').substring(0, 40) || 'Senza testo'}</div>
-                        <div class="queue-item-meta">${item.duration.toFixed(1)}s • ${item.hasAudio ? 'Con audio' : 'Solo video'}</div>
-                    </div>
-                    <div class="queue-item-actions">
-                        <button class="queue-item-btn load-queue-item" data-index="${i}"><i data-lucide="eye" class="w-3 h-3 text-blue-400"></i></button>
-                        <button class="queue-item-btn delete-queue-item" data-index="${i}"><i data-lucide="trash-2" class="w-3 h-3 text-red-400"></i></button>
-                    </div>
-                </div>`).join('');
-            lucide.createIcons();
-            document.querySelectorAll('.load-queue-item').forEach(b => b.onclick = () => loadQueueItem(+b.dataset.index));
-            document.querySelectorAll('.delete-queue-item').forEach(b => b.onclick = (e) => { e.stopPropagation(); deleteQueueItem(+b.dataset.index); });
-            prev.disabled = currentQueueIndex <= 0;
-            next.disabled = currentQueueIndex >= videoQueue.length - 1;
-        }
-    }
-
-    function captureCurrentState() {
-        if (!videoFile) { alert('Carica prima un video!'); return null; }
-        try {
-            const containerRect = videoContainer.getBoundingClientRect();
-            const rawCaption    = document.getElementById('caption-input').value;
-            return {
-                videoFile, videoFileName: videoFile.name, videoLibraryIndex: currentVideoIndex,
-                vStart, vEnd, duration: vEnd - vStart,
-                audioFile, audioFileName: audioFile?.name ?? null, audioLibraryIndex: currentAudioIndex,
-                aStart, hasAudio: !!audioFile,
-                rawCaption,
-                captionPosition: extractCaptionLines(captionElement, containerRect, rawCaption),
-                fontSize:     parseInt(captionElement.style.fontSize) || 12,
-                textColor:    captionElement.style.color || '#ffffff',
-                outlineColor: getComputedStyle(captionElement).getPropertyValue('--outline-color').trim() || '#000000',
-                hasOutline:   captionElement.classList.contains('text-bold-outline'),
-                fontClass:    captionElement.className,
-                removeWatermark,
-                timestamp: Date.now()
-            };
-        } catch (err) {
-            alert('Errore stato: ' + err.message); return null;
-        }
-    }
-
-    function loadQueueItem(index) {
-        if (index < 0 || index >= videoQueue.length) return;
-        const item = videoQueue[index];
-        currentQueueIndex = index;
-
-        if (item.videoFile) {
-            videoFile = item.videoFile; currentVideoIndex = item.videoLibraryIndex || 0;
-            video.src = URL.createObjectURL(item.videoFile);
-            video.onloadedmetadata = () => {
-                videoDuration = video.duration; vStart = item.vStart; vEnd = item.vEnd;
-                updateTrimmers(); video.currentTime = vStart;
-            };
-            generateThumbnails(item.videoFile);
-        }
-        if (item.audioFile) {
-            audioFile = item.audioFile; currentAudioIndex = item.audioLibraryIndex || -1;
-            audio.src = URL.createObjectURL(item.audioFile);
-            audio.onloadedmetadata = () => {
-                audioDuration = audio.duration; aStart = item.aStart;
-                drawWaveform(item.audioFile); updateTrimmers();
-            };
-            const sel = document.getElementById('audio-selector');
-            if (currentAudioIndex >= 0) sel.value = currentAudioIndex;
-        } else {
-            audioFile = null; currentAudioIndex = -1; audio.src = '';
-            document.getElementById('audio-selector').value = '';
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // FIX: ripristina con textContent (pre-wrap) → \n preservati
-        caption.textContent = item.rawCaption || '';
-        document.getElementById('caption-input').value = item.rawCaption || '';
-
-        captionElement.style.fontSize = item.fontSize + 'px';
-        document.getElementById('fs-val').innerText   = item.fontSize + 'px';
-        document.getElementById('font-size').value    = item.fontSize;
-        captionElement.style.color                    = item.textColor;
-        document.getElementById('text-color').value   = item.textColor;
-        captionElement.style.setProperty('--outline-color', item.outlineColor);
-        document.getElementById('outline-color').value = item.outlineColor;
-        captionElement.className = item.fontClass;
-        outlineEnabled = item.hasOutline; updateOutlineUI();
-        document.querySelectorAll('.font-btn').forEach(b => {
-            b.classList.toggle('active', item.fontClass.includes(b.dataset.font));
-        });
-        removeWatermark = item.removeWatermark;
-        const wb = document.getElementById('toggle-watermark');
-        if (removeWatermark) {
-            video.style.transform = 'scale(1.1)'; wb.classList.add('active');
-            wb.innerHTML = '<i data-lucide="zoom-out" class="w-3.5 h-3.5"></i> Reset Zoom';
-        } else {
-            video.style.transform = 'scale(1)'; wb.classList.remove('active');
-            wb.innerHTML = '<i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO';
-        }
-        lucide.createIcons(); updateQueueUI();
-    }
-
-    function deleteQueueItem(index) {
-        if (!confirm('Rimuovere dalla coda?')) return;
-        videoQueue.splice(index, 1);
-        if (currentQueueIndex === index)       currentQueueIndex = -1;
-        else if (currentQueueIndex > index)    currentQueueIndex--;
-        updateQueueUI();
-    }
-
-    document.getElementById('add-to-queue-btn').onclick = () => {
-        if (videoQueue.length >= MAX_QUEUE_SIZE) { alert(`Max ${MAX_QUEUE_SIZE} video!`); return; }
-        const state = captureCurrentState();
-        if (!state) return;
-        videoQueue.push(state);
-        currentQueueIndex = videoQueue.length - 1;
-        updateQueueUI();
-        notify(`✓ Video ${videoQueue.length} aggiunto!`, 'green');
-    };
-
-    document.getElementById('prev-video-btn').onclick = () => {
-        if (currentQueueIndex > 0) loadQueueItem(currentQueueIndex - 1);
-        else if (videoLibrary.length > 0 && currentVideoIndex > 0) loadVideoFromLibrary(currentVideoIndex - 1);
-    };
-
-    document.getElementById('next-video-btn').onclick = () => {
-        if (currentQueueIndex < videoQueue.length - 1) loadQueueItem(currentQueueIndex + 1);
-        else if (videoLibrary.length > 0 && currentVideoIndex < videoLibrary.length - 1) {
-            loadVideoFromLibrary(currentVideoIndex + 1);
-            document.getElementById('random-caption-btn').click();
-        }
-    };
-
-    document.getElementById('auto-queue-btn').onclick = async () => {
-        if (!videoLibrary.length) { alert('Carica prima dei video!'); return; }
-        if (!confirm(`Aggiungere ${videoLibrary.length} video automaticamente?`)) return;
-        const btn = document.getElementById('auto-queue-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Caricamento...';
-        lucide.createIcons();
-        for (let i = 0; i < videoLibrary.length && videoQueue.length < MAX_QUEUE_SIZE; i++) {
-            currentVideoIndex = i; videoFile = videoLibrary[i];
-            video.src = URL.createObjectURL(videoFile);
-            await new Promise(r => video.onloadedmetadata = () => {
-                videoDuration = video.duration; vStart = 0; vEnd = Math.min(videoDuration, 15);
-                updateTrimmers(); r();
-            });
-            const rc = viralCaptions[selectedCategory];
-            const rnd = rc[Math.floor(Math.random() * rc.length)];
-            caption.textContent = rnd;
-            document.getElementById('caption-input').value = rnd;
-            const state = captureCurrentState();
-            if (state) videoQueue.push(state);
-            await new Promise(r => setTimeout(r, 100));
-        }
-        currentQueueIndex = videoQueue.length - 1;
-        updateQueueUI();
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="zap" class="w-3 h-3"></i> Auto-Coda';
-        lucide.createIcons();
-        notify(`✓ ${videoQueue.length} video in coda!`, 'green');
-    };
-
+function deleteQueueItem(index) {
+    videoQueue.splice(index, 1);
+    if (currentQueueIndex === index) currentQueueIndex = -1;
+    else if (currentQueueIndex > index) currentQueueIndex--;
     updateQueueUI();
+}
 
-    // ─────────────────────────────────────────────
-    // VIRAL CAPTIONS
-    // ─────────────────────────────────────────────
-    const viralCaptions = {
-        energy:    ["This song hits different at max volume","POV: You just found your new hype song","When the drop hits and you levitate","This energy is UNMATCHED","Warning: This will make you run through walls","The beat said GO CRAZY","This song woke up and chose violence","My neighbors hate this song (I love it)","POV: The gym just got 10x harder","This is what confidence sounds like","When the song matches your adrenaline","This beat said NO CHILL MODE","The song that makes you walk faster","POV: Main character moment activated","This will be your new alarm sound","When music becomes your pre-workout","The bass drop changed my life","This song slaps at ANY tempo","POV: You just discovered pure energy","This beat goes too hard for no reason","When the song says GO CRAZY","This is chaos in the best way","POV: Your body moved by itself","The song that starts revolutions","This energy is illegal in 3 countries","When music becomes rocket fuel","This beat woke me UP","POV: The aux got HIJACKED","This song said we're GOING UP","The energy I needed TODAY"],
-        chill:     ["This song is a whole VIBE","POV: Perfect sunset soundtrack found","When the song just... gets it","This is what peace sounds like","The vibe is immaculate fr","POV: You found your comfort song","This song = instant calm","When music becomes meditation","The perfect background for life","POV: All stress just left the chat","This song is a warm blanket","When the vibes are TOO smooth","This is what heaven sounds like","POV: Your safe space in audio form","The song for 3am thoughts","This vibe is EVERYTHING","When music slows down time","POV: You just discovered serenity","This song makes life better","The perfect coffee shop soundtrack"],
-        emotional: ["This song BROKE me in the best way","POV: You're crying but make it aesthetic","When the lyrics hit TOO close","This song sees my soul","The song that made me FEEL everything","POV: Having a full breakdown (gorgeous)","When music validates your emotions","This song understands me too well","POV: Tears but make it cinematic","The song that opened my heart","When lyrics become therapy","This hit different at 2am","POV: You're the main character crying","The song I needed to hear","When music puts pain into words","This song is emotional damage","POV: Finally someone gets it","The song that broke the dam","When music heals old wounds","This made me feel SEEN"],
-        party:     ["This song OWNS the function","POV: The party just peaked","When THIS comes on everybody moves","The song that starts celebrations","POV: Club went INSANE","This is the party anthem we needed","When the DJ plays this = CHAOS","POV: The night just got started","This song makes strangers best friends","The perfect pregame soundtrack","When the beat drops the room ERUPTS","POV: Everyone knows the words","This is what celebration sounds like","The song that fills dance floors","When music becomes pure joy","POV: The party peaked RIGHT HERE","This makes EVERYONE move","The ultimate turn up anthem","When the song says LET'S GO","POV: The vibes are IMMACULATE"],
-        nostalgic: ["This unlocked a CORE memory","POV: Transported back in time","When the song brings back EVERYTHING","This hit different than expected","POV: Feeling all the feels right now","The song I forgot I needed","When music becomes a time machine","This brought back the OLD me","POV: Nostalgia hitting HARD","The soundtrack to better days","When a song reopens closed chapters","This takes me BACK back","POV: Memory lane activated","The song from simpler times","When music resurrects moments","This unlocked forgotten feelings","POV: Teenage dreams resurfacing","The song that aged like wine","When nostalgia hits just right","This brought tears AND smiles"],
-        romantic:  ["This song IS the moment before the kiss","POV: Falling in love in real time","When the song describes THEM perfectly","This is what butterflies sound like","POV: Your love story got a soundtrack","The song that makes you text them","When music captures the feeling","This is romance in audio form","POV: Love at first listen","The perfect song for slow dancing","When the lyrics say everything","This made me believe in soulmates","POV: The universe is speaking","The song for confession moments","When music becomes cupid","This is what destiny sounds like","POV: Catching feelings via audio","The soundtrack to first dates","When a song writes your vows","This describes us TOO well"],
-        dark:      ["This song lives in the shadows","POV: Your villain origin story","When the vibe is DANGEROUSLY good","This is what midnight sounds like","POV: Dark side fully activated","The song for mysterious hours","When music embraces the darkness","This makes me feel DANGEROUS","POV: Walking alone at night energy","The perfect song for plotting","When the vibe turns sinister (tastefully)","This is hauntingly beautiful","POV: Anti-hero anthem found","The song that owns the night","When music goes to dark places","This is seductively twisted","POV: Embracing the shadow self","The soundtrack to beautiful chaos","When the song gets under your skin","This is deliciously dark"],
-        uplifting: ["This song literally HEALS souls","POV: Everything's gonna be okay","When the song says KEEP GOING","This is pure sunshine in audio","POV: Hope restored instantly","The song that lifts spirits","When music becomes encouragement","This made me believe again","POV: Finding light in the sound","The perfect pick-me-up anthem","When the song says YOU GOT THIS","This is what joy sounds like","POV: Bad day officially cancelled","The song that changes moods","When music becomes motivation","This is instant happiness","POV: The sunshine I needed","The anthem for better days","When the song reminds you to smile","This is what hope sounds like"],
-        sensual:   ["This song is CRIMINALLY smooth","POV: The vibe just got intimate","When the song sets the mood PERFECTLY","This is dangerously seductive","POV: Temperature rising rapidly","The song that makes you feel something","When music becomes pure tension","This is what desire sounds like","POV: The vibe shifted to 100","The perfect late night soundtrack","When the song gets under your skin","This is intoxicatingly smooth","POV: Caught in the moment","The song for close encounters","When music creates chemistry","This is seduction in audio form","POV: The song knows exactly what to do","The anthem for intimate moments","When the vibe is TOO smooth","This makes you feel everything"],
-        dreamy:    ["This song feels like floating","POV: Lost in the soundscape","When the song becomes a journey","This is what clouds sound like","POV: Drifting away beautifully","The perfect song for daydreaming","When music creates another world","This is pure ethereal magic","POV: Ascending to new dimensions","The soundtrack to imagination","When the song feels weightless","This is what dreams sound like","POV: Reality who? I'm HERE now","The song for cosmic thoughts","When music becomes meditation","This is otherworldly beautiful","POV: Transcending through sound","The perfect escape anthem","When the song lifts your spirit","This is celestial perfection"],
-        relatable: ["No because WHY is this so accurate","POV: Being perceived and it's uncomfortable","When the song calls you out personally","This is attacking me specifically","POV: Feeling seen (not in a good way)","The song that read my mind","When music becomes too relatable","This described my life TOO well","POV: Did we live the same life?","The song that gets it","When the lyrics are YOUR diary","This is literally about me fr","POV: Stop being so accurate challenge","The song that KNOWS","When music exposes you","This hit way too close to home","POV: Feeling attacked by a song","The anthem for overthinkers","When the song reads you","This is my Roman Empire"],
-        savage:    ["This song said VIOLENCE","POV: Choosing chaos today","When the vibe is UNHINGED","This is your villain moment","POV: Absolutely NO CHILL activated","The song for petty hours","When music becomes attitude","This is what savage sounds like","POV: Burnt all the bridges (deservedly)","The perfect clap back anthem","When the song says TRY ME","This is confidence weaponized","POV: Done being nice","The anthem for standing up","When music becomes power move","This said what I was thinking","POV: Energy switched to dangerous","The song for calling people out","When the vibe is BOLD","This is what audacity sounds like"],
-        aesthetic: ["This is my entire AESTHETIC","POV: Finding your vibe in audio form","When the song matches your energy","This IS the mood board","POV: Your aesthetic got a soundtrack","The perfect song for your brand","When music becomes visual","This captures the VIBE perfectly","POV: Living in the aesthetic","The song that matches your style","When the sound IS the aesthetic","This is mood in audio form","POV: Your Pinterest board playing","The perfect vibe soundtrack","When music matches aesthetics","This is what style sounds like","POV: The aesthetic is IMMACULATE","The song for your energy","When the vibe is PERFECT","This matches my whole aesthetic"],
-        chaotic:   ["This song is UNHINGED energy","POV: Chaos chose me today","When the vibe is PURE CHAOS","This is what madness sounds like","POV: Absolutely losing it (lovingly)","The perfect song for wild energy","When music becomes disorder","This is organized chaos","POV: Sanity left the chat","The anthem for chaotic souls","When the song matches the chaos","This is what mayhem sounds like","POV: Embracing the madness","The perfect soundtrack to chaos","When music becomes anarchy","This is pure pandemonium","POV: Chaotic neutral energy","The song for wild moments","When the vibe is UNCONTROLLED","This is what chaos sounds like"],
-        main:      ["POV: You're the main character NOW","This is YOUR moment starting","When the song makes you THE ONE","This is main character energy","POV: Your movie montage playing","The perfect protagonist anthem","When music makes you legendary","This is what spotlight sounds like","POV: Everyone's watching YOU","The song for YOUR story","When the moment is YOURS","This is protagonist energy","POV: Life became a movie","The anthem for main characters","When music crowns you","This is what destiny sounds like","POV: Your era has begun","The perfect moment soundtrack","When the song chooses YOU","This is main character vibes"]
-    };
+document.getElementById('add-to-queue-btn').onclick = () => {
+    if (videoQueue.length >= MAX_QUEUE_SIZE) { notify(`Max ${MAX_QUEUE_SIZE}!`, 'red'); return; }
+    const state = captureCurrentState(); if (!state) return;
+    videoQueue.push(state); currentQueueIndex = videoQueue.length - 1; updateQueueUI();
+    notify(`✓ Video ${videoQueue.length} aggiunto`, 'green');
+};
+document.getElementById('prev-video-btn').onclick = () => { if (currentQueueIndex > 0) loadQueueItem(currentQueueIndex - 1); else if (currentVideoIndex > 0) loadVideoFromLibrary(currentVideoIndex - 1); };
+document.getElementById('next-video-btn').onclick = () => { if (currentQueueIndex < videoQueue.length - 1) loadQueueItem(currentQueueIndex + 1); else if (currentVideoIndex < videoLibrary.length - 1) { loadVideoFromLibrary(currentVideoIndex + 1); document.getElementById('random-caption-btn').click(); } };
 
-    let selectedCategory = 'energy';
+document.getElementById('auto-queue-btn').onclick = async () => {
+    if (!videoLibrary.length) { notify('Carica prima dei video!', 'red'); return; }
+    const btn = document.getElementById('auto-queue-btn'); btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> ...'; lucide.createIcons();
+    for (let i = 0; i < videoLibrary.length && videoQueue.length < MAX_QUEUE_SIZE; i++) {
+        currentVideoIndex = i; videoFile = videoLibrary[i]; video.src = URL.createObjectURL(videoFile);
+        await new Promise(r => video.onloadedmetadata = () => { videoDuration = video.duration; vStart = 0; vEnd = Math.min(videoDuration, 15); updateTrimmers(); r(); });
+        const arr = viralCaptions[selectedCategory], rnd = arr[Math.floor(Math.random() * arr.length)];
+        caption.textContent = rnd; document.getElementById('caption-input').value = rnd;
+        const state = captureCurrentState(); if (state) videoQueue.push(state);
+        await new Promise(r => setTimeout(r, 150));
+    }
+    currentQueueIndex = videoQueue.length - 1; updateQueueUI();
+    btn.disabled = false; btn.innerHTML = '<i data-lucide="zap" class="w-3 h-3"></i> Auto'; lucide.createIcons();
+    notify(`✓ ${videoQueue.length} in coda`, 'green');
+};
 
-    document.querySelectorAll('.caption-cat-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedCategory = btn.dataset.category;
-        };
-    });
+updateQueueUI();
 
-    document.getElementById('random-caption-btn').onclick = () => {
-        const arr = viralCaptions[selectedCategory];
-        const rnd = arr[Math.floor(Math.random() * arr.length)];
-        document.getElementById('caption-input').value = rnd;
-        caption.textContent = rnd;
-        const btn = document.getElementById('random-caption-btn');
-        btn.style.transform = 'scale(0.95)';
-        setTimeout(() => btn.style.transform = 'scale(1)', 100);
-    };
+// ── Viral Captions ──
+const viralCaptions = {
+    energy:    ["This song hits different at max volume","POV: You just found your new hype song","When the drop hits and you levitate","This energy is UNMATCHED","Warning: This will make you run through walls","The beat said GO CRAZY","This song woke up and chose violence","My neighbors hate this song (I love it)","POV: The gym just got 10x harder","This is what confidence sounds like","When the song matches your adrenaline","This beat said NO CHILL MODE","The song that makes you walk faster","POV: Main character moment activated","This will be your new alarm sound","When music becomes your pre-workout","The bass drop changed my life","This song slaps at ANY tempo","POV: You just discovered pure energy","This beat goes too hard for no reason"],
+    chill:     ["This song is a whole VIBE","POV: Perfect sunset soundtrack found","When the song just... gets it","This is what peace sounds like","The vibe is immaculate fr","POV: You found your comfort song","This song = instant calm","When music becomes meditation","The perfect background for life","POV: All stress just left the chat","This song is a warm blanket","When the vibes are TOO smooth","This is what heaven sounds like","POV: Your safe space in audio form","The song for 3am thoughts","This vibe is EVERYTHING","When music slows down time","POV: You just discovered serenity","This song makes life better","The perfect coffee shop soundtrack"],
+    emotional: ["This song BROKE me in the best way","POV: You're crying but make it aesthetic","When the lyrics hit TOO close","This song sees my soul","The song that made me FEEL everything","POV: Having a full breakdown (gorgeous)","When music validates your emotions","This song understands me too well","POV: Tears but make it cinematic","The song that opened my heart","When lyrics become therapy","This hit different at 2am","POV: You're the main character crying","The song I needed to hear","When music puts pain into words","This song is emotional damage","POV: Finally someone gets it","The song that broke the dam","When music heals old wounds","This made me feel SEEN"],
+    party:     ["This song OWNS the function","POV: The party just peaked","When THIS comes on everybody moves","The song that starts celebrations","POV: Club went INSANE","This is the party anthem we needed","When the DJ plays this = CHAOS","POV: The night just got started","This song makes strangers best friends","The perfect pregame soundtrack","When the beat drops the room ERUPTS","POV: Everyone knows the words","This is what celebration sounds like","The song that fills dance floors","When music becomes pure joy","POV: The party peaked RIGHT HERE","This makes EVERYONE move","The ultimate turn up anthem","When the song says LET'S GO","POV: The vibes are IMMACULATE"],
+    nostalgic: ["This unlocked a CORE memory","POV: Transported back in time","When the song brings back EVERYTHING","This hit different than expected","POV: Feeling all the feels right now","The song I forgot I needed","When music becomes a time machine","This brought back the OLD me","POV: Nostalgia hitting HARD","The soundtrack to better days","When a song reopens closed chapters","This takes me BACK back","POV: Memory lane activated","The song from simpler times","When music resurrects moments","This unlocked forgotten feelings","POV: Teenage dreams resurfacing","The song that aged like wine","When nostalgia hits just right","This brought tears AND smiles"],
+    romantic:  ["This song IS the moment before the kiss","POV: Falling in love in real time","When the song describes THEM perfectly","This is what butterflies sound like","POV: Your love story got a soundtrack","The song that makes you text them","When music captures the feeling","This is romance in audio form","POV: Love at first listen","The perfect song for slow dancing","When the lyrics say everything","This made me believe in soulmates","POV: The universe is speaking","The song for confession moments","When music becomes cupid","This is what destiny sounds like","POV: Catching feelings via audio","The soundtrack to first dates","When a song writes your vows","This describes us TOO well"],
+    dark:      ["This song lives in the shadows","POV: Your villain origin story","When the vibe is DANGEROUSLY good","This is what midnight sounds like","POV: Dark side fully activated","The song for mysterious hours","When music embraces the darkness","This makes me feel DANGEROUS","POV: Walking alone at night energy","The perfect song for plotting","When the vibe turns sinister (tastefully)","This is hauntingly beautiful","POV: Anti-hero anthem found","The song that owns the night","When music goes to dark places","This is seductively twisted","POV: Embracing the shadow self","The soundtrack to beautiful chaos","When the song gets under your skin","This is deliciously dark"],
+    uplifting: ["This song literally HEALS souls","POV: Everything's gonna be okay","When the song says KEEP GOING","This is pure sunshine in audio","POV: Hope restored instantly","The song that lifts spirits","When music becomes encouragement","This made me believe again","POV: Finding light in the sound","The perfect pick-me-up anthem","When the song says YOU GOT THIS","This is what joy sounds like","POV: Bad day officially cancelled","The song that changes moods","When music becomes motivation","This is instant happiness","POV: The sunshine I needed","The anthem for better days","When the song reminds you to smile","This is what hope sounds like"],
+    sensual:   ["This song is CRIMINALLY smooth","POV: The vibe just got intimate","When the song sets the mood PERFECTLY","This is dangerously seductive","POV: Temperature rising rapidly","The song that makes you feel something","When music becomes pure tension","This is what desire sounds like","POV: The vibe shifted to 100","The perfect late night soundtrack","When the song gets under your skin","This is intoxicatingly smooth","POV: Caught in the moment","The song for close encounters","When music creates chemistry","This is seduction in audio form","POV: The song knows exactly what to do","The anthem for intimate moments","When the vibe is TOO smooth","This makes you feel everything"],
+    dreamy:    ["This song feels like floating","POV: Lost in the soundscape","When the song becomes a journey","This is what clouds sound like","POV: Drifting away beautifully","The perfect song for daydreaming","When music creates another world","This is pure ethereal magic","POV: Ascending to new dimensions","The soundtrack to imagination","When the song feels weightless","This is what dreams sound like","POV: Reality who? I'm HERE now","The song for cosmic thoughts","When music becomes meditation","This is otherworldly beautiful","POV: Transcending through sound","The perfect escape anthem","When the song lifts your spirit","This is celestial perfection"],
+    relatable: ["No because WHY is this so accurate","POV: Being perceived and it's uncomfortable","When the song calls you out personally","This is attacking me specifically","POV: Feeling seen (not in a good way)","The song that read my mind","When music becomes too relatable","This described my life TOO well","POV: Did we live the same life?","The song that gets it","When the lyrics are YOUR diary","This is literally about me fr","POV: Stop being so accurate challenge","The song that KNOWS","When music exposes you","This hit way too close to home","POV: Feeling attacked by a song","The anthem for overthinkers","When the song reads you","This is my Roman Empire"],
+    savage:    ["This song said VIOLENCE","POV: Choosing chaos today","When the vibe is UNHINGED","This is your villain moment","POV: Absolutely NO CHILL activated","The song for petty hours","When music becomes attitude","This is what savage sounds like","POV: Burnt all the bridges (deservedly)","The perfect clap back anthem","When the song says TRY ME","This is confidence weaponized","POV: Done being nice","The anthem for standing up","When music becomes power move","This said what I was thinking","POV: Energy switched to dangerous","The song for calling people out","When the vibe is BOLD","This is what audacity sounds like"],
+    aesthetic: ["This is my entire AESTHETIC","POV: Finding your vibe in audio form","When the song matches your energy","This IS the mood board","POV: Your aesthetic got a soundtrack","The perfect song for your brand","When music becomes visual","This captures the VIBE perfectly","POV: Living in the aesthetic","The song that matches your style","When the sound IS the aesthetic","This is mood in audio form","POV: Your Pinterest board playing","The perfect vibe soundtrack","When music matches aesthetics","This is what style sounds like","POV: The aesthetic is IMMACULATE","The song for your energy","When the vibe is PERFECT","This matches my whole aesthetic"],
+    chaotic:   ["This song is UNHINGED energy","POV: Chaos chose me today","When the vibe is PURE CHAOS","This is what madness sounds like","POV: Absolutely losing it (lovingly)","The perfect song for wild energy","When music becomes disorder","This is organized chaos","POV: Sanity left the chat","The anthem for chaotic souls","When the song matches the chaos","This is what mayhem sounds like","POV: Embracing the madness","The perfect soundtrack to chaos","When music becomes anarchy","This is pure pandemonium","POV: Chaotic neutral energy","The song for wild moments","When the vibe is UNCONTROLLED","This is what chaos sounds like"],
+    main:      ["POV: You're the main character NOW","This is YOUR moment starting","When the song makes you THE ONE","This is main character energy","POV: Your movie montage playing","The perfect protagonist anthem","When music makes you legendary","This is what spotlight sounds like","POV: Everyone's watching YOU","The song for YOUR story","When the moment is YOURS","This is protagonist energy","POV: Life became a movie","The anthem for main characters","When music crowns you","This is what destiny sounds like","POV: Your era has begun","The perfect moment soundtrack","When the song chooses YOU","This is main character vibes"]
+};
+let selectedCategory = 'energy';
+document.querySelectorAll('.caption-cat-btn').forEach(btn => { btn.onclick = () => { document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); selectedCategory = btn.dataset.category; }; });
+document.getElementById('random-caption-btn').onclick = () => {
+    const arr = viralCaptions[selectedCategory], rnd = arr[Math.floor(Math.random() * arr.length)];
+    document.getElementById('caption-input').value = rnd; caption.textContent = rnd;
+    const btn = document.getElementById('random-caption-btn'); btn.style.transform = 'scale(0.95)'; setTimeout(() => btn.style.transform = 'scale(1)', 100);
+};
 
-    // ─────────────────────────────────────────────
-    // EXPORT ALL
-    // ─────────────────────────────────────────────
-    document.getElementById('export-all-btn').onclick = async () => {
-        if (!videoQueue.length) { alert('La coda è vuota!'); return; }
-        if (!confirm(`Esportare ${videoQueue.length} video?`)) return;
-
-        const exportAllBtn = document.getElementById('export-all-btn');
-        exportAllBtn.disabled = true;
-        const status      = document.getElementById('export-status');
-        const progress    = document.getElementById('progress-bar');
-        const statusText  = document.getElementById('status-text');
-        const percentText = document.getElementById('percent-text');
-        status.classList.remove('hidden');
-
-        try {
-            for (let qi = 0; qi < videoQueue.length; qi++) {
-                const item = videoQueue[qi];
-                statusText.innerText = `Video ${qi + 1}/${videoQueue.length}: Preparazione...`;
-                progress.style.width = '0%'; percentText.innerText = '0%';
-
-                const sv = document.getElementById('source-video');
-                sv.src   = URL.createObjectURL(item.videoFile);
-                await new Promise(r => sv.onloadedmetadata = r);
-
-                const rc = document.getElementById('render-canvas');
-                const rx = rc.getContext('2d');
-                rc.width = 720; rc.height = 1280;
-
-                const fps = 30, dur = item.vEnd - item.vStart;
-                const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
-                const mc = { target: new ArrayBufferTarget(), video: { codec: 'avc', width: 720, height: 1280 }, fastStart: 'in-memory' };
-                if (item.audioFile) mc.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
-                const muxer = new Muxer(mc);
-
-                const ve = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { throw new Error(e.message); } });
-                ve.configure({ codec: 'avc1.42001F', width: 720, height: 1280, bitrate: 8_000_000, framerate: fps, avc: { format: 'avc' } });
-
-                let ae = null, ad = null;
-                if (item.audioFile) {
-                    const ac = new AudioContext({ sampleRate: 48000 });
-                    const dec = await ac.decodeAudioData(await item.audioFile.arrayBuffer());
-                    const ss  = Math.floor(item.aStart * dec.sampleRate);
-                    const se  = Math.floor((item.aStart + dur) * dec.sampleRate);
-                    const sc  = se - ss;
-                    ad = { left: new Float32Array(sc), right: new Float32Array(sc), sampleRate: dec.sampleRate };
-                    const lc  = dec.getChannelData(0), rchan = dec.numberOfChannels > 1 ? dec.getChannelData(1) : lc;
-                    for (let i = 0; i < sc; i++) { ad.left[i] = lc[ss+i]||0; ad.right[i] = rchan[ss+i]||0; }
-                    ae = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { throw new Error(e.message); } });
-                    ae.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 });
-                }
-
-                sv.currentTime = item.vStart;
-                await new Promise(r => sv.onseeked = r);
-
-                const totalFrames = Math.ceil(dur * fps);
-                const tsr = 48000, ssr = ad ? ad.sampleRate : 48000;
-                const spf = Math.floor(tsr / fps);
-                let aso   = 0;
-
-                // Usa captionPosition già calcolata al momento dell'aggiunta in coda
-                const cp = item.captionPosition;
-
-                for (let i = 0; i < totalFrames; i++) {
-                    sv.currentTime = item.vStart + i / fps;
-                    await new Promise(r => sv.onseeked = r);
-                    if (item.removeWatermark) {
-                        const s = 1.1;
-                        rx.drawImage(sv, -(sv.videoWidth*s-720)/2, -(sv.videoHeight*s-1280)/2, sv.videoWidth*s, sv.videoHeight*s);
-                    } else {
-                        rx.drawImage(sv, 0, 0, 720, 1280);
-                    }
-                    drawCaptionOnCanvas(rx, cp, 720, 1280);
-                    const vf = new VideoFrame(rc, { timestamp: i*1_000_000/fps });
-                    ve.encode(vf, { keyFrame: i%30===0 }); vf.close();
-                    if (ae && ad) {
-                        const rr = ssr/tsr, lc = new Float32Array(spf), rch = new Float32Array(spf);
-                        for (let j = 0; j < spf; j++) {
-                            const si = Math.floor(aso + j*rr);
-                            lc[j]  = si < ad.left.length  ? ad.left[si]  : 0;
-                            rch[j] = si < ad.right.length ? ad.right[si] : 0;
-                        }
-                        const af = new AudioData({ format:'f32-planar', sampleRate:tsr, numberOfFrames:spf, numberOfChannels:2, timestamp:i*1_000_000/fps, data:new Float32Array([...lc,...rch]) });
-                        ae.encode(af); af.close();
-                        aso += Math.floor(spf*rr);
-                    }
-                    progress.style.width  = Math.round(i/totalFrames*100) + '%';
-                    percentText.innerText = Math.round(i/totalFrames*100) + '%';
-                    if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
-                }
-
-                await ve.flush();
-                if (ae) await ae.flush();
-                muxer.finalize();
-
-                const blob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
-                const a    = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `TikTok_${qi+1}_${(item.rawCaption||'video').replace(/\n/g,' ').substring(0,30).replace(/[^a-z0-9]/gi,'_')}.mp4`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-                await new Promise(r => setTimeout(r, 500));
-            }
-
-            statusText.innerText = 'Tutti i video esportati!';
-            percentText.innerText = '100%'; progress.style.width = '100%';
-            setTimeout(() => { status.classList.add('hidden'); exportAllBtn.disabled = false; }, 3000);
-
-        } catch (err) {
-            console.error(err);
-            statusText.innerText = 'Errore: ' + err.message;
-            alert('Errore export bulk. Vedi console per dettagli.');
-            setTimeout(() => status.classList.add('hidden'), 3000);
-            exportAllBtn.disabled = false;
+// ── Export All ──
+document.getElementById('export-all-btn').onclick = async () => {
+    if (!videoQueue.length) { notify('La coda è vuota!', 'red'); return; }
+    const exportAllBtn = document.getElementById('export-all-btn'), status = document.getElementById('export-status'), statusText = document.getElementById('status-text'), progress = document.getElementById('progress-bar'), percentText = document.getElementById('percent-text');
+    exportAllBtn.disabled = true; status.classList.remove('hidden');
+    try {
+        for (let qi = 0; qi < videoQueue.length; qi++) {
+            const item = videoQueue[qi];
+            statusText.innerText = `Video ${qi + 1}/${videoQueue.length}...`; progress.style.width = '0%'; percentText.innerText = '0%';
+            const fname = `TikTok_${qi + 1}_${(item.rawCaption || 'video').replace(/\n/g, ' ').substring(0, 30).replace(/[^a-z0-9]/gi, '_')}.mp4`;
+            await runExport(item, fname, p => { progress.style.width = p + '%'; percentText.innerText = p + '%'; });
+            await new Promise(r => setTimeout(r, 500));
         }
-    };
+        statusText.innerText = 'Tutti esportati!'; percentText.innerText = '100%'; progress.style.width = '100%';
+        setTimeout(() => { status.classList.add('hidden'); exportAllBtn.disabled = false; }, 3000);
+    } catch (err) { console.error(err); statusText.innerText = 'Errore: ' + err.message; setTimeout(() => { status.classList.add('hidden'); exportAllBtn.disabled = false; }, 3000); }
+};
 </script>
 </body>
 </html>
