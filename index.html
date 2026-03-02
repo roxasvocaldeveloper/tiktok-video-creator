@@ -634,6 +634,12 @@
     <script>
         lucide.createIcons();
 
+        // Helper: always set caption via innerHTML so <br> nodes exist for export
+        function setCaptionText(text) {
+            const safe = (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+            caption.innerHTML = safe;
+        }
+
         const video = document.getElementById('main-video');
         const audio = document.getElementById('bg-music');
         const caption = document.getElementById('caption-overlay');
@@ -1018,7 +1024,11 @@
             });
         }
 
-        document.getElementById('caption-input').oninput = (e) => caption.innerText = e.target.value || 'Scrivi il tuo testo';
+        document.getElementById('caption-input').oninput = (e) => {
+            const val = e.target.value || 'Scrivi il tuo testo';
+            // Use innerHTML with explicit <br> so DOM always has <br> nodes for export
+            setCaptionText(val);
+        };
         document.getElementById('font-size').oninput = (e) => {
             caption.style.fontSize = e.target.value + 'px';
             document.getElementById('fs-val').innerText = e.target.value + 'px';
@@ -1538,8 +1548,8 @@
             }
             
             // Restore caption
-            const textToRestore = item.rawCaption || item.caption || '';
-            captionElement.innerText = textToRestore;
+            const textToRestore = (item.rawCaption || item.caption || '').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+            setCaptionText(textToRestore);
             document.getElementById('caption-input').value = textToRestore;
             captionElement.style.fontSize = item.fontSize + 'px';
             document.getElementById('fs-val').innerText = item.fontSize + 'px';
@@ -1697,7 +1707,7 @@
                 // Generate random caption
                 const captions = viralCaptions[selectedCategory];
                 const randomCaption = captions[Math.floor(Math.random() * captions.length)];
-                captionElement.innerText = randomCaption;
+                setCaptionText(randomCaption);
                 document.getElementById('caption-input').value = randomCaption;
 
                 // Add to queue
@@ -3250,7 +3260,7 @@
             const randomCaption = captions[Math.floor(Math.random() * captions.length)];
             
             document.getElementById('caption-input').value = randomCaption;
-            caption.innerText = randomCaption;
+            setCaptionText(randomCaption);
             
             const btn = document.getElementById('random-caption-btn');
             btn.style.transform = 'scale(0.95)';
