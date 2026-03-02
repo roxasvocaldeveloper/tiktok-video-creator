@@ -1,147 +1,64 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Video Ads Creator | Soundvertise</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Courier+Prime:wght@700&family=Inter:wght@800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/mp4-muxer@latest/build/mp4-muxer.js"></script>
-    <style>
-        :root { --sv-purple: #8B5CF6; --sv-blue: #3B82F6; --sv-bg: #050505; }
-        body { background-color: var(--sv-bg); color: #ffffff; font-family: 'Inter', sans-serif; }
-        .iphone-frame { width: 290px; height: 515px; border: 10px solid #1A1A1A; border-radius: 42px; position: relative; overflow: hidden; background: #000; }
-        #caption-overlay { 
-            position: absolute; text-align: center; max-width: 85%; z-index: 30; 
-            left: 50%; transform: translateX(-50%); white-space: pre-wrap; line-height: 1.2;
-        }
-        #render-canvas { display: none; }
-        .btn-sv { background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%); }
-    </style>
-</head>
-<body class="p-8 flex flex-col items-center">
+<script>
+    // ... (resto del codice precedente per caricamento video e setup muxer)
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl w-full">
-        <div class="flex flex-col items-center gap-6">
-            <div class="iphone-frame" id="drop-zone">
-                <video id="main-video" class="w-full h-full object-cover" loop muted></video>
-                <div id="caption-overlay" style="top: 30%; font-size: 20px; color: white;">Anteprima Testo</div>
-            </div>
-        </div>
+    /**
+     * FUNZIONE DI RENDERING CORRETTA PER EXPORT
+     * Questa versione risolve il problema dei ritorni a capo (newline)
+     */
+    function drawCaptions(ctx, canvasW, canvasH) {
+        // Recuperiamo i dati dall'anteprima per replicarli esattamente
+        const overlay = document.getElementById('caption-overlay');
+        const text = document.getElementById('caption-input').value; // Usiamo .value per avere i \n puri
+        const fontSize = parseInt(document.getElementById('font-size').value) * (canvasH / 515); // Scaliamo rispetto all'altezza della preview
+        const color = document.getElementById('text-color').value;
+        const topPercent = parseFloat(overlay.style.top) || 30;
+        
+        // Configurazione Font
+        let fontFamily = 'Inter';
+        if (overlay.classList.contains('font-serif')) fontFamily = 'Courier Prime';
+        if (overlay.classList.contains('font-handwriting')) fontFamily = 'Dancing Script';
+        
+        ctx.font = `800 ${fontSize}px ${fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
 
-        <div class="bg-zinc-900 p-8 rounded-3xl space-y-6">
-            <textarea id="caption-input" rows="3" class="w-full bg-black border border-zinc-800 rounded-xl p-4 text-white" placeholder="Inserisci testo (usa Invio per i ritorni a capo)"></textarea>
-            
-            <div class="flex gap-4">
-                <input type="color" id="text-color" value="#ffffff">
-                <input type="range" id="font-size" min="12" max="60" value="24">
-            </div>
+        // Dividiamo il testo in righe basandoci sui ritorni a capo manuali (\n)
+        const lines = text.split('\n');
+        
+        // Calcolo altezza riga: deve matchare il line-height 1.2 del CSS
+        const lineHeight = fontSize * 1.2;
+        
+        // Posizione iniziale Y scalata
+        let startY = (canvasH * topPercent) / 100;
 
-            <button id="export-btn" class="btn-sv w-full py-4 rounded-xl font-bold uppercase tracking-widest">
-                Esporta Video
-            </button>
-            <div id="status" class="text-blue-400 text-sm font-bold text-center"></div>
-        </div>
-    </div>
+        lines.forEach((lineText, idx) => {
+            const currentY = startY + (idx * lineHeight);
 
-    <canvas id="render-canvas"></canvas>
-
-    <script>
-        const video = document.getElementById('main-video');
-        const captionPreview = document.getElementById('caption-overlay');
-        const captionInput = document.getElementById('caption-input');
-        const exportBtn = document.getElementById('export-btn');
-        const canvas = document.getElementById('render-canvas');
-        const ctx = canvas.getContext('2d');
-
-        // Sincronizza input con preview rispettando gli a capo
-        captionInput.addEventListener('input', () => {
-            captionPreview.innerText = captionInput.value;
-        });
-
-        async function exportVideo() {
-            const status = document.getElementById('status');
-            status.innerText = "Inizio esportazione...";
-            
-            const canvasW = 1080;
-            const canvasH = 1920;
-            canvas.width = canvasW;
-            canvas.height = canvasH;
-
-            // Configurazione Muxer
-            let muxer = new Mp4Muxer.Muxer({
-                target: new Mp4Muxer.ArrayBufferTarget(),
-                video: { codec: 'avc1.42E01E', width: canvasW, height: canvasH },
-                fastStart: 'fragmented'
-            });
-
-            let videoEncoder = new VideoEncoder({
-                output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
-                error: (e) => console.error(e)
-            });
-
-            videoEncoder.configure({ codec: 'avc1.42E01E', width: canvasW, height: canvasH, bitrate: 5_000_000 });
-
-            const duration = 5; // Durata export in secondi
-            const fps = 30;
-            const totalFrames = duration * fps;
-
-            for (let i = 0; i < totalFrames; i++) {
-                const timestamp = (i / fps) * 1_000_000;
-                video.currentTime = i / fps;
-                await new Promise(r => video.onseeked = r);
-
-                // 1. Disegna Frame Video
-                ctx.drawImage(video, 0, 0, canvasW, canvasH);
-
-                // 2. Disegna Caption con gestione manuale ritorni a capo
-                const fontSize = parseInt(document.getElementById('font-size').value) * 3; // Scala per 1080p
-                ctx.font = `bold ${fontSize}px Inter, sans-serif`;
-                ctx.fillStyle = document.getElementById('text-color').value;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-
-                const text = captionInput.value;
-                const lines = text.split('\n'); // Divide il testo per ogni "Invio" premuto
-                const lineHeight = fontSize * 1.2;
-                const startY = (canvasH * parseFloat(captionPreview.style.top) / 100);
-
-                lines.forEach((line, index) => {
-                    ctx.fillText(line, canvasW / 2, startY + (index * lineHeight));
-                });
-
-                const frame = new VideoFrame(canvas, { timestamp });
-                videoEncoder.encode(frame, { keyFrame: i % 30 === 0 });
-                frame.close();
+            // Se la riga è vuota, non disegniamo nulla ma il ciclo continua 
+            // spostando la coordinata Y per la riga successiva (creando lo spazio)
+            if (lineText.trim().length > 0) {
                 
-                status.innerText = `Rendering: ${Math.round((i/totalFrames)*100)}%`;
+                // Gestione Outline (se presente nel tuo tool)
+                const hasOutline = true; // Imposta in base ai tuoi toggle
+                if (hasOutline) {
+                    ctx.strokeStyle = '#000000'; // O colore scelto
+                    ctx.lineWidth = fontSize * 0.15;
+                    ctx.lineJoin = 'round';
+                    ctx.strokeText(lineText, canvasW / 2, currentY);
+                }
+
+                // Disegno testo principale
+                ctx.fillStyle = color;
+                ctx.fillText(lineText, canvasW / 2, currentY);
             }
-
-            await videoEncoder.flush();
-            muxer.finalize();
-            
-            const blob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'video_ads.mp4';
-            a.click();
-            status.innerText = "Completato!";
-        }
-
-        exportBtn.onclick = exportVideo;
-
-        // Gestione caricamento video per anteprima
-        document.body.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'video/*';
-            input.onchange = (e) => {
-                video.src = URL.createObjectURL(e.target.files[0]);
-                video.play();
-            };
-            // input.click(); // Rimuovere il commento per testare caricamento
         });
-    </script>
-</body>
-</html>
+    }
+
+    // ESEMPIO DI INTEGRAZIONE NEL CICLO DI EXPORT:
+    // All'interno del tuo loop di encoding, dove disegni sul canvas:
+    /*
+       ctx.drawImage(video, 0, 0, canvasW, canvasH);
+       drawCaptions(ctx, canvasW, canvasH); 
+    */
+
+</script>
