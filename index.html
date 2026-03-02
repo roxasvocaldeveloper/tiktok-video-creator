@@ -8,316 +8,85 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/mp4-muxer@latest/build/mp4-muxer.js"></script>
+    <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
     <style>
-        :root {
-            --sv-purple: #8B5CF6;
-            --sv-blue: #3B82F6;
-            --sv-bg: #050505;
-            --sv-card: #0F0F0F;
-        }
-        body {
-            background-color: var(--sv-bg);
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow-x: hidden;
-        }
-        .preview-column {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 80vh;
-        }
-        .iphone-frame {
-            width: 290px;
-            height: calc(290px * 16 / 9);
-            border: 10px solid #1A1A1A;
-            border-radius: 42px;
-            position: relative;
-            background: #000;
-            overflow: hidden;
-            box-shadow: 0 0 0 2px #000, 0 20px 50px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-        }
-        .notch {
-            position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 75px;
-            height: 22px;
-            background: #000;
-            border-radius: 20px;
-            z-index: 50;
-            border: 1px solid #222;
-        }
-        .video-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background: #000;
-            overflow: hidden;
-        }
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.3s ease;
-        }
+        :root { --sv-purple: #8B5CF6; --sv-blue: #3B82F6; --sv-bg: #050505; }
+        body { background-color: var(--sv-bg); color: #fff; font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow-x: hidden; }
+        .preview-column { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; }
+        .iphone-frame { width: 290px; height: calc(290px * 16 / 9); border: 10px solid #1A1A1A; border-radius: 42px; position: relative; background: #000; overflow: hidden; box-shadow: 0 0 0 2px #000, 0 20px 50px rgba(0,0,0,0.5); }
+        .notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 75px; height: 22px; background: #000; border-radius: 20px; z-index: 50; border: 1px solid #222; }
+        .video-container { width: 100%; height: 100%; position: relative; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
         #caption-overlay {
             position: absolute;
             cursor: move;
             user-select: none;
             text-align: center;
             max-width: 85%;
-            word-wrap: break-word;
             z-index: 30;
             display: block;
             line-height: 1.1;
             left: 50%;
             transform: translateX(-50%);
             --outline-color: #000000;
-            paint-order: stroke fill;
-            white-space: pre-wrap;
+            /* CHIAVE: pre mantiene spazi multipli E newline esattamente come digitati */
+            white-space: pre;
         }
-        #caption-overlay:not(.dragging) {
-            transition: top 0.1s ease-out;
-        }
+        #caption-overlay:not(.dragging) { transition: top 0.1s ease-out; }
         .text-bold-outline {
-            text-shadow:
-                0 0 1px var(--outline-color),
-                -1.5px -1.5px 0 var(--outline-color),
-                 1.5px -1.5px 0 var(--outline-color),
-                -1.5px  1.5px 0 var(--outline-color),
-                 1.5px  1.5px 0 var(--outline-color),
-                 0px 3px 8px rgba(0,0,0,0.6);
+            text-shadow: 0 0 1px var(--outline-color), -1.5px -1.5px 0 var(--outline-color), 1.5px -1.5px 0 var(--outline-color), -1.5px 1.5px 0 var(--outline-color), 1.5px 1.5px 0 var(--outline-color), 0px 3px 8px rgba(0,0,0,0.6);
         }
-        .tiktok-ui-overlay {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 40;
-            display: block;
-            background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%);
-        }
-        .right-actions {
-            position: absolute;
-            right: 8px;
-            bottom: 85px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            align-items: center;
-        }
+        .tiktok-ui-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 40; display: block; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%); }
+        .right-actions { position: absolute; right: 8px; bottom: 85px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
         .action-text { font-size: 8px; font-weight: 600; }
-        .bottom-info {
-            position: absolute;
-            left: 12px;
-            bottom: 20px;
-            max-width: 190px;
-        }
-        .trimmer-track {
-            position: relative;
-            width: 100%;
-            background: #111;
-            border-radius: 12px;
-            border: 1px solid #333;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        .thumbnail-track {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            pointer-events: none;
-            opacity: 0.4;
-        }
-        .thumbnail-track canvas {
-            height: 100%;
-            flex: 1;
-            object-fit: cover;
-        }
-        .trim-overlay {
-            position: absolute;
-            top: 0;
-            height: 100%;
-            z-index: 5;
-            cursor: grab;
-            border-radius: 6px;
-        }
-        #video-trim-overlay {
-            background: rgba(59,130,246,0.2);
-            border: 3px solid var(--sv-blue);
-        }
-        #audio-trim-overlay {
-            background: rgba(139,92,246,0.15);
-            border: 3px solid var(--sv-purple);
-            box-shadow: 0 0 20px rgba(139,92,246,0.3);
-        }
-        .playhead-cursor {
-            position: absolute;
-            top: 0;
-            width: 2px;
-            height: 100%;
-            background: #ffffff;
-            z-index: 20;
-            pointer-events: none;
-            box-shadow: 0 0 10px rgba(255,255,255,0.8);
-        }
-        .trim-handle {
-            position: absolute;
-            top: 0;
-            width: 16px;
-            height: 100%;
-            background: inherit;
-            cursor: ew-resize;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
+        .bottom-info { position: absolute; left: 12px; bottom: 20px; max-width: 190px; }
+        .trimmer-track { position: relative; width: 100%; background: #111; border-radius: 12px; border: 1px solid #333; overflow: hidden; cursor: pointer; }
+        .thumbnail-track { position: absolute; inset: 0; display: flex; pointer-events: none; opacity: 0.4; }
+        .thumbnail-track canvas { height: 100%; flex: 1; object-fit: cover; }
+        .trim-overlay { position: absolute; top: 0; height: 100%; z-index: 5; cursor: grab; border-radius: 6px; }
+        #video-trim-overlay { background: rgba(59,130,246,0.2); border: 3px solid var(--sv-blue); }
+        #audio-trim-overlay { background: rgba(139,92,246,0.15); border: 3px solid var(--sv-purple); box-shadow: 0 0 20px rgba(139,92,246,0.3); }
+        .playhead-cursor { position: absolute; top: 0; width: 2px; height: 100%; background: #fff; z-index: 20; pointer-events: none; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
+        .trim-handle { position: absolute; top: 0; width: 16px; height: 100%; background: inherit; cursor: ew-resize; display: flex; align-items: center; justify-content: center; z-index: 10; }
         #video-trim-overlay .trim-handle { background-color: var(--sv-blue); }
         #audio-trim-overlay .trim-handle { display: none; }
-        .trim-handle::after {
-            content: '';
-            width: 2px;
-            height: 14px;
-            background: white;
-            border-radius: 1px;
-        }
-        .handle-left  { left: -8px;  border-radius: 6px 0 0 6px; }
+        .trim-handle::after { content: ''; width: 2px; height: 14px; background: white; border-radius: 1px; }
+        .handle-left { left: -8px; border-radius: 6px 0 0 6px; }
         .handle-right { right: -8px; border-radius: 0 6px 6px 0; }
-        .waveform-wrapper {
-            position: relative;
-            width: 100%;
-            height: 70px;
-            background: #000;
-        }
+        .waveform-wrapper { position: relative; width: 100%; height: 70px; background: #000; }
         #waveform { width: 100%; height: 100%; pointer-events: none; }
-        .btn-sv {
-            background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-sv:hover  { filter: brightness(1.1); transform: scale(1.02); }
+        .btn-sv { background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%); transition: all 0.3s ease; }
+        .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
         .btn-sv:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
-        .font-tiktok     { font-family: 'Montserrat', sans-serif; font-weight: 800; letter-spacing: -0.5px; }
+        .font-tiktok { font-family: 'Montserrat', sans-serif; font-weight: 800; letter-spacing: -0.5px; }
         .font-typewriter { font-family: 'Courier Prime', monospace; }
-        .font-classic    { font-family: 'Inter', sans-serif; font-weight: 800; }
-        .font-handwriting{ font-family: 'Dancing Script', cursive; font-weight: 700; }
-        .font-btn {
-            background: #000;
-            border: 1px solid #333;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 10px;
-            transition: all 0.2s;
-            color: #666;
-        }
-        .font-btn.active {
-            border-color: var(--sv-blue);
-            background: rgba(59,130,246,0.1);
-            color: #fff;
-        }
-        .color-wrapper {
-            position: relative;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            overflow: hidden;
-            background: #000;
-            flex-shrink: 0;
-        }
-        .color-input {
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            top: -50%;
-            left: -50%;
-            cursor: pointer;
-        }
-        .toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 12px;
-            background: #111;
-            border: 1px solid #333;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            transition: all 0.2s;
-            color: #666;
-            cursor: pointer;
-        }
-        .toggle-btn.active {
-            background: rgba(59,130,246,0.15);
-            border-color: var(--sv-blue);
-            color: #fff;
-        }
-        .caption-cat-btn {
-            background: #000;
-            border: 1px solid #333;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            transition: all 0.2s;
-            color: #666;
-            cursor: pointer;
-        }
-        .caption-cat-btn.active {
-            border-color: var(--sv-purple);
-            background: rgba(139,92,246,0.15);
-            color: #fff;
-        }
+        .font-classic { font-family: 'Inter', sans-serif; font-weight: 800; }
+        .font-handwriting { font-family: 'Dancing Script', cursive; font-weight: 700; }
+        .font-btn { background: #000; border: 1px solid #333; padding: 8px 12px; border-radius: 10px; font-size: 10px; transition: all 0.2s; color: #666; }
+        .font-btn.active { border-color: var(--sv-blue); background: rgba(59,130,246,0.1); color: #fff; }
+        .color-wrapper { position: relative; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #333; overflow: hidden; background: #000; flex-shrink: 0; }
+        .color-input { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; cursor: pointer; }
+        .toggle-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 12px; background: #111; border: 1px solid #333; font-size: 10px; font-weight: 800; text-transform: uppercase; transition: all 0.2s; color: #666; cursor: pointer; }
+        .toggle-btn.active { background: rgba(59,130,246,0.15); border-color: var(--sv-blue); color: #fff; }
+        .caption-cat-btn { background: #000; border: 1px solid #333; padding: 6px 10px; border-radius: 8px; font-size: 9px; font-weight: 800; text-transform: uppercase; transition: all 0.2s; color: #666; cursor: pointer; }
+        .caption-cat-btn.active { border-color: var(--sv-purple); background: rgba(139,92,246,0.15); color: #fff; }
         .caption-cat-btn:hover { border-color: var(--sv-purple); color: #fff; }
         #render-canvas { display: none; }
-        .queue-item {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid #333;
-            padding: 8px 12px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            transition: all 0.2s;
-        }
+        .queue-item { background: rgba(0,0,0,0.4); border: 1px solid #333; padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: all 0.2s; }
         .queue-item.active { border-color: var(--sv-blue); background: rgba(59,130,246,0.15); }
-        .queue-item:hover  { border-color: var(--sv-blue); }
-        .queue-item-info   { flex: 1; min-width: 0; }
-        .queue-item-caption {
-            font-size: 10px; font-weight: 700; color: #fff;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .queue-item-meta    { font-size: 8px; color: #888; margin-top: 2px; }
+        .queue-item:hover { border-color: var(--sv-blue); }
+        .queue-item-info { flex: 1; min-width: 0; }
+        .queue-item-caption { font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .queue-item-meta { font-size: 8px; color: #888; margin-top: 2px; }
         .queue-item-actions { display: flex; gap: 4px; }
-        .queue-item-btn {
-            padding: 4px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid #444;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .queue-item-btn { padding: 4px; background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
         .queue-item-btn:hover { background: rgba(255,255,255,0.1); border-color: #666; }
     </style>
 </head>
 <body class="p-4 md:p-8">
-
 <div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-    <!-- Preview Column -->
+    <!-- Preview -->
     <div class="preview-column space-y-6 order-2 lg:order-1">
         <div class="iphone-frame" id="iphone">
             <div class="notch"></div>
@@ -348,17 +117,12 @@
             </div>
         </div>
         <div class="flex gap-3">
-            <button id="toggle-guide" class="flex-1 px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">
-                Anteprima TikTok UI
-            </button>
-            <button id="toggle-watermark" class="toggle-btn">
-                <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
-                Remove VEO
-            </button>
+            <button id="toggle-guide" class="flex-1 px-5 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">Anteprima TikTok UI</button>
+            <button id="toggle-watermark" class="toggle-btn"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> Remove VEO</button>
         </div>
     </div>
 
-    <!-- Editor Controls -->
+    <!-- Editor -->
     <div class="bg-zinc-900/40 border border-zinc-800 p-6 md:p-8 rounded-[2.5rem] space-y-6 backdrop-blur-xl order-1 lg:order-2">
         <header class="flex justify-between items-end border-b border-zinc-800/50 pb-4">
             <div>
@@ -392,7 +156,6 @@
             </div>
         </div>
 
-        <!-- Video Trimmer -->
         <div class="space-y-2">
             <div class="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
                 <span>Ritaglia Clip Video (Max 30s)</span>
@@ -402,13 +165,12 @@
                 <div class="thumbnail-track" id="v-thumbs"></div>
                 <div id="video-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
                 <div id="video-trim-overlay" class="trim-overlay">
-                    <div class="trim-handle handle-left"  id="v-handle-l"></div>
+                    <div class="trim-handle handle-left" id="v-handle-l"></div>
                     <div class="trim-handle handle-right" id="v-handle-r"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Audio Waveform Trimmer -->
         <div class="space-y-3 bg-black p-4 rounded-3xl border border-zinc-800/50">
             <div class="flex items-center gap-4">
                 <button id="play-btn" class="w-12 h-12 rounded-xl btn-sv text-white flex items-center justify-center shadow-lg shrink-0">
@@ -425,9 +187,7 @@
                         </div>
                     </div>
                     <div class="trimmer-track h-[70px]" id="a-trimmer-track">
-                        <div class="waveform-wrapper">
-                            <canvas id="waveform"></canvas>
-                        </div>
+                        <div class="waveform-wrapper"><canvas id="waveform"></canvas></div>
                         <div id="audio-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
                         <div id="audio-trim-overlay" class="trim-overlay"></div>
                     </div>
@@ -435,7 +195,6 @@
             </div>
         </div>
 
-        <!-- Content Editor -->
         <div class="p-5 bg-zinc-900/60 rounded-3xl border border-zinc-800 space-y-4">
             <div class="space-y-3 p-4 bg-gradient-to-br from-violet-950/30 to-blue-950/30 rounded-2xl border border-violet-800/30">
                 <div class="flex items-center justify-between">
@@ -493,29 +252,20 @@
                         </div>
                     </div>
                     <button id="outline-toggle" class="toggle-btn active justify-center w-full">
-                        <i data-lucide="check" class="w-3.5 h-3.5"></i>Stile Contorno Attivo
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Stile Contorno Attivo
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Bulk Queue -->
         <div class="space-y-3 p-4 bg-gradient-to-br from-blue-950/30 to-violet-950/30 rounded-2xl border border-blue-800/30">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase text-blue-300 tracking-widest">🎬 Creazione Bulk</span>
                 <div class="flex gap-2">
-                    <button id="auto-queue-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        <i data-lucide="zap" class="w-3 h-3"></i>Auto-Coda
-                    </button>
-                    <button id="prev-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        <i data-lucide="chevron-left" class="w-3 h-3"></i>Prev
-                    </button>
-                    <button id="add-to-queue-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        <i data-lucide="plus" class="w-3 h-3"></i>Aggiungi
-                    </button>
-                    <button id="next-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">
-                        Next<i data-lucide="chevron-right" class="w-3 h-3"></i>
-                    </button>
+                    <button id="auto-queue-btn" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"><i data-lucide="zap" class="w-3 h-3"></i>Auto-Coda</button>
+                    <button id="prev-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"><i data-lucide="chevron-left" class="w-3 h-3"></i>Prev</button>
+                    <button id="add-to-queue-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"><i data-lucide="plus" class="w-3 h-3"></i>Aggiungi</button>
+                    <button id="next-video-btn" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5">Next<i data-lucide="chevron-right" class="w-3 h-3"></i></button>
                 </div>
             </div>
             <div id="queue-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
@@ -523,10 +273,10 @@
 
         <div class="grid grid-cols-2 gap-3">
             <button id="export-btn" class="btn-sv text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                <i data-lucide="download" class="w-4 h-4"></i>Esporta Video Singolo
+                <i data-lucide="download" class="w-4 h-4"></i> Esporta Video Singolo
             </button>
             <button id="export-all-btn" class="bg-gradient-to-r from-violet-600 to-blue-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-widest text-[10px] disabled:opacity-50 disabled:cursor-not-allowed hover:from-violet-500 hover:to-blue-500 transition-all">
-                <i data-lucide="download-cloud" class="w-4 h-4"></i>Esporta Tutti (<span id="export-count">0</span>)
+                <i data-lucide="download-cloud" class="w-4 h-4"></i> Esporta Tutti (<span id="export-count">0</span>)
             </button>
         </div>
 
@@ -549,15 +299,9 @@
 <script>
 lucide.createIcons();
 
-// ─── Unica fonte di verità: textContent + white-space:pre-wrap ───
-function setCaptionText(text) {
-    caption.textContent = text || 'Scrivi il tuo testo';
-}
-
 const video          = document.getElementById('main-video');
 const audio          = document.getElementById('bg-music');
 const caption        = document.getElementById('caption-overlay');
-const captionElement = document.getElementById('caption-overlay');
 const videoContainer = document.getElementById('drop-zone');
 const vTrimOverlay   = document.getElementById('video-trim-overlay');
 const aTrimOverlay   = document.getElementById('audio-trim-overlay');
@@ -565,8 +309,8 @@ const vTrimmerTrack  = document.getElementById('v-trimmer-track');
 const aTrimmerTrack  = document.getElementById('a-trimmer-track');
 const vPlayhead      = document.getElementById('video-playhead');
 const aPlayhead      = document.getElementById('audio-playhead');
-const canvas         = document.getElementById('waveform');
-const ctx            = canvas.getContext('2d');
+const waveCanvas     = document.getElementById('waveform');
+const waveCtx        = waveCanvas.getContext('2d');
 
 let videoFile, audioFile;
 let videoDuration = 0, audioDuration = 0;
@@ -580,53 +324,164 @@ let currentVideoIndex = 0, currentAudioIndex = -1;
 const MAX_QUEUE_SIZE = 20;
 let videoQueue = [], currentQueueIndex = -1;
 
-// ─── Notify helper ───
 function notify(msg, color = 'green') {
     const d = document.createElement('div');
     d.className = `fixed top-4 right-4 bg-${color}-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50`;
-    d.innerText = msg;
-    document.body.appendChild(d);
-    setTimeout(() => d.remove(), 2000);
+    d.innerText = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 2000);
 }
+
+// ════════════════════════════════════════════════════════════
+// CAPTION: usa textContent + white-space:pre
+// Spazi multipli e newline preservati esattamente come digitati
+// ════════════════════════════════════════════════════════════
+function setCaptionText(text) {
+    caption.textContent = text || 'Scrivi il tuo testo';
+}
+
+document.getElementById('caption-input').oninput = (e) => {
+    caption.textContent = e.target.value || 'Scrivi il tuo testo';
+};
+
+// ════════════════════════════════════════════════════════════
+// CAPTURE CAPTION IMAGE
+// Cattura il caption overlay come immagine PNG usando html-to-image.
+// Questa immagine viene poi disegnata sul canvas di export frame per frame.
+// Così quello che vedi nel preview = quello che viene esportato, pixel perfect.
+// ════════════════════════════════════════════════════════════
+async function captureCaptionImage() {
+    const text = caption.textContent.trim();
+    if (!text || text === 'Scrivi il tuo testo') return null;
+
+    // Nascondi temporaneamente il cursore durante la cattura
+    const origCursor = caption.style.cursor;
+    caption.style.cursor = 'default';
+
+    try {
+        const dataUrl = await htmlToImage.toPng(caption, {
+            backgroundColor: null,  // trasparente
+            pixelRatio: 1,
+            skipFonts: false,
+        });
+        caption.style.cursor = origCursor;
+
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = dataUrl;
+        });
+    } catch (err) {
+        caption.style.cursor = origCursor;
+        console.warn('html-to-image fallback:', err);
+        return null;
+    }
+}
+
+// ════════════════════════════════════════════════════════════
+// DRAW CAPTION ON CANVAS
+// Scala l'immagine del caption dal preview (290px wide container)
+// al canvas di export (720x1280) mantenendo posizione e proporzioni.
+// ════════════════════════════════════════════════════════════
+function drawCaptionImageOnCanvas(ctx, captionImg, captionSnapshot, canvasW, canvasH) {
+    if (!captionImg || !captionSnapshot) return;
+
+    const { containerW, containerH, captionLeft, captionTop, captionW, captionH } = captionSnapshot;
+
+    // Scala dal container preview al canvas export
+    const scaleX = canvasW / containerW;
+    const scaleY = canvasH / containerH;
+
+    const destX = captionLeft * scaleX;
+    const destY = captionTop  * scaleY;
+    const destW = captionW    * scaleX;
+    const destH = captionH    * scaleY;
+
+    ctx.drawImage(captionImg, destX, destY, destW, destH);
+}
+
+// Snapshot della posizione del caption nel container preview
+function snapshotCaptionPosition() {
+    const containerRect = videoContainer.getBoundingClientRect();
+    const captionRect   = caption.getBoundingClientRect();
+    return {
+        containerW: containerRect.width,
+        containerH: containerRect.height,
+        captionLeft: captionRect.left - containerRect.left,
+        captionTop:  captionRect.top  - containerRect.top,
+        captionW:    captionRect.width,
+        captionH:    captionRect.height,
+    };
+}
+
+// ─── Font / color / outline controls ───
+document.getElementById('font-size').oninput = (e) => {
+    caption.style.fontSize = e.target.value + 'px';
+    document.getElementById('fs-val').innerText = e.target.value + 'px';
+};
+document.getElementById('text-color').oninput = (e) => caption.style.color = e.target.value;
+
+const outlineBtn        = document.getElementById('outline-toggle');
+const outlineColorInput = document.getElementById('outline-color');
+
+function updateOutlineUI() {
+    if (outlineEnabled) {
+        caption.classList.add('text-bold-outline');
+        outlineBtn.classList.add('active');
+        outlineBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Stile Contorno Attivo';
+    } else {
+        caption.classList.remove('text-bold-outline');
+        outlineBtn.classList.remove('active');
+        outlineBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Stile Contorno Spento';
+    }
+    lucide.createIcons();
+}
+outlineBtn.onclick = () => { outlineEnabled = !outlineEnabled; updateOutlineUI(); };
+outlineColorInput.oninput = (e) => {
+    caption.style.setProperty('--outline-color', e.target.value);
+    if (!outlineEnabled) { outlineEnabled = true; updateOutlineUI(); }
+};
+
+document.querySelectorAll('.font-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const hasOutline = caption.classList.contains('text-bold-outline');
+        caption.className = btn.dataset.font + (hasOutline ? ' text-bold-outline' : '');
+    };
+});
+
+// ─── Drag caption ───
+let dragText = false, dragStartY, dragStartTop;
+caption.onmousedown = (e) => { dragText = true; dragStartY = e.clientY; dragStartTop = caption.offsetTop; caption.style.cursor = 'grabbing'; caption.classList.add('dragging'); e.preventDefault(); };
+window.addEventListener('mousemove', (e) => {
+    if (!dragText) return;
+    const rect = videoContainer.getBoundingClientRect();
+    let t = dragStartTop + (e.clientY - dragStartY);
+    t = Math.max(10, Math.min(t, rect.height - caption.offsetHeight - 10));
+    caption.style.top = t + 'px';
+});
+window.addEventListener('mouseup', () => { if (dragText) { dragText = false; caption.style.cursor = 'move'; caption.classList.remove('dragging'); } });
 
 // ─── File library ───
 function updateFileLibraryUI() {
-    const vl = document.getElementById('video-files-list');
-    const al = document.getElementById('audio-files-list');
-    if (videoLibrary.length) {
-        vl.innerHTML = `📁 ${videoLibrary.length} video caricati`;
-        document.getElementById('video-label').innerText = `${videoLibrary.length} video pronti`;
-    } else { vl.innerHTML = ''; document.getElementById('video-label').innerText = 'Carica Video (Multipli)'; }
+    const vl = document.getElementById('video-files-list'), al = document.getElementById('audio-files-list');
+    if (videoLibrary.length) { vl.innerHTML = `📁 ${videoLibrary.length} video caricati`; document.getElementById('video-label').innerText = `${videoLibrary.length} video pronti`; }
+    else { vl.innerHTML = ''; document.getElementById('video-label').innerText = 'Carica Video (Multipli)'; }
     if (audioLibrary.length) {
-        al.innerHTML = `🎵 ${audioLibrary.length} audio caricati`;
-        document.getElementById('audio-label').innerText = `${audioLibrary.length} audio pronti`;
-        const sel = document.getElementById('audio-selector');
-        sel.innerHTML = '<option value="">Nessun Audio</option>';
-        audioLibrary.forEach((f, i) => {
-            const o = document.createElement('option');
-            o.value = i; o.textContent = f.name; sel.appendChild(o);
-        });
+        al.innerHTML = `🎵 ${audioLibrary.length} audio caricati`; document.getElementById('audio-label').innerText = `${audioLibrary.length} audio pronti`;
+        const sel = document.getElementById('audio-selector'); sel.innerHTML = '<option value="">Nessun Audio</option>';
+        audioLibrary.forEach((f, i) => { const o = document.createElement('option'); o.value = i; o.textContent = f.name; sel.appendChild(o); });
     } else { al.innerHTML = ''; document.getElementById('audio-label').innerText = 'Carica Audio (Multipli)'; }
 }
-
 function loadVideoFromLibrary(index) {
     if (index < 0 || index >= videoLibrary.length) return;
     currentVideoIndex = index; videoFile = videoLibrary[index];
     video.src = URL.createObjectURL(videoFile);
-    video.onloadedmetadata = () => {
-        videoDuration = video.duration; vStart = 0; vEnd = Math.min(videoDuration, 15);
-        updateTrimmers(); video.currentTime = vStart;
-    };
+    video.onloadedmetadata = () => { videoDuration = video.duration; vStart = 0; vEnd = Math.min(videoDuration, 15); updateTrimmers(); video.currentTime = vStart; };
     generateThumbnails(videoFile);
 }
-
 function loadAudioFromSelector() {
-    const sel = document.getElementById('audio-selector');
-    const idx = parseInt(sel.value);
-    if (isNaN(idx) || idx < 0) {
-        currentAudioIndex = -1; audioFile = null; audio.src = ''; audioDuration = 0;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); updateTrimmers(); return;
-    }
+    const sel = document.getElementById('audio-selector'), idx = parseInt(sel.value);
+    if (isNaN(idx) || idx < 0) { currentAudioIndex = -1; audioFile = null; audio.src = ''; audioDuration = 0; waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height); updateTrimmers(); return; }
     currentAudioIndex = idx; audioFile = audioLibrary[idx];
     audio.src = URL.createObjectURL(audioFile);
     audio.onloadedmetadata = () => { audioDuration = audio.duration; drawWaveform(audioFile); updateTrimmers(); audio.currentTime = aStart; };
@@ -659,14 +514,8 @@ function loopMonitor() {
     if (!video.paused) {
         if (videoDuration > 0) { vPlayhead.style.left = (video.currentTime / videoDuration * 100) + '%'; vPlayhead.style.display = 'block'; }
         if (audio.src && audioDuration > 0) { aPlayhead.style.left = (audio.currentTime / audioDuration * 100) + '%'; aPlayhead.style.display = 'block'; }
-        if (video.currentTime >= vEnd - 0.05) {
-            video.currentTime = vStart;
-            if (audio.src) { audio.currentTime = aStart; audio.play().catch(() => {}); }
-        }
-        if (audio.src && !audio.paused) {
-            const exp = aStart + (video.currentTime - vStart);
-            if (Math.abs(audio.currentTime - exp) > 0.2) audio.currentTime = exp;
-        }
+        if (video.currentTime >= vEnd - 0.05) { video.currentTime = vStart; if (audio.src) { audio.currentTime = aStart; audio.play().catch(() => {}); } }
+        if (audio.src && !audio.paused) { const exp = aStart + (video.currentTime - vStart); if (Math.abs(audio.currentTime - exp) > 0.2) audio.currentTime = exp; }
     } else { vPlayhead.style.display = 'none'; aPlayhead.style.display = 'none'; }
     requestAnimationFrame(loopMonitor);
 }
@@ -674,38 +523,29 @@ requestAnimationFrame(loopMonitor);
 
 vTrimmerTrack.onmousedown = (e) => {
     if (!videoDuration) return;
-    const rect = vTrimmerTrack.getBoundingClientRect();
-    const t = ((e.clientX - rect.left) / rect.width) * videoDuration;
-    if (e.target.id === 'v-handle-l')                  isDraggingV = 'left';
-    else if (e.target.id === 'v-handle-r')             isDraggingV = 'right';
+    const rect = vTrimmerTrack.getBoundingClientRect(), t = ((e.clientX - rect.left) / rect.width) * videoDuration;
+    if (e.target.id === 'v-handle-l') isDraggingV = 'left';
+    else if (e.target.id === 'v-handle-r') isDraggingV = 'right';
     else if (e.target.closest('#video-trim-overlay')) { isDraggingV = 'center'; dragOffsetV = t - vStart; }
     else { video.currentTime = t; if (audio.src) audio.currentTime = Math.max(0, aStart + (t - vStart)); }
 };
 aTrimmerTrack.onmousedown = (e) => {
     if (!audioDuration) return;
-    const rect = aTrimmerTrack.getBoundingClientRect();
-    const t = ((e.clientX - rect.left) / rect.width) * audioDuration;
+    const rect = aTrimmerTrack.getBoundingClientRect(), t = ((e.clientX - rect.left) / rect.width) * audioDuration;
     if (e.target.closest('#audio-trim-overlay')) { isDraggingA = true; dragOffsetA = t - aStart; }
-    else {
-        const dur = vEnd - vStart; let ns = t - dur / 2;
-        ns = Math.max(0, Math.min(ns, audioDuration - dur));
-        aStart = ns; updateTrimmers(); audio.currentTime = aStart; video.currentTime = vStart;
-    }
+    else { const dur = vEnd - vStart; let ns = Math.max(0, Math.min(t - dur / 2, audioDuration - dur)); aStart = ns; updateTrimmers(); audio.currentTime = aStart; video.currentTime = vStart; }
 };
 window.onmousemove = (e) => {
     if (isDraggingV && videoDuration > 0) {
-        const rect = vTrimmerTrack.getBoundingClientRect();
-        const t = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * videoDuration;
+        const rect = vTrimmerTrack.getBoundingClientRect(), t = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * videoDuration;
         if (isDraggingV === 'left') { if (t < vEnd && vEnd - t <= MAX_DUR) vStart = t; else if (vEnd - t > MAX_DUR) vStart = vEnd - MAX_DUR; }
         else if (isDraggingV === 'right') { if (t > vStart && t - vStart <= MAX_DUR) vEnd = t; else if (t - vStart > MAX_DUR) vEnd = vStart + MAX_DUR; }
         else if (isDraggingV === 'center') { const dur = vEnd - vStart, ns = t - dragOffsetV; if (ns >= 0 && ns + dur <= videoDuration) { vStart = ns; vEnd = ns + dur; } }
         updateTrimmers(); syncPlayback();
     }
     if (isDraggingA && audioDuration > 0) {
-        const rect = aTrimmerTrack.getBoundingClientRect();
-        const t = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * audioDuration;
-        const ns = t - dragOffsetA;
-        if (ns >= 0 && ns + (vEnd - vStart) <= audioDuration) aStart = ns;
+        const rect = aTrimmerTrack.getBoundingClientRect(), t = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * audioDuration;
+        const ns = t - dragOffsetA; if (ns >= 0 && ns + (vEnd - vStart) <= audioDuration) aStart = ns;
         updateTrimmers(); syncPlayback();
     }
 };
@@ -714,86 +554,36 @@ window.onmouseup = () => { isDraggingV = null; isDraggingA = false; };
 document.getElementById('video-input').onchange = (e) => {
     const files = Array.from(e.target.files); if (!files.length) return;
     videoLibrary = files.slice(0, MAX_QUEUE_SIZE);
-    if (files.length > MAX_QUEUE_SIZE) alert(`Max ${MAX_QUEUE_SIZE} video!`);
     updateFileLibraryUI(); loadVideoFromLibrary(0);
     notify(`✓ ${videoLibrary.length} video caricati!`, 'blue');
 };
 document.getElementById('audio-input').onchange = (e) => {
     const files = Array.from(e.target.files); if (!files.length) return;
     audioLibrary = files.slice(0, MAX_QUEUE_SIZE);
-    if (files.length > MAX_QUEUE_SIZE) alert(`Max ${MAX_QUEUE_SIZE} audio!`);
     updateFileLibraryUI(); notify(`✓ ${audioLibrary.length} audio caricati!`, 'violet');
 };
 document.getElementById('audio-selector').onchange = () => loadAudioFromSelector();
 
 document.getElementById('play-btn').onclick = () => {
-    if (video.paused) {
-        video.play(); if (audio.src) { audio.currentTime = aStart + (video.currentTime - vStart); audio.play().catch(() => {}); }
-        updatePlayIcon(true);
-    } else { video.pause(); audio.pause(); updatePlayIcon(false); }
+    if (video.paused) { video.play(); if (audio.src) { audio.currentTime = aStart + (video.currentTime - vStart); audio.play().catch(() => {}); } updatePlayIcon(true); }
+    else { video.pause(); audio.pause(); updatePlayIcon(false); }
 };
-function syncPlayback() {
-    video.currentTime = vStart; if (audio.src) audio.currentTime = aStart;
-    if (!video.paused) { video.play(); if (audio.src) audio.play().catch(() => {}); }
-}
-function updatePlayIcon(p) {
-    document.getElementById('play-icon').setAttribute('data-lucide', p ? 'pause' : 'play');
-    lucide.createIcons();
-}
+function syncPlayback() { video.currentTime = vStart; if (audio.src) audio.currentTime = aStart; if (!video.paused) { video.play(); if (audio.src) audio.play().catch(() => {}); } }
+function updatePlayIcon(p) { document.getElementById('play-icon').setAttribute('data-lucide', p ? 'pause' : 'play'); lucide.createIcons(); }
 
 async function drawWaveform(file) {
     const ac = new (window.AudioContext || window.webkitAudioContext)();
     const decoded = await ac.decodeAudioData(await file.arrayBuffer());
-    const raw = decoded.getChannelData(0);
-    const samples = 120, block = Math.floor(raw.length / samples);
+    const raw = decoded.getChannelData(0), samples = 120, block = Math.floor(raw.length / samples);
     const data = Array.from({ length: samples }, (_, i) => { let s = 0; for (let j = 0; j < block; j++) s += Math.abs(raw[i * block + j]); return s / block; });
     const max = Math.max(...data);
-    canvas.width = canvas.offsetWidth * 2; canvas.height = canvas.offsetHeight * 2;
-    const step = canvas.width / samples;
-    const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    waveCanvas.width = waveCanvas.offsetWidth * 2; waveCanvas.height = waveCanvas.offsetHeight * 2;
+    const step = waveCanvas.width / samples;
+    const grad = waveCtx.createLinearGradient(0, 0, waveCanvas.width, 0);
     grad.addColorStop(0, '#3B82F6'); grad.addColorStop(1, '#8B5CF6');
-    ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = grad;
-    data.forEach((v, i) => { const h = (v / max) * canvas.height * 0.8; ctx.beginPath(); ctx.roundRect(i * step, (canvas.height - h) / 2, step - 3, h, 2); ctx.fill(); });
+    waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height); waveCtx.fillStyle = grad;
+    data.forEach((v, i) => { const h = (v / max) * waveCanvas.height * 0.8; waveCtx.beginPath(); waveCtx.roundRect(i * step, (waveCanvas.height - h) / 2, step - 3, h, 2); waveCtx.fill(); });
 }
-
-// ─── Caption input ───
-document.getElementById('caption-input').oninput = (e) => {
-    caption.textContent = e.target.value || 'Scrivi il tuo testo';
-};
-document.getElementById('font-size').oninput = (e) => {
-    caption.style.fontSize = e.target.value + 'px';
-    document.getElementById('fs-val').innerText = e.target.value + 'px';
-};
-document.getElementById('text-color').oninput = (e) => caption.style.color = e.target.value;
-
-const outlineBtn = document.getElementById('outline-toggle');
-const outlineColorInput = document.getElementById('outline-color');
-function updateOutlineUI() {
-    if (outlineEnabled) { caption.classList.add('text-bold-outline'); outlineBtn.classList.add('active'); outlineBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Stile Contorno Attivo'; }
-    else { caption.classList.remove('text-bold-outline'); outlineBtn.classList.remove('active'); outlineBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Stile Contorno Spento'; }
-    lucide.createIcons();
-}
-outlineBtn.onclick = () => { outlineEnabled = !outlineEnabled; updateOutlineUI(); };
-outlineColorInput.oninput = (e) => { caption.style.setProperty('--outline-color', e.target.value); if (!outlineEnabled) { outlineEnabled = true; updateOutlineUI(); } };
-
-document.querySelectorAll('.font-btn').forEach(btn => {
-    btn.onclick = () => {
-        document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        caption.className = btn.dataset.font + (caption.classList.contains('text-bold-outline') ? ' text-bold-outline' : '');
-    };
-});
-
-let dragText = false, dragStartY, dragStartTop;
-caption.onmousedown = (e) => { dragText = true; dragStartY = e.clientY; dragStartTop = caption.offsetTop; caption.style.cursor = 'grabbing'; caption.classList.add('dragging'); e.preventDefault(); };
-window.addEventListener('mousemove', (e) => {
-    if (!dragText) return;
-    const rect = videoContainer.getBoundingClientRect();
-    let newTop = dragStartTop + (e.clientY - dragStartY);
-    newTop = Math.max(10, Math.min(newTop, rect.height - caption.offsetHeight - 10));
-    caption.style.top = newTop + 'px';
-});
-window.addEventListener('mouseup', () => { if (dragText) { dragText = false; caption.style.cursor = 'move'; caption.classList.remove('dragging'); } });
 
 async function generateThumbnails(file) {
     const container = document.getElementById('v-thumbs'); container.innerHTML = '';
@@ -808,89 +598,11 @@ async function generateThumbnails(file) {
 }
 
 // ════════════════════════════════════════════════════════════
-// CAPTION SYSTEM — FIX DEFINITIVO
-//
-// extractCaptionLines() salva SOLO rawParagraphs + ratio dimensioni.
-// Il word-wrap viene fatto in drawCaptionOnCanvas() con ctx.measureText()
-// sulle dimensioni REALI del canvas → preview e export sempre identici.
+// EXPORT CORE
+// 1. Cattura il caption come immagine PNG (html-to-image) UNA VOLTA
+// 2. Per ogni frame: disegna video + sovrappone l'immagine caption scalata
 // ════════════════════════════════════════════════════════════
-
-function extractCaptionLines(el, containerRect, rawText) {
-    let text = (rawText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    if (!text) text = (el.textContent || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-    const stripped = text.trim();
-    if (!stripped || stripped === 'Scrivi il tuo testo') return { skip: true };
-
-    const fontSize = parseInt(el.style.fontSize) || 12;
-    let fontFamily = 'Montserrat';
-    if (el.className.includes('font-typewriter'))       fontFamily = 'Courier Prime';
-    else if (el.className.includes('font-classic'))     fontFamily = 'Inter';
-    else if (el.className.includes('font-handwriting')) fontFamily = 'Dancing Script';
-
-    return {
-        skip: false,
-        rawParagraphs:   text.split('\n'),          // \n espliciti dell'utente preservati
-        topRatio:        el.offsetTop / containerRect.height,
-        fontSizeRatio:   fontSize / containerRect.height,
-        maxWidthRatio:   el.offsetWidth / containerRect.width,   // ratio larghezza
-        lineHeightRatio: (fontSize * 1.1) / containerRect.height,
-        color:        el.style.color || '#ffffff',
-        outlineColor: getComputedStyle(el).getPropertyValue('--outline-color').trim() || '#000000',
-        fontClass:    el.className,
-        hasOutline:   el.classList.contains('text-bold-outline')
-    };
-}
-
-function drawCaptionOnCanvas(ctx, cp, canvasW, canvasH) {
-    if (!cp || cp.skip || !cp.rawParagraphs?.length) return;
-
-    const fontSize = cp.fontSizeRatio * canvasH;
-    const lineH    = cp.lineHeightRatio * canvasH;
-    const maxW     = cp.maxWidthRatio * canvasW;   // larghezza max scalata sul canvas reale
-    const startY   = cp.topRatio * canvasH;
-
-    let fontFamily = 'Montserrat';
-    if (cp.fontClass.includes('font-typewriter'))       fontFamily = 'Courier Prime';
-    else if (cp.fontClass.includes('font-classic'))     fontFamily = 'Inter';
-    else if (cp.fontClass.includes('font-handwriting')) fontFamily = 'Dancing Script';
-
-    ctx.font         = `800 ${fontSize}px ${fontFamily}`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'top';
-
-    // Ricalcola wrapping QUI con metriche reali del canvas
-    const allLines = [];
-    cp.rawParagraphs.forEach(para => {
-        if (para === '') { allLines.push(''); return; }
-        const words = para.split(/\s+/).filter(w => w.length > 0);
-        if (!words.length) { allLines.push(''); return; }
-        let cur = words[0];
-        for (let i = 1; i < words.length; i++) {
-            const test = cur + ' ' + words[i];
-            if (ctx.measureText(test).width <= maxW) cur = test;
-            else { allLines.push(cur); cur = words[i]; }
-        }
-        allLines.push(cur);
-    });
-
-    allLines.forEach((lineText, idx) => {
-        const y = startY + idx * lineH;
-        if (!lineText.trim()) return;
-        if (cp.hasOutline) {
-            ctx.strokeStyle = cp.outlineColor;
-            ctx.lineWidth   = Math.max(fontSize * 0.10, 2);
-            ctx.lineJoin    = 'round';
-            ctx.miterLimit  = 2;
-            ctx.strokeText(lineText, canvasW / 2, y);
-        }
-        ctx.fillStyle = cp.color;
-        ctx.fillText(lineText, canvasW / 2, y);
-    });
-}
-
-// ─── Export singolo ───
-async function runExport(item, filename) {
+async function runExport(item, filename, onProgress) {
     const sourceVideo = document.getElementById('source-video');
     sourceVideo.src   = URL.createObjectURL(item.videoFile);
     await new Promise(r => sourceVideo.onloadedmetadata = r);
@@ -901,9 +613,9 @@ async function runExport(item, filename) {
 
     const fps = 30, dur = item.vEnd - item.vStart;
     const { Muxer, ArrayBufferTarget } = window.Mp4Muxer;
-    const muxerConfig = { target: new ArrayBufferTarget(), video: { codec: 'avc', width: 720, height: 1280 }, fastStart: 'in-memory' };
-    if (item.audioFile) muxerConfig.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
-    const muxer = new Muxer(muxerConfig);
+    const muxerCfg = { target: new ArrayBufferTarget(), video: { codec: 'avc', width: 720, height: 1280 }, fastStart: 'in-memory' };
+    if (item.audioFile) muxerCfg.audio = { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 };
+    const muxer = new Muxer(muxerCfg);
 
     const ve = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { throw new Error(e.message); } });
     ve.configure({ codec: 'avc1.42001F', width: 720, height: 1280, bitrate: 8_000_000, framerate: fps, avc: { format: 'avc' } });
@@ -928,13 +640,11 @@ async function runExport(item, filename) {
     const tsr = 48000, ssr = ad ? ad.sampleRate : 48000, spf = Math.floor(tsr / fps);
     let aso = 0;
 
-    const progress   = document.getElementById('progress-bar');
-    const percentText = document.getElementById('percent-text');
-
     for (let i = 0; i < totalFrames; i++) {
         sourceVideo.currentTime = item.vStart + i / fps;
         await new Promise(r => sourceVideo.onseeked = r);
 
+        // Disegna video
         if (item.removeWatermark) {
             const s = 1.1;
             rx.drawImage(sourceVideo, -(sourceVideo.videoWidth * s - 720) / 2, -(sourceVideo.videoHeight * s - 1280) / 2, sourceVideo.videoWidth * s, sourceVideo.videoHeight * s);
@@ -942,17 +652,19 @@ async function runExport(item, filename) {
             rx.drawImage(sourceVideo, 0, 0, 720, 1280);
         }
 
-        drawCaptionOnCanvas(rx, item.captionPosition, 720, 1280);
+        // Disegna caption come immagine scalata — PIXEL PERFECT rispetto al preview
+        if (item.captionImg && item.captionSnapshot) {
+            drawCaptionImageOnCanvas(rx, item.captionImg, item.captionSnapshot, 720, 1280);
+        }
 
         const vf = new VideoFrame(rc, { timestamp: i * 1_000_000 / fps });
         ve.encode(vf, { keyFrame: i % 30 === 0 }); vf.close();
 
         if (ae && ad) {
-            const rr = ssr / tsr;
-            const lc = new Float32Array(spf), rch = new Float32Array(spf);
+            const rr = ssr / tsr, lc = new Float32Array(spf), rch = new Float32Array(spf);
             for (let j = 0; j < spf; j++) {
                 const si = Math.floor(aso + j * rr);
-                lc[j]  = si < ad.left.length  ? ad.left[si]  : 0;
+                lc[j] = si < ad.left.length ? ad.left[si] : 0;
                 rch[j] = si < ad.right.length ? ad.right[si] : 0;
             }
             const af = new AudioData({ format: 'f32-planar', sampleRate: tsr, numberOfFrames: spf, numberOfChannels: 2, timestamp: i * 1_000_000 / fps, data: new Float32Array([...lc, ...rch]) });
@@ -960,8 +672,7 @@ async function runExport(item, filename) {
             aso += Math.floor(spf * rr);
         }
 
-        const pct = Math.round(i / totalFrames * 100);
-        progress.style.width = pct + '%'; percentText.innerText = pct + '%';
+        if (onProgress) onProgress(Math.round(i / totalFrames * 100));
         if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
     }
 
@@ -971,25 +682,30 @@ async function runExport(item, filename) {
     URL.revokeObjectURL(a.href);
 }
 
+// ─── Export singolo ───
 document.getElementById('export-btn').onclick = async () => {
     if (!videoFile) { alert('Carica un video prima di esportare!'); return; }
     const exportBtn = document.getElementById('export-btn');
-    const status    = document.getElementById('export-status');
+    const status = document.getElementById('export-status');
     const statusText = document.getElementById('status-text');
+    const progress = document.getElementById('progress-bar');
+    const percentText = document.getElementById('percent-text');
     exportBtn.disabled = true; status.classList.remove('hidden');
-    statusText.innerText = 'Preparazione...';
+
     try {
-        const containerRect = videoContainer.getBoundingClientRect();
-        const rawCaption    = document.getElementById('caption-input').value;
-        const item = {
-            videoFile, vStart, vEnd, audioFile, aStart, removeWatermark,
-            captionPosition: extractCaptionLines(captionElement, containerRect, rawCaption)
-        };
+        statusText.innerText = 'Cattura caption...';
+
+        // Cattura caption PRIMA di iniziare l'encoding
+        const captionImg      = await captureCaptionImage();
+        const captionSnapshot = snapshotCaptionPosition();
+
+        const item = { videoFile, vStart, vEnd, audioFile, aStart, removeWatermark, captionImg, captionSnapshot };
         statusText.innerText = 'Codifica...';
-        await runExport(item, 'TikTok_Clip.mp4');
-        statusText.innerText = 'Completato!';
-        document.getElementById('percent-text').innerText = '100%';
-        document.getElementById('progress-bar').style.width = '100%';
+        await runExport(item, 'TikTok_Clip.mp4', (pct) => {
+            progress.style.width = pct + '%'; percentText.innerText = pct + '%';
+        });
+
+        statusText.innerText = 'Completato!'; percentText.innerText = '100%'; progress.style.width = '100%';
         setTimeout(() => { status.classList.add('hidden'); exportBtn.disabled = false; }, 2000);
     } catch (err) {
         console.error(err); statusText.innerText = 'Errore: ' + err.message;
@@ -999,21 +715,18 @@ document.getElementById('export-btn').onclick = async () => {
 };
 
 document.getElementById('toggle-guide').onclick = () => {
-    const g = document.getElementById('safe-guide');
-    g.style.display = g.style.display === 'none' ? 'block' : 'none';
+    const g = document.getElementById('safe-guide'); g.style.display = g.style.display === 'none' ? 'block' : 'none';
 };
 
-// ─── Queue UI ───
+// ─── Queue ───
 function updateQueueUI() {
     const list = document.getElementById('queue-list');
-    document.getElementById('queue-count').innerText  = `Coda: ${videoQueue.length}/20`;
-    document.getElementById('export-count').innerText = videoQueue.length;
+    document.getElementById('queue-count').innerText   = `Coda: ${videoQueue.length}/20`;
+    document.getElementById('export-count').innerText  = videoQueue.length;
     document.getElementById('export-all-btn').disabled = videoQueue.length === 0;
     document.getElementById('prev-video-btn').disabled = currentQueueIndex <= 0;
     document.getElementById('next-video-btn').disabled = currentQueueIndex >= videoQueue.length - 1;
-    if (!videoQueue.length) {
-        list.innerHTML = '<div class="text-center text-zinc-500 text-[10px] py-4">Nessun video in coda</div>'; return;
-    }
+    if (!videoQueue.length) { list.innerHTML = '<div class="text-center text-zinc-500 text-[10px] py-4">Nessun video in coda</div>'; return; }
     list.innerHTML = videoQueue.map((item, i) => `
         <div class="queue-item ${i === currentQueueIndex ? 'active' : ''}">
             <div class="queue-item-info">
@@ -1030,22 +743,22 @@ function updateQueueUI() {
     document.querySelectorAll('.delete-queue-item').forEach(b => b.onclick = (e) => { e.stopPropagation(); deleteQueueItem(+b.dataset.index); });
 }
 
-function captureCurrentState() {
+async function captureCurrentState() {
     if (!videoFile) { alert('Carica prima un video!'); return null; }
-    const containerRect = videoContainer.getBoundingClientRect();
-    const rawCaption    = document.getElementById('caption-input').value;
+    const rawCaption     = document.getElementById('caption-input').value;
+    const captionImg     = await captureCaptionImage();
+    const captionSnapshot = snapshotCaptionPosition();
     return {
         videoFile, videoFileName: videoFile.name, videoLibraryIndex: currentVideoIndex,
         vStart, vEnd, duration: vEnd - vStart,
         audioFile, audioFileName: audioFile?.name ?? null, audioLibraryIndex: currentAudioIndex,
         aStart, hasAudio: !!audioFile,
-        rawCaption,
-        captionPosition: extractCaptionLines(captionElement, containerRect, rawCaption),
-        fontSize:     parseInt(captionElement.style.fontSize) || 12,
-        textColor:    captionElement.style.color || '#ffffff',
-        outlineColor: getComputedStyle(captionElement).getPropertyValue('--outline-color').trim() || '#000000',
-        hasOutline:   captionElement.classList.contains('text-bold-outline'),
-        fontClass:    captionElement.className,
+        rawCaption, captionImg, captionSnapshot,
+        fontSize:     parseInt(caption.style.fontSize) || 12,
+        textColor:    caption.style.color || '#ffffff',
+        outlineColor: getComputedStyle(caption).getPropertyValue('--outline-color').trim() || '#000000',
+        hasOutline:   caption.classList.contains('text-bold-outline'),
+        fontClass:    caption.className,
         removeWatermark, timestamp: Date.now()
     };
 }
@@ -1062,20 +775,17 @@ function loadQueueItem(index) {
         audio.src = URL.createObjectURL(item.audioFile);
         audio.onloadedmetadata = () => { audioDuration = audio.duration; aStart = item.aStart; drawWaveform(item.audioFile); updateTrimmers(); };
         const sel = document.getElementById('audio-selector'); if (currentAudioIndex >= 0) sel.value = currentAudioIndex;
-    } else {
-        audioFile = null; currentAudioIndex = -1; audio.src = '';
-        document.getElementById('audio-selector').value = ''; ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+    } else { audioFile = null; currentAudioIndex = -1; audio.src = ''; document.getElementById('audio-selector').value = ''; waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height); }
     caption.textContent = item.rawCaption || '';
     document.getElementById('caption-input').value = item.rawCaption || '';
-    captionElement.style.fontSize = item.fontSize + 'px';
+    caption.style.fontSize = item.fontSize + 'px';
     document.getElementById('fs-val').innerText   = item.fontSize + 'px';
     document.getElementById('font-size').value    = item.fontSize;
-    captionElement.style.color                    = item.textColor;
+    caption.style.color                           = item.textColor;
     document.getElementById('text-color').value   = item.textColor;
-    captionElement.style.setProperty('--outline-color', item.outlineColor);
+    caption.style.setProperty('--outline-color', item.outlineColor);
     document.getElementById('outline-color').value = item.outlineColor;
-    captionElement.className = item.fontClass; outlineEnabled = item.hasOutline; updateOutlineUI();
+    caption.className = item.fontClass; outlineEnabled = item.hasOutline; updateOutlineUI();
     document.querySelectorAll('.font-btn').forEach(b => b.classList.toggle('active', item.fontClass.includes(b.dataset.font)));
     removeWatermark = item.removeWatermark;
     const wb = document.getElementById('toggle-watermark');
@@ -1092,20 +802,14 @@ function deleteQueueItem(index) {
     updateQueueUI();
 }
 
-document.getElementById('add-to-queue-btn').onclick = () => {
+document.getElementById('add-to-queue-btn').onclick = async () => {
     if (videoQueue.length >= MAX_QUEUE_SIZE) { alert(`Max ${MAX_QUEUE_SIZE} video!`); return; }
-    const state = captureCurrentState(); if (!state) return;
+    const state = await captureCurrentState(); if (!state) return;
     videoQueue.push(state); currentQueueIndex = videoQueue.length - 1;
     updateQueueUI(); notify(`✓ Video ${videoQueue.length} aggiunto!`, 'green');
 };
-document.getElementById('prev-video-btn').onclick = () => {
-    if (currentQueueIndex > 0) loadQueueItem(currentQueueIndex - 1);
-    else if (currentVideoIndex > 0) loadVideoFromLibrary(currentVideoIndex - 1);
-};
-document.getElementById('next-video-btn').onclick = () => {
-    if (currentQueueIndex < videoQueue.length - 1) loadQueueItem(currentQueueIndex + 1);
-    else if (currentVideoIndex < videoLibrary.length - 1) { loadVideoFromLibrary(currentVideoIndex + 1); document.getElementById('random-caption-btn').click(); }
-};
+document.getElementById('prev-video-btn').onclick = () => { if (currentQueueIndex > 0) loadQueueItem(currentQueueIndex - 1); else if (currentVideoIndex > 0) loadVideoFromLibrary(currentVideoIndex - 1); };
+document.getElementById('next-video-btn').onclick = () => { if (currentQueueIndex < videoQueue.length - 1) loadQueueItem(currentQueueIndex + 1); else if (currentVideoIndex < videoLibrary.length - 1) { loadVideoFromLibrary(currentVideoIndex + 1); document.getElementById('random-caption-btn').click(); } };
 
 document.getElementById('auto-queue-btn').onclick = async () => {
     if (!videoLibrary.length) { alert('Carica prima dei video!'); return; }
@@ -1118,7 +822,7 @@ document.getElementById('auto-queue-btn').onclick = async () => {
         await new Promise(r => video.onloadedmetadata = () => { videoDuration = video.duration; vStart = 0; vEnd = Math.min(videoDuration, 15); updateTrimmers(); r(); });
         const arr = viralCaptions[selectedCategory], rnd = arr[Math.floor(Math.random() * arr.length)];
         caption.textContent = rnd; document.getElementById('caption-input').value = rnd;
-        const state = captureCurrentState(); if (state) videoQueue.push(state);
+        const state = await captureCurrentState(); if (state) videoQueue.push(state);
         await new Promise(r => setTimeout(r, 100));
     }
     currentQueueIndex = videoQueue.length - 1; updateQueueUI();
@@ -1147,18 +851,13 @@ const viralCaptions = {
     main:      ["POV: You're the main character NOW","This is YOUR moment starting","When the song makes you THE ONE","This is main character energy","POV: Your movie montage playing","The perfect protagonist anthem","When music makes you legendary","This is what spotlight sounds like","POV: Everyone's watching YOU","The song for YOUR story","When the moment is YOURS","This is protagonist energy","POV: Life became a movie","The anthem for main characters","When music crowns you","This is what destiny sounds like","POV: Your era has begun","The perfect moment soundtrack","When the song chooses YOU","This is main character vibes"]
 };
 let selectedCategory = 'energy';
-
 document.querySelectorAll('.caption-cat-btn').forEach(btn => {
-    btn.onclick = () => {
-        document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active'); selectedCategory = btn.dataset.category;
-    };
+    btn.onclick = () => { document.querySelectorAll('.caption-cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); selectedCategory = btn.dataset.category; };
 });
 document.getElementById('random-caption-btn').onclick = () => {
     const arr = viralCaptions[selectedCategory], rnd = arr[Math.floor(Math.random() * arr.length)];
     document.getElementById('caption-input').value = rnd; caption.textContent = rnd;
-    const btn = document.getElementById('random-caption-btn');
-    btn.style.transform = 'scale(0.95)'; setTimeout(() => btn.style.transform = 'scale(1)', 100);
+    const btn = document.getElementById('random-caption-btn'); btn.style.transform = 'scale(0.95)'; setTimeout(() => btn.style.transform = 'scale(1)', 100);
 };
 
 // ─── Export All ───
@@ -1169,20 +868,19 @@ document.getElementById('export-all-btn').onclick = async () => {
     exportAllBtn.disabled = true;
     const status = document.getElementById('export-status');
     const statusText = document.getElementById('status-text');
+    const progress = document.getElementById('progress-bar');
+    const percentText = document.getElementById('percent-text');
     status.classList.remove('hidden');
     try {
         for (let qi = 0; qi < videoQueue.length; qi++) {
             const item = videoQueue[qi];
             statusText.innerText = `Video ${qi + 1}/${videoQueue.length}...`;
-            document.getElementById('progress-bar').style.width = '0%';
-            document.getElementById('percent-text').innerText = '0%';
+            progress.style.width = '0%'; percentText.innerText = '0%';
             const fname = `TikTok_${qi + 1}_${(item.rawCaption || 'video').replace(/\n/g, ' ').substring(0, 30).replace(/[^a-z0-9]/gi, '_')}.mp4`;
-            await runExport(item, fname);
+            await runExport(item, fname, (pct) => { progress.style.width = pct + '%'; percentText.innerText = pct + '%'; });
             await new Promise(r => setTimeout(r, 500));
         }
-        statusText.innerText = 'Tutti esportati!';
-        document.getElementById('percent-text').innerText = '100%';
-        document.getElementById('progress-bar').style.width = '100%';
+        statusText.innerText = 'Tutti esportati!'; percentText.innerText = '100%'; progress.style.width = '100%';
         setTimeout(() => { status.classList.add('hidden'); exportAllBtn.disabled = false; }, 3000);
     } catch (err) {
         console.error(err); statusText.innerText = 'Errore: ' + err.message;
