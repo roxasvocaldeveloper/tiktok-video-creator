@@ -54,7 +54,8 @@
         .trim-handle::after { content: ''; width: 2px; height: 14px; background: white; border-radius: 1px; }
         .handle-left { left: -8px; border-radius: 6px 0 0 6px; }
         .handle-right { right: -8px; border-radius: 0 6px 6px 0; }
-        .waveform-wrapper { position: relative; width: 100%; height: 60px; background: #000; }
+        /* WIDER waveform wrapper */
+        .waveform-wrapper { position: relative; width: 100%; height: 90px; background: #000; }
         #waveform { width: 100%; height: 100%; pointer-events: none; }
         .btn-sv { background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%); transition: all 0.3s ease; }
         .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
@@ -141,7 +142,7 @@
             </div>
             <div class="flex gap-3 w-[290px]">
                 <button id="toggle-guide" class="flex-1 px-4 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">TikTok UI</button>
-                <button id="toggle-watermark" class="toggle-btn text-[9px] px-3 py-2"><i data-lucide="zoom-in" class="w-3 h-3"></i>VEO</button>
+                <button id="toggle-watermark" class="toggle-btn active text-[9px] px-3 py-2"><i data-lucide="zoom-out" class="w-3 h-3"></i>VEO</button>
             </div>
         </div>
     </div>
@@ -191,27 +192,27 @@
             </div>
         </div>
 
+        <!-- WIDER audio section -->
         <div class="bg-black p-3 rounded-2xl border border-zinc-800/50">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 mb-2">
                 <button id="play-btn" class="w-10 h-10 rounded-xl btn-sv text-white flex items-center justify-center shrink-0">
                     <i data-lucide="play" id="play-icon" class="w-4 h-4 fill-white"></i>
                 </button>
-                <div class="flex-1 space-y-1">
-                    <div class="flex justify-between items-center text-[9px] font-black uppercase text-zinc-500">
-                        <span>Waveform</span>
-                        <div class="flex items-center gap-2">
-                            <select id="audio-selector" class="bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-[9px] text-zinc-300 font-bold cursor-pointer hover:border-violet-500 transition-all">
-                                <option value="">Nessun Audio</option>
-                            </select>
-                            <span id="audio-start-label" class="text-zinc-500 text-[9px]">Start: 0.0s</span>
-                        </div>
-                    </div>
-                    <div class="trimmer-track h-[56px]" id="a-trimmer-track">
-                        <div class="waveform-wrapper"><canvas id="waveform"></canvas></div>
-                        <div id="audio-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
-                        <div id="audio-trim-overlay" class="trim-overlay"></div>
+                <div class="flex-1 flex items-center justify-between">
+                    <span class="text-[9px] font-black uppercase text-zinc-500">Waveform</span>
+                    <div class="flex items-center gap-2">
+                        <select id="audio-selector" class="bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-[9px] text-zinc-300 font-bold cursor-pointer hover:border-violet-500 transition-all">
+                            <option value="">Nessun Audio</option>
+                        </select>
+                        <span id="audio-start-label" class="text-zinc-500 text-[9px]">Start: 0.0s</span>
                     </div>
                 </div>
+            </div>
+            <!-- Full-width waveform trimmer -->
+            <div class="trimmer-track h-[90px]" id="a-trimmer-track">
+                <div class="waveform-wrapper"><canvas id="waveform"></canvas></div>
+                <div id="audio-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
+                <div id="audio-trim-overlay" class="trim-overlay"></div>
             </div>
         </div>
 
@@ -222,21 +223,14 @@
                     <button id="random-caption-btn" class="px-2.5 py-1 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase flex items-center gap-1"><i data-lucide="shuffle" class="w-3 h-3"></i>Random</button>
                 </div>
                 <div class="grid grid-cols-5 gap-1">
-                    <button class="caption-cat-btn active" data-category="energy">Energy</button>
-                    <button class="caption-cat-btn" data-category="chill">Chill</button>
-                    <button class="caption-cat-btn" data-category="emotional">Emotional</button>
-                    <button class="caption-cat-btn" data-category="party">Party</button>
-                    <button class="caption-cat-btn" data-category="nostalgic">Nostalgic</button>
-                    <button class="caption-cat-btn" data-category="romantic">Romantic</button>
-                    <button class="caption-cat-btn" data-category="dark">Dark</button>
-                    <button class="caption-cat-btn" data-category="uplifting">Uplifting</button>
-                    <button class="caption-cat-btn" data-category="sensual">Sensual</button>
-                    <button class="caption-cat-btn" data-category="dreamy">Dreamy</button>
+                    <button class="caption-cat-btn active" data-category="vibe">Vibe</button>
+                    <button class="caption-cat-btn" data-category="pov">POV</button>
                     <button class="caption-cat-btn" data-category="relatable">Relatable</button>
-                    <button class="caption-cat-btn" data-category="savage">Savage</button>
+                    <button class="caption-cat-btn" data-category="hype">Hype</button>
+                    <button class="caption-cat-btn" data-category="emotional">Emotional</button>
                     <button class="caption-cat-btn" data-category="aesthetic">Aesthetic</button>
                     <button class="caption-cat-btn" data-category="chaotic">Chaotic</button>
-                    <button class="caption-cat-btn" data-category="main">Main Char</button>
+                    <button class="caption-cat-btn" data-category="night">Night</button>
                 </div>
             </div>
             <textarea id="caption-input" rows="2" placeholder="Scrivi il testo qui..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none font-semibold"></textarea>
@@ -290,10 +284,13 @@ const video=document.getElementById('main-video'),audio=document.getElementById(
 
 let videoFile,audioFile,videoDuration=0,audioDuration=0,vStart=0,vEnd=15,aStart=0;
 const MAX_DUR=30;
-let outlineEnabled=true,removeWatermark=false,isDraggingV=null,isDraggingA=false,dragOffsetV=0,dragOffsetA=0;
+let outlineEnabled=true,removeWatermark=true,isDraggingV=null,isDraggingA=false,dragOffsetV=0,dragOffsetA=0;
 let videoLibrary=[],audioLibrary=[],currentVideoIndex=0,currentAudioIndex=-1;
 const MAX_QUEUE_SIZE=20;
 let videoQueue=[],currentQueueIndex=-1,hasUnsavedChanges=false;
+
+// VEO default ON — set video scale immediately
+video.style.transform='scale(1.1)';
 
 function notify(msg,color='green'){const d=document.createElement('div');d.className=`fixed top-4 right-4 bg-${color}-500 text-white px-4 py-2 rounded-lg font-bold text-sm z-50`;d.innerText=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),2000);}
 
@@ -327,7 +324,7 @@ function snapshotCaption(){
     };
 }
 
-// ── Draw caption su canvas — centrato, word-wrap, \n rispettati ──
+// ── Draw caption su canvas ──
 function drawCaptionOnCanvas(ctx,snap,canvasW,canvasH){
     if(!snap||!snap.text||snap.text.trim()==='Scrivi il tuo testo')return;
     const fontSize=snap.fontSizeRatio*canvasH;
@@ -356,7 +353,7 @@ function drawLine(ctx,text,x,y,snap,fontSize){
     ctx.fillStyle=snap.color;ctx.fillText(text,x,y);
 }
 
-// ── Font size con clamp per evitare uscita dallo schermo ──
+// ── Font size ──
 document.getElementById('font-size').oninput=(e)=>{
     caption.style.fontSize=e.target.value+'px';
     document.getElementById('fs-val').innerText=e.target.value+'px';
@@ -399,6 +396,13 @@ function loadVideoFromLibrary(index){
     if(index<0||index>=videoLibrary.length)return;
     currentVideoIndex=index;videoFile=videoLibrary[index];
     video.src=URL.createObjectURL(videoFile);
+    // VEO always ON for every new video
+    video.style.transform='scale(1.1)';
+    removeWatermark=true;
+    const wb=document.getElementById('toggle-watermark');
+    wb.classList.add('active');
+    wb.innerHTML='<i data-lucide="zoom-out" class="w-3 h-3"></i>VEO';
+    lucide.createIcons();
     video.onloadedmetadata=()=>{videoDuration=video.duration;vStart=0;vEnd=Math.min(videoDuration,15);updateTrimmers();video.currentTime=vStart;};
     generateThumbnails(videoFile);
 }
@@ -463,17 +467,34 @@ window.onmouseup=()=>{isDraggingV=null;isDraggingA=false;};
 document.getElementById('video-input').onchange=(e)=>{const f=Array.from(e.target.files);if(!f.length)return;videoLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();loadVideoFromLibrary(0);notify(`✓ ${videoLibrary.length} video`,'blue');};
 document.getElementById('audio-input').onchange=(e)=>{const f=Array.from(e.target.files);if(!f.length)return;audioLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();notify(`✓ ${audioLibrary.length} audio`,'violet');};
 document.getElementById('audio-selector').onchange=()=>{loadAudioFromSelector();markChanged();};
-document.getElementById('play-btn').onclick=()=>{if(video.paused){video.play();if(audio.src){audio.currentTime=aStart+(video.currentTime-vStart);audio.play().catch(()=>{});}updatePlayIcon(true);}else{video.pause();audio.pause();updatePlayIcon(false);}};
+
+// ── PLAY — audio restarts from aStart on every play ──
+document.getElementById('play-btn').onclick=()=>{
+    if(video.paused){
+        // Always restart audio from range start when pressing play
+        video.currentTime=vStart;
+        video.play();
+        if(audio.src){
+            audio.currentTime=aStart;
+            audio.play().catch(()=>{});
+        }
+        updatePlayIcon(true);
+    }else{
+        video.pause();
+        audio.pause();
+        updatePlayIcon(false);
+    }
+};
 function syncPlayback(){video.currentTime=vStart;if(audio.src)audio.currentTime=aStart;if(!video.paused){video.play();if(audio.src)audio.play().catch(()=>{});}}
 function updatePlayIcon(p){document.getElementById('play-icon').setAttribute('data-lucide',p?'pause':'play');lucide.createIcons();}
 
 async function drawWaveform(file){
-    const ac=new(window.AudioContext||window.webkitAudioContext)(),decoded=await ac.decodeAudioData(await file.arrayBuffer()),raw=decoded.getChannelData(0),samples=120,block=Math.floor(raw.length/samples);
+    const ac=new(window.AudioContext||window.webkitAudioContext)(),decoded=await ac.decodeAudioData(await file.arrayBuffer()),raw=decoded.getChannelData(0),samples=200,block=Math.floor(raw.length/samples);
     const data=Array.from({length:samples},(_,i)=>{let s=0;for(let j=0;j<block;j++)s+=Math.abs(raw[i*block+j]);return s/block;});
     const max=Math.max(...data);waveCanvas.width=waveCanvas.offsetWidth*2;waveCanvas.height=waveCanvas.offsetHeight*2;
     const step=waveCanvas.width/samples,grad=waveCtx.createLinearGradient(0,0,waveCanvas.width,0);
     grad.addColorStop(0,'#3B82F6');grad.addColorStop(1,'#8B5CF6');waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);waveCtx.fillStyle=grad;
-    data.forEach((v,i)=>{const h=(v/max)*waveCanvas.height*0.8;waveCtx.beginPath();waveCtx.roundRect(i*step,(waveCanvas.height-h)/2,step-3,h,2);waveCtx.fill();});
+    data.forEach((v,i)=>{const h=(v/max)*waveCanvas.height*0.85;waveCtx.beginPath();waveCtx.roundRect(i*step,(waveCanvas.height-h)/2,step-2,h,2);waveCtx.fill();});
 }
 async function generateThumbnails(file){
     const container=document.getElementById('v-thumbs');container.innerHTML='';
@@ -560,7 +581,6 @@ function updateQueueUI(){
             </div>
         </div>`).join('');
     lucide.createIcons();
-    // Click sull'item → carica il video direttamente (senza pulsante occhio)
     document.querySelectorAll('.queue-item').forEach(el=>{
         el.onclick=(e)=>{if(e.target.closest('.delete-queue-item'))return;loadQueueItem(+el.dataset.index);};
     });
@@ -607,14 +627,14 @@ function loadQueueItem(index){
     caption.style.setProperty('--outline-color',item.outlineColor);document.getElementById('outline-color').value=item.outlineColor;
     caption.className=item.fontClass;outlineEnabled=item.hasOutline;updateOutlineUI();
     document.querySelectorAll('.font-btn').forEach(b=>b.classList.toggle('active',item.fontClass.includes(b.dataset.font)));
-    removeWatermark=item.removeWatermark||false;
+    removeWatermark=item.removeWatermark!==undefined?item.removeWatermark:true;
     const wb=document.getElementById('toggle-watermark');
-    if(removeWatermark){video.style.transform='scale(1.1)';wb.classList.add('active');}
-    else{video.style.transform='scale(1)';wb.classList.remove('active');}
+    if(removeWatermark){video.style.transform='scale(1.1)';wb.classList.add('active');wb.innerHTML='<i data-lucide="zoom-out" class="w-3 h-3"></i>VEO';}
+    else{video.style.transform='scale(1)';wb.classList.remove('active');wb.innerHTML='<i data-lucide="zoom-in" class="w-3 h-3"></i>VEO';}
+    lucide.createIcons();
     clearChanged();updateQueueUI();
 }
 
-// ── SALVA modifiche al video in coda ──
 document.getElementById('save-btn').onclick=()=>{
     if(currentQueueIndex<0){notify('Nessun video selezionato','red');return;}
     const state=captureCurrentState();if(!state)return;
@@ -640,9 +660,7 @@ document.getElementById('add-to-queue-btn').onclick=()=>{
 document.getElementById('prev-video-btn').onclick=()=>{if(currentQueueIndex>0)loadQueueItem(currentQueueIndex-1);else if(currentVideoIndex>0)loadVideoFromLibrary(currentVideoIndex-1);};
 document.getElementById('next-video-btn').onclick=()=>{if(currentQueueIndex<videoQueue.length-1)loadQueueItem(currentQueueIndex+1);else if(currentVideoIndex<videoLibrary.length-1){loadVideoFromLibrary(currentVideoIndex+1);document.getElementById('random-caption-btn').click();}};
 
-// ════════════════════════════════════════════════════════════
-// AUTO-QUEUE — audio ciclico su ogni video (0→audio0, 1→audio1, mod)
-// ════════════════════════════════════════════════════════════
+// AUTO-QUEUE
 document.getElementById('auto-queue-btn').onclick=async()=>{
     if(!videoLibrary.length){notify('Carica prima dei video!','red');return;}
     const btn=document.getElementById('auto-queue-btn');
@@ -651,8 +669,8 @@ document.getElementById('auto-queue-btn').onclick=async()=>{
         currentVideoIndex=i;videoFile=videoLibrary[i];
         video.src=URL.createObjectURL(videoFile);
         await new Promise(r=>video.onloadedmetadata=()=>{videoDuration=video.duration;vStart=0;vEnd=Math.min(videoDuration,15);updateTrimmers();r();});
-
-        // Audio ciclico
+        // VEO always ON
+        removeWatermark=true;video.style.transform='scale(1.1)';
         if(audioLibrary.length>0){
             const audioIdx=i%audioLibrary.length;
             audioFile=audioLibrary[audioIdx];currentAudioIndex=audioIdx;
@@ -664,11 +682,8 @@ document.getElementById('auto-queue-btn').onclick=async()=>{
             });
             await drawWaveform(audioFile);
         }else{audioFile=null;currentAudioIndex=-1;}
-
-        // Caption random
         const arr=viralCaptions[selectedCategory],rnd=arr[Math.floor(Math.random()*arr.length)];
         caption.textContent=rnd;document.getElementById('caption-input').value=rnd;
-
         const state=captureCurrentState();if(state)videoQueue.push(state);
         await new Promise(r=>setTimeout(r,100));
     }
@@ -679,25 +694,428 @@ document.getElementById('auto-queue-btn').onclick=async()=>{
 
 updateQueueUI();
 
-// ── Viral Captions ──
+// ── Viral Captions — human, 15-30yo TikTok user, 50+ per category ──
 const viralCaptions={
-    energy:["This song hits different at max volume","POV: You just found your new hype song","When the drop hits and you levitate","This energy is UNMATCHED","Warning: This will make you run through walls","The beat said GO CRAZY","This song woke up and chose violence","My neighbors hate this song (I love it)","POV: The gym just got 10x harder","This is what confidence sounds like","When the song matches your adrenaline","This beat said NO CHILL MODE","The song that makes you walk faster","POV: Main character moment activated","This will be your new alarm sound","When music becomes your pre-workout","The bass drop changed my life","This song slaps at ANY tempo","POV: You just discovered pure energy","This beat goes too hard for no reason"],
-    chill:["This song is a whole VIBE","POV: Perfect sunset soundtrack found","When the song just... gets it","This is what peace sounds like","The vibe is immaculate fr","POV: You found your comfort song","This song = instant calm","When music becomes meditation","The perfect background for life","POV: All stress just left the chat","This song is a warm blanket","When the vibes are TOO smooth","This is what heaven sounds like","POV: Your safe space in audio form","The song for 3am thoughts","This vibe is EVERYTHING","When music slows down time","POV: You just discovered serenity","This song makes life better","The perfect coffee shop soundtrack"],
-    emotional:["This song BROKE me in the best way","POV: You're crying but make it aesthetic","When the lyrics hit TOO close","This song sees my soul","The song that made me FEEL everything","POV: Having a full breakdown (gorgeous)","When music validates your emotions","This song understands me too well","POV: Tears but make it cinematic","The song that opened my heart","When lyrics become therapy","This hit different at 2am","POV: You're the main character crying","The song I needed to hear","When music puts pain into words","This song is emotional damage","POV: Finally someone gets it","The song that broke the dam","When music heals old wounds","This made me feel SEEN"],
-    party:["This song OWNS the function","POV: The party just peaked","When THIS comes on everybody moves","The song that starts celebrations","POV: Club went INSANE","This is the party anthem we needed","When the DJ plays this = CHAOS","POV: The night just got started","This song makes strangers best friends","The perfect pregame soundtrack","When the beat drops the room ERUPTS","POV: Everyone knows the words","This is what celebration sounds like","The song that fills dance floors","When music becomes pure joy","POV: The party peaked RIGHT HERE","This makes EVERYONE move","The ultimate turn up anthem","When the song says LET'S GO","POV: The vibes are IMMACULATE"],
-    nostalgic:["This unlocked a CORE memory","POV: Transported back in time","When the song brings back EVERYTHING","This hit different than expected","POV: Feeling all the feels right now","The song I forgot I needed","When music becomes a time machine","This brought back the OLD me","POV: Nostalgia hitting HARD","The soundtrack to better days","When a song reopens closed chapters","This takes me BACK back","POV: Memory lane activated","The song from simpler times","When music resurrects moments","This unlocked forgotten feelings","POV: Teenage dreams resurfacing","The song that aged like wine","When nostalgia hits just right","This brought tears AND smiles"],
-    romantic:["This song IS the moment before the kiss","POV: Falling in love in real time","When the song describes THEM perfectly","This is what butterflies sound like","POV: Your love story got a soundtrack","The song that makes you text them","When music captures the feeling","This is romance in audio form","POV: Love at first listen","The perfect song for slow dancing","When the lyrics say everything","This made me believe in soulmates","POV: The universe is speaking","The song for confession moments","When music becomes cupid","This is what destiny sounds like","POV: Catching feelings via audio","The soundtrack to first dates","When a song writes your vows","This describes us TOO well"],
-    dark:["This song lives in the shadows","POV: Your villain origin story","When the vibe is DANGEROUSLY good","This is what midnight sounds like","POV: Dark side fully activated","The song for mysterious hours","When music embraces the darkness","This makes me feel DANGEROUS","POV: Walking alone at night energy","The perfect song for plotting","When the vibe turns sinister (tastefully)","This is hauntingly beautiful","POV: Anti-hero anthem found","The song that owns the night","When music goes to dark places","This is seductively twisted","POV: Embracing the shadow self","The soundtrack to beautiful chaos","When the song gets under your skin","This is deliciously dark"],
-    uplifting:["This song literally HEALS souls","POV: Everything's gonna be okay","When the song says KEEP GOING","This is pure sunshine in audio","POV: Hope restored instantly","The song that lifts spirits","When music becomes encouragement","This made me believe again","POV: Finding light in the sound","The perfect pick-me-up anthem","When the song says YOU GOT THIS","This is what joy sounds like","POV: Bad day officially cancelled","The song that changes moods","When music becomes motivation","This is instant happiness","POV: The sunshine I needed","The anthem for better days","When the song reminds you to smile","This is what hope sounds like"],
-    sensual:["This song is CRIMINALLY smooth","POV: The vibe just got intimate","When the song sets the mood PERFECTLY","This is dangerously seductive","POV: Temperature rising rapidly","The song that makes you feel something","When music becomes pure tension","This is what desire sounds like","POV: The vibe shifted to 100","The perfect late night soundtrack","When the song gets under your skin","This is intoxicatingly smooth","POV: Caught in the moment","The song for close encounters","When music creates chemistry","This is seduction in audio form","POV: The song knows exactly what to do","The anthem for intimate moments","When the vibe is TOO smooth","This makes you feel everything"],
-    dreamy:["This song feels like floating","POV: Lost in the soundscape","When the song becomes a journey","This is what clouds sound like","POV: Drifting away beautifully","The perfect song for daydreaming","When music creates another world","This is pure ethereal magic","POV: Ascending to new dimensions","The soundtrack to imagination","When the song feels weightless","This is what dreams sound like","POV: Reality who? I'm HERE now","The song for cosmic thoughts","When music becomes meditation","This is otherworldly beautiful","POV: Transcending through sound","The perfect escape anthem","When the song lifts your spirit","This is celestial perfection"],
-    relatable:["No because WHY is this so accurate","POV: Being perceived and it's uncomfortable","When the song calls you out personally","This is attacking me specifically","POV: Feeling seen (not in a good way)","The song that read my mind","When music becomes too relatable","This described my life TOO well","POV: Did we live the same life?","The song that gets it","When the lyrics are YOUR diary","This is literally about me fr","POV: Stop being so accurate challenge","The song that KNOWS","When music exposes you","This hit way too close to home","POV: Feeling attacked by a song","The anthem for overthinkers","When the song reads you","This is my Roman Empire"],
-    savage:["This song said VIOLENCE","POV: Choosing chaos today","When the vibe is UNHINGED","This is your villain moment","POV: Absolutely NO CHILL activated","The song for petty hours","When music becomes attitude","This is what savage sounds like","POV: Burnt all the bridges (deservedly)","The perfect clap back anthem","When the song says TRY ME","This is confidence weaponized","POV: Done being nice","The anthem for standing up","When music becomes power move","This said what I was thinking","POV: Energy switched to dangerous","The song for calling people out","When the vibe is BOLD","This is what audacity sounds like"],
-    aesthetic:["This is my entire AESTHETIC","POV: Finding your vibe in audio form","When the song matches your energy","This IS the mood board","POV: Your aesthetic got a soundtrack","The perfect song for your brand","When music becomes visual","This captures the VIBE perfectly","POV: Living in the aesthetic","The song that matches your style","When the sound IS the aesthetic","This is mood in audio form","POV: Your Pinterest board playing","The perfect vibe soundtrack","When music matches aesthetics","This is what style sounds like","POV: The aesthetic is IMMACULATE","The song for your energy","When the vibe is PERFECT","This matches my whole aesthetic"],
-    chaotic:["This song is UNHINGED energy","POV: Chaos chose me today","When the vibe is PURE CHAOS","This is what madness sounds like","POV: Absolutely losing it (lovingly)","The perfect song for wild energy","When music becomes disorder","This is organized chaos","POV: Sanity left the chat","The anthem for chaotic souls","When the song matches the chaos","This is what mayhem sounds like","POV: Embracing the madness","The perfect soundtrack to chaos","When music becomes anarchy","This is pure pandemonium","POV: Chaotic neutral energy","The song for wild moments","When the vibe is UNCONTROLLED","This is what chaos sounds like"],
-    main:["POV: You're the main character NOW","This is YOUR moment starting","When the song makes you THE ONE","This is main character energy","POV: Your movie montage playing","The perfect protagonist anthem","When music makes you legendary","This is what spotlight sounds like","POV: Everyone's watching YOU","The song for YOUR story","When the moment is YOURS","This is protagonist energy","POV: Life became a movie","The anthem for main characters","When music crowns you","This is what destiny sounds like","POV: Your era has begun","The perfect moment soundtrack","When the song chooses YOU","This is main character vibes"]
+    vibe:[
+        "the way this song just gets it",
+        "not me listening to this for the 47th time today",
+        "whoever made this song knew exactly what they were doing",
+        "this is the song playing in my head at 2am for no reason",
+        "ok but why does this go so hard",
+        "my whole personality is this song rn",
+        "i cannot explain why this hits but it absolutely does",
+        "the vibe is immaculate and i won't be taking questions",
+        "ok i found my new comfort song goodbye",
+        "this song just saved my entire day fr",
+        "everything about this is perfect and i mean everything",
+        "put this on loop and don't talk to me",
+        "the way my mood shifted the second this started playing",
+        "this song feels like a warm hug idk how else to describe it",
+        "whoever recommended this to me i owe you my life",
+        "bro this song lives in my chest rent free",
+        "adding this to every playlist i have immediately",
+        "the vibe check? passed with flying colors",
+        "this is what peace sounds like apparently",
+        "ok so i've been in my feels and this didn't help at all",
+        "the song that plays when everything finally clicks",
+        "my serotonin levels when this comes on: 📈",
+        "cannot stress enough how much i needed this today",
+        "this song is a whole entire mood and i'm obsessed",
+        "it should be illegal to make something this good",
+        "this is my roman empire and i'm not joking",
+        "found my new 'drive at night with the windows down' song",
+        "the way this song matches exactly how i feel rn",
+        "ok but nobody talks about how good this actually is???",
+        "this is the one. this is always the one.",
+        "the song that makes me feel like the main character no matter what",
+        "why is this so good. i need to know why.",
+        "this song understood the assignment completely",
+        "my brain on this song: 🎵🎵🎵 nothing else",
+        "the way i've had this on repeat since tuesday",
+        "if this song was a person i would marry them",
+        "this is the kind of music that makes you feel alive",
+        "not me tearing up in my car because of a song again",
+        "this song unlocked something in me i didn't know existed",
+        "the whole vibe is just… perfect. that's it. perfect.",
+        "listening to this and pretending my life is a movie",
+        "this song has no right to be this comforting",
+        "everyone needs to hear this immediately. pass it on.",
+        "the song that makes cleaning your room actually enjoyable",
+        "this is exactly what my playlist was missing and i didn't know it",
+        "putting this on and suddenly everything is okay",
+        "the way this makes me want to go on a solo road trip rn",
+        "found this at 3am and i've been different ever since",
+        "this song is genuinely changing how i see things",
+        "my whole week turned around the moment i pressed play",
+        "not overthinking it. just vibing. just completely vibing.",
+        "the song my heart needed but my brain forgot to look for"
+    ],
+    pov:[
+        "pov: you found the song that describes your whole situation",
+        "pov: it's 2am and this is the only thing making sense",
+        "pov: you're the main character and this is your moment",
+        "pov: you finally stopped caring what people think",
+        "pov: you're driving alone at night and this comes on",
+        "pov: your friends don't get it but you do",
+        "pov: you're in your healing era and it's going well",
+        "pov: you just made the best decision of your life",
+        "pov: you're becoming who you were always supposed to be",
+        "pov: this song found you at exactly the right moment",
+        "pov: you're in that movie scene you always imagined",
+        "pov: everything is finally falling into place",
+        "pov: you stopped explaining yourself to people who don't get it",
+        "pov: you chose yourself and it was the right call",
+        "pov: the glow up is real and this is the soundtrack",
+        "pov: you're living your best life and it shows",
+        "pov: you walked away and never looked back",
+        "pov: you're that person now. the one they regret losing.",
+        "pov: you just got in the car and started driving",
+        "pov: you woke up and chose peace today",
+        "pov: you let go of what was holding you back",
+        "pov: this song plays every time something good happens",
+        "pov: you're alone and it's actually amazing",
+        "pov: you realized you were the problem and fixed it",
+        "pov: you're having the night you needed",
+        "pov: the universe is finally on your side",
+        "pov: you're building something and nobody knows yet",
+        "pov: you outgrew people you used to need",
+        "pov: this is the part where everything changes",
+        "pov: you stopped waiting for permission to be happy",
+        "pov: you listened to your gut and it was right",
+        "pov: you're in the season where things get good",
+        "pov: you met someone and everything sounds different now",
+        "pov: you realized your worth and acted accordingly",
+        "pov: this song is playing on your best day ever",
+        "pov: you're 17 driving with nowhere to be",
+        "pov: you deleted the app and your peace returned",
+        "pov: you said what you meant and it worked out",
+        "pov: you're that person everyone runs into at the best time",
+        "pov: you stopped shrinking yourself for other people",
+        "pov: you're in a new city starting completely over",
+        "pov: you just remembered who you are",
+        "pov: this is the comeback nobody saw coming",
+        "pov: you started doing things just for you",
+        "pov: you found your people and this is the anthem",
+        "pov: you're in the part of the story where it gets good",
+        "pov: you said yes to something scary and it was worth it",
+        "pov: this plays when you finally stop overthinking",
+        "pov: you're exactly where you're supposed to be",
+        "pov: the plot twist nobody expected was you winning"
+    ],
+    relatable:[
+        "why does this song know my whole situation",
+        "ok who told the artist about my life specifically",
+        "the way this describes something i couldn't put into words",
+        "this lyric lives in my head and pays zero rent",
+        "me: i'm fine. also me: *plays this on repeat*",
+        "not me crying in the car AGAIN because of a song",
+        "the song i play when i'm in my feelings but pretending i'm not",
+        "my therapist: what's on your mind. me: *sends this*",
+        "this is just my diary set to music at this point",
+        "the way i skip every song except this one",
+        "nobody asked how i'm doing so i'll just play this",
+        "the song i act like i don't know the words to but definitely do",
+        "listened to this 12 times today. doing great. totally fine.",
+        "this song was specifically written about me and i can prove it",
+        "the audacity of this song to hit this hard on a monday",
+        "why is every single lyric exactly my situation",
+        "me every time this comes on: ok last time and then i stop",
+        "the song i send people when i can't explain how i feel",
+        "this song said what i've been trying to say for months",
+        "not the way this song made me feel seen by a stranger",
+        "playing this instead of processing my emotions like an adult",
+        "the song that gets more accurate the older i get",
+        "i have 300 songs saved but i always come back to this one",
+        "my whole personality rn is just… this song. nothing else.",
+        "the song that hits different depending on your situation",
+        "ok so apparently artists can read minds now",
+        "the way this song is different every time i listen to it",
+        "this is the music equivalent of someone getting it",
+        "i was doing so well and then this song started playing",
+        "the song that ruins my productivity every single time",
+        "bro why does this make me feel everything at once",
+        "putting this on and immediately becoming a main character",
+        "the way i age every time i listen to this song",
+        "this song: exists. me: starts ugly crying instantly.",
+        "whoever made this clearly went through the exact same thing",
+        "the song i play when i want to feel something but not too much",
+        "my mood before this song vs after: completely different",
+        "every single listen hits different and i don't know why",
+        "this is the most understood i've felt all week",
+        "the song that described my situation before i even understood it",
+        "i keep coming back to this one and i'm starting to see a pattern",
+        "the way this song gets more personal every few months",
+        "me adding this to every playlist: yes, correct, good, needed",
+        "this song is doing things to my emotions that should be illegal",
+        "the specific kind of sad this song makes me feel is actually nice",
+        "sending this to exactly one person and they'll understand",
+        "the song that makes being in your feelings feel worth it",
+        "ok i'm not emotional you're emotional. wait no it's me.",
+        "this is just a vibe check and unfortunately i passed",
+        "the way music can say what you've been holding in for months"
+    ],
+    hype:[
+        "ok this song makes me want to run through a wall (respectfully)",
+        "the confidence boost i needed was apparently this song",
+        "whoever plays this at the gym is built different",
+        "this goes so hard i might actually do something with my life",
+        "my pre-game playlist needed this song and didn't know it",
+        "the way this makes me feel unstoppable for 3 minutes",
+        "this song said main character and i said ok bet",
+        "ok we're going to do great things today because of this",
+        "the song that made me finally reply to that email",
+        "this came on and i immediately started walking faster",
+        "not me feeling like i just won something because of a song",
+        "the audacity of this beat to be this good",
+        "this is the song playing in my head when i'm winning",
+        "the song that makes every task feel achievable",
+        "ok if this doesn't hype you up check your pulse",
+        "adding this to my get things done playlist immediately",
+        "the way this rewired my whole brain in 3 minutes",
+        "this song activated something in me and i'm not mad about it",
+        "the energy shift when this comes on is genuinely insane",
+        "me after hearing this: ready to do literally anything",
+        "this is what confidence sounds like apparently",
+        "the song i play when i need to remember i'm that girl/guy",
+        "whoever made this knew people would need it on bad days",
+        "this makes me want to achieve something big rn honestly",
+        "the song that says yes you can and you actually believe it",
+        "my whole demeanor changes when this starts playing",
+        "this is the hype song of the year and it's not even close",
+        "the way i stand differently when this is playing",
+        "this song turned my whole day around in under 4 minutes",
+        "ok the universe sent me this song at exactly the right time",
+        "the way this makes even the smallest task feel epic",
+        "this song is doing something to my dopamine levels",
+        "the beat drop on this? absolutely unreal.",
+        "i can't be stopped when this is in my ears. physically cannot.",
+        "this song said you got this and i actually believed it",
+        "the way this unlocks a different version of me",
+        "putting this on and suddenly i'm the main character in an action movie",
+        "this is my get up and do the thing song and it works every time",
+        "the song that makes me feel like i could move mountains rn",
+        "my brain when this plays: 📈📈📈",
+        "this is peak hype music and i will not be debating this",
+        "the moment this starts everything else stops mattering",
+        "ok i'm not sitting down while this is playing. not possible.",
+        "this song has never once failed to get me going",
+        "the way this hits different when you're actually ready for it",
+        "every single time this comes on i feel like i just leveled up",
+        "this song is basically a cheat code for motivation",
+        "the beat on this is personally attacking my peace (i love it)",
+        "i was having a bad day and then this happened",
+        "this is the song playing at my highlight reel. no notes."
+    ],
+    emotional:[
+        "not me feeling too much because of a song again",
+        "this hit different at a specific hour on a specific day",
+        "the kind of song you listen to when you're not ready to talk about it",
+        "i don't cry. except when this plays. then i cry.",
+        "this song found me when i needed it most and i'm not over it",
+        "the way this song makes everything feel okay for a few minutes",
+        "couldn't say it out loud so i just played this instead",
+        "this is the song i send when words aren't enough",
+        "the song that makes you feel your feelings properly",
+        "ok i was holding it together until this came on",
+        "this is healing in audio form and i'm not okay",
+        "the song that made me finally let myself feel it",
+        "this made me grieve something i didn't even know i was holding",
+        "the way this song just opened something in my chest",
+        "i've been listening to this on repeat and yes i'm fine",
+        "this song is doing things that therapy has been trying to do",
+        "whoever made this went through it and decided to help us all",
+        "the kind of cry this song gives you is actually good though",
+        "this hit so close to home i had to pause and breathe",
+        "the song that says what you couldn't figure out how to say",
+        "listening to this and feeling less alone about everything",
+        "this song understood something about me i'm still figuring out",
+        "the way music can hold things you can't hold yourself",
+        "this is that feeling of missing something you can't name",
+        "not me in my car just sitting in the parking lot with this on",
+        "this song is a hug and also a reminder and also a release",
+        "the way this made me feel seen by someone who doesn't know me",
+        "i think i needed a good cry and this song knew",
+        "this is for everyone who's been keeping it together lately",
+        "the song that breaks you open in the best possible way",
+        "holding this song very close right now",
+        "this made me miss a version of myself i'm still becoming",
+        "ok so apparently i had more feelings than i thought",
+        "the way this song makes sadness feel less heavy",
+        "this is the kind of beautiful that makes you ache",
+        "this song is permission to feel everything at once",
+        "found this at a weird time in my life and it just… got it",
+        "the song that makes you feel less alone at 3am",
+        "this hit different after what happened and i'm still processing",
+        "the way this song makes grief feel less impossible",
+        "sometimes you need a song that just holds space for you",
+        "this is the song for the feelings you haven't named yet",
+        "the way i can't even explain what this makes me feel",
+        "this song is the reason i believe in music honestly",
+        "something about this unlocked memories i forgot i had",
+        "the specific ache this song creates is kind of beautiful",
+        "this is for the moments that were everything and then weren't",
+        "i was okay and then this started and now i'm not but it's fine",
+        "the song that gives your feelings a place to land",
+        "this made me cry for all the right reasons"
+    ],
+    aesthetic:[
+        "this is my whole aesthetic in 3 minutes",
+        "the song that matches every mood board i've ever made",
+        "this is what my pinterest board sounds like",
+        "found the sonic equivalent of golden hour",
+        "the song for every slow motion moment you've ever lived",
+        "this sounds like film grain and polaroids and something beautiful",
+        "the vibe is so specific and so perfect i can't explain it",
+        "this is a whole world in a song and i want to live in it",
+        "the way this sounds like nostalgia for something that hasn't happened yet",
+        "this is what living cinematically sounds like",
+        "the song for driving through cities at night",
+        "this sounds exactly like how i want my life to feel",
+        "the specific aesthetic this creates is unmatched honestly",
+        "this is the music playing in the version of my life i want",
+        "every frame of this feels handpicked and perfect",
+        "the song that makes ordinary moments feel like art",
+        "this sounds like the life you're building in your head",
+        "the way this creates a whole atmosphere in seconds",
+        "this is what slow living actually sounds like",
+        "the song for the parts of life that are quiet and good",
+        "this gives me that specific feeling of everything being right",
+        "sounds like morning light through curtains and i'm obsessed",
+        "the song that makes you want to document every second",
+        "this is the aesthetic i've been trying to achieve in life",
+        "the way this would look if it were a photo: perfect",
+        "this sounds like a memory that hasn't happened yet",
+        "the song for journal entries and slow mornings and good light",
+        "this is the energy i want my entire life to have",
+        "the soundtrack to every beautiful mundane moment",
+        "this gives that feeling of watching life from the outside and liking it",
+        "the song that makes you want to press pause on time",
+        "this is what it sounds like when everything lines up right",
+        "the aesthetic this creates in my head is everything",
+        "this sounds like autumn and coffee and finally being okay",
+        "the song for the moments you want to remember forever",
+        "this is exactly the kind of beautiful i'm chasing",
+        "sounds like film photography and i'm not over it",
+        "the song for when life is soft and good and you notice it",
+        "this is what living slowly and intentionally sounds like",
+        "the way this makes me want to go somewhere beautiful immediately",
+        "this sounds like a story i want to be in",
+        "the song that makes existing feel like an art form",
+        "this is the vibe i set my whole life up to feel",
+        "the way this sounds like coming home",
+        "this is the music playing in my idealized morning routine",
+        "the song for when you finally have what you were looking for",
+        "this sounds like every good thing that's ever happened to me",
+        "the aesthetic here is just: everything. completely everything.",
+        "this is what the good version of today sounds like",
+        "the song that makes being alive feel intentional"
+    ],
+    chaotic:[
+        "this song is unhinged and i respect it deeply",
+        "whoever made this was going through it and i support them",
+        "the chaos in this track matches my internal monologue perfectly",
+        "this is what my brain sounds like at full capacity",
+        "i am normal about this song (i am not normal about this song)",
+        "ok we're going feral to this. it's decided.",
+        "the villain arc started the second this came on",
+        "this is so chaotic and so good and i'm choosing both",
+        "my therapist told me to find healthy outlets so: this",
+        "the song i play when i need to externalize the internal chaos",
+        "this is what choosing violence looks like sonically",
+        "not me losing my mind because a song is too good",
+        "the energy in this has no business being this intense",
+        "ok so this song just broke something in me in a fun way",
+        "i woke up and chose this energy and i stand by it",
+        "this is the soundtrack to making questionable decisions confidently",
+        "the way this song gives me permission to just be unhinged",
+        "this is for the days where you're a little bit feral",
+        "the song for when you stopped caring and it's going great",
+        "chaotic good energy and this song is the proof",
+        "my calm playlist does not include this. my real playlist does.",
+        "the way this makes bad decisions sound really reasonable",
+        "this song is a warning and also an invitation",
+        "the energy shift when this plays is genuinely dangerous",
+        "i woke up feeling normal and this fixed that immediately",
+        "the song for burning bridges and looking good doing it",
+        "this is what throwing caution to the wind sounds like",
+        "my self-control when this comes on: completely gone",
+        "ok but the chaos is the point and i think we all get that",
+        "the way this makes you want to do something spontaneous immediately",
+        "this gave me the unhinged energy i needed for today",
+        "the song for when you want to be a little bit of a menace",
+        "this is peak do-whatever-you-want energy and i'm here for it",
+        "the way this song is basically a chaos spell",
+        "ok so i'm normal until this starts playing. then it's over.",
+        "this is the song for the moment you stopped being reasonable",
+        "the energy here is: absolutely unhinged. no notes.",
+        "this song said choose chaos and honestly??? valid.",
+        "my responsible self does not know this song exists",
+        "the way this makes being chaotic feel like a lifestyle choice",
+        "this is the music of doing things without thinking about it first",
+        "the song that makes consequences feel like future you's problem",
+        "i have no explanation for why this works. it just does.",
+        "this is so much and i want more of it",
+        "the song for every decision that started with 'you know what'",
+        "this energy is contagious and i'm actively not stopping it",
+        "the way this makes everything feel like a good idea temporarily",
+        "this is peak chaotic energy and i've accepted who i am",
+        "the song for when you said yes before thinking about it",
+        "this is the audio equivalent of running into traffic (metaphorically)"
+    ],
+    night:[
+        "this is a 2am song and you know it",
+        "the song that only hits after midnight for some reason",
+        "night drives hit different with this one on",
+        "something about 3am and this song just makes sense",
+        "this is the music for everyone who's still awake right now",
+        "the song for walking home alone at night and being fine with it",
+        "this is what late nights and overthinking sounds like",
+        "the city looks different when this is playing and i like it",
+        "this song was made for streetlights and quiet roads",
+        "the way this feels like the whole night belongs to you",
+        "this is the soundtrack to cities you don't know",
+        "for everyone having a moment at an unreasonable hour: this",
+        "night shifts, late nights, early mornings: this song covers it",
+        "the song that makes insomnia actually kind of beautiful",
+        "this is for the version of you that only comes out at night",
+        "found this at 1am and now it's my whole personality",
+        "the way this song makes late nights feel cinematic",
+        "this is what the city looks like when everyone else is asleep",
+        "the song for thinking about things you don't think about in daylight",
+        "this makes the dark feel less scary and more like yours",
+        "the 3am playlist needed this and didn't know it",
+        "this is the sound of being awake when you shouldn't be",
+        "the way this makes staying up late feel like a choice not a problem",
+        "this song is the reason i'm still awake honestly",
+        "everything is different at night and this song knows it",
+        "the song for the conversations that only happen after midnight",
+        "this is what quiet streets and low lights sound like",
+        "the specific feeling of the night being yours: this song",
+        "for everyone who does their best thinking when they should be sleeping",
+        "this made my midnight drive feel like a whole movie",
+        "the song that makes 4am feel like the most alive you've been",
+        "this is the music for moments the daylight doesn't know about",
+        "the way this sounds like secrets and good decisions mixed together",
+        "this song is for the late nights that turned into the best nights",
+        "something about this time of night and this song is everything",
+        "the song for when the world is quiet and your thoughts aren't",
+        "this is the perfect background for nights that feel heavy",
+        "the way this makes being alone at night feel like freedom",
+        "this song makes me grateful for the nights i don't remember being tired",
+        "for every night that needed a soundtrack: this is the one",
+        "the song for windows down, empty roads, no destination",
+        "this is for the nights you remember years from now",
+        "the way night changes everything and this song captures it",
+        "this is the music for midnight clarity and dark thoughts and good feelings",
+        "the song for late nights when your brain won't let you rest",
+        "this makes the hours after midnight feel intentional",
+        "for the nights when being awake feels like the right choice",
+        "the song playing in the background of every good late night memory",
+        "this is what it sounds like when the night belongs to you",
+        "the way this song makes you want the night to never end"
+    ]
 };
-let selectedCategory='energy';
+let selectedCategory='vibe';
 document.querySelectorAll('.caption-cat-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.caption-cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');selectedCategory=btn.dataset.category;};});
 document.getElementById('random-caption-btn').onclick=()=>{
     const arr=viralCaptions[selectedCategory],rnd=arr[Math.floor(Math.random()*arr.length)];
