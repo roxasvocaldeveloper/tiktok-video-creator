@@ -54,7 +54,7 @@
         .trim-handle::after { content: ''; width: 2px; height: 14px; background: white; border-radius: 1px; }
         .handle-left { left: -8px; border-radius: 6px 0 0 6px; }
         .handle-right { right: -8px; border-radius: 0 6px 6px 0; }
-        .waveform-wrapper { position: relative; width: 100%; height: 60px; background: #000; }
+        .waveform-wrapper { position: relative; width: 100%; height: 100px; background: #000; }
         #waveform { width: 100%; height: 100%; pointer-events: none; }
         .btn-sv { background: linear-gradient(135deg, var(--sv-blue) 0%, var(--sv-purple) 100%); transition: all 0.3s ease; }
         .btn-sv:hover { filter: brightness(1.1); transform: scale(1.02); }
@@ -141,7 +141,7 @@
             </div>
             <div class="flex gap-3 w-[290px]">
                 <button id="toggle-guide" class="flex-1 px-4 py-2 bg-zinc-900 rounded-full text-[9px] font-black uppercase border border-zinc-800 hover:border-blue-500 transition-all text-zinc-400 hover:text-white">TikTok UI</button>
-                <button id="toggle-watermark" class="toggle-btn text-[9px] px-3 py-2"><i data-lucide="zoom-in" class="w-3 h-3"></i>VEO</button>
+                <button id="toggle-watermark" class="toggle-btn active text-[9px] px-3 py-2"><i data-lucide="zoom-out" class="w-3 h-3"></i>VEO</button>
             </div>
         </div>
     </div>
@@ -206,7 +206,7 @@
                             <span id="audio-start-label" class="text-zinc-500 text-[9px]">Start: 0.0s</span>
                         </div>
                     </div>
-                    <div class="trimmer-track h-[56px]" id="a-trimmer-track">
+                    <div class="trimmer-track h-[100px]" id="a-trimmer-track">
                         <div class="waveform-wrapper"><canvas id="waveform"></canvas></div>
                         <div id="audio-playhead" class="playhead-cursor" style="left:0;display:none;"></div>
                         <div id="audio-trim-overlay" class="trim-overlay"></div>
@@ -221,22 +221,13 @@
                     <span class="text-[10px] font-black uppercase text-violet-300">✨ Caption Virali</span>
                     <button id="random-caption-btn" class="px-2.5 py-1 bg-violet-600 hover:bg-violet-500 rounded-lg text-[9px] font-black uppercase flex items-center gap-1"><i data-lucide="shuffle" class="w-3 h-3"></i>Random</button>
                 </div>
-                <div class="grid grid-cols-5 gap-1">
-                    <button class="caption-cat-btn active" data-category="energy">Energy</button>
-                    <button class="caption-cat-btn" data-category="chill">Chill</button>
-                    <button class="caption-cat-btn" data-category="emotional">Emotional</button>
-                    <button class="caption-cat-btn" data-category="party">Party</button>
-                    <button class="caption-cat-btn" data-category="nostalgic">Nostalgic</button>
-                    <button class="caption-cat-btn" data-category="romantic">Romantic</button>
-                    <button class="caption-cat-btn" data-category="dark">Dark</button>
-                    <button class="caption-cat-btn" data-category="uplifting">Uplifting</button>
-                    <button class="caption-cat-btn" data-category="sensual">Sensual</button>
-                    <button class="caption-cat-btn" data-category="dreamy">Dreamy</button>
+                <div class="grid grid-cols-3 gap-1">
+                    <button class="caption-cat-btn active" data-category="pov">POV</button>
                     <button class="caption-cat-btn" data-category="relatable">Relatable</button>
-                    <button class="caption-cat-btn" data-category="savage">Savage</button>
-                    <button class="caption-cat-btn" data-category="aesthetic">Aesthetic</button>
-                    <button class="caption-cat-btn" data-category="chaotic">Chaotic</button>
-                    <button class="caption-cat-btn" data-category="main">Main Char</button>
+                    <button class="caption-cat-btn" data-category="hype">Hype</button>
+                    <button class="caption-cat-btn" data-category="feelings">Feelings</button>
+                    <button class="caption-cat-btn" data-category="lifestyle">Lifestyle</button>
+                    <button class="caption-cat-btn" data-category="notturno">Notturno</button>
                 </div>
             </div>
             <textarea id="caption-input" rows="2" placeholder="Scrivi il testo qui..." class="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none font-semibold"></textarea>
@@ -285,12 +276,12 @@
 
 <script>
 lucide.createIcons();
-
-const video=document.getElementById('main-video'),audio=document.getElementById('bg-music'),caption=document.getElementById('caption-overlay'),videoContainer=document.getElementById('drop-zone'),vTrimOverlay=document.getElementById('video-trim-overlay'),aTrimOverlay=document.getElementById('audio-trim-overlay'),vTrimmerTrack=document.getElementById('v-trimmer-track'),aTrimmerTrack=document.getElementById('a-trimmer-track'),vPlayhead=document.getElementById('video-playhead'),aPlayhead=document.getElementById('audio-playhead'),waveCanvas=document.getElementById('waveform'),waveCtx=waveCanvas.getContext('2d');
+// VEO attivo di default
+video.style.transform='scale(1.1)';,audio=document.getElementById('bg-music'),caption=document.getElementById('caption-overlay'),videoContainer=document.getElementById('drop-zone'),vTrimOverlay=document.getElementById('video-trim-overlay'),aTrimOverlay=document.getElementById('audio-trim-overlay'),vTrimmerTrack=document.getElementById('v-trimmer-track'),aTrimmerTrack=document.getElementById('a-trimmer-track'),vPlayhead=document.getElementById('video-playhead'),aPlayhead=document.getElementById('audio-playhead'),waveCanvas=document.getElementById('waveform'),waveCtx=waveCanvas.getContext('2d');
 
 let videoFile,audioFile,videoDuration=0,audioDuration=0,vStart=0,vEnd=15,aStart=0;
 const MAX_DUR=30;
-let outlineEnabled=true,removeWatermark=false,isDraggingV=null,isDraggingA=false,dragOffsetV=0,dragOffsetA=0;
+let outlineEnabled=true,removeWatermark=true,isDraggingV=null,isDraggingA=false,dragOffsetV=0,dragOffsetA=0;
 let videoLibrary=[],audioLibrary=[],currentVideoIndex=0,currentAudioIndex=-1;
 const MAX_QUEUE_SIZE=20;
 let videoQueue=[],currentQueueIndex=-1,hasUnsavedChanges=false;
@@ -463,7 +454,7 @@ window.onmouseup=()=>{isDraggingV=null;isDraggingA=false;};
 document.getElementById('video-input').onchange=(e)=>{const f=Array.from(e.target.files);if(!f.length)return;videoLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();loadVideoFromLibrary(0);notify(`✓ ${videoLibrary.length} video`,'blue');};
 document.getElementById('audio-input').onchange=(e)=>{const f=Array.from(e.target.files);if(!f.length)return;audioLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();notify(`✓ ${audioLibrary.length} audio`,'violet');};
 document.getElementById('audio-selector').onchange=()=>{loadAudioFromSelector();markChanged();};
-document.getElementById('play-btn').onclick=()=>{if(video.paused){video.play();if(audio.src){audio.currentTime=aStart+(video.currentTime-vStart);audio.play().catch(()=>{});}updatePlayIcon(true);}else{video.pause();audio.pause();updatePlayIcon(false);}};
+document.getElementById('play-btn').onclick=()=>{if(video.paused){video.currentTime=vStart;if(audio.src){audio.currentTime=aStart;}video.play();if(audio.src){audio.play().catch(()=>{});}updatePlayIcon(true);}else{video.pause();audio.pause();updatePlayIcon(false);}};
 function syncPlayback(){video.currentTime=vStart;if(audio.src)audio.currentTime=aStart;if(!video.paused){video.play();if(audio.src)audio.play().catch(()=>{});}}
 function updatePlayIcon(p){document.getElementById('play-icon').setAttribute('data-lucide',p?'pause':'play');lucide.createIcons();}
 
@@ -681,23 +672,320 @@ updateQueueUI();
 
 // ── Viral Captions ──
 const viralCaptions={
-    energy:["This song hits different at max volume","POV: You just found your new hype song","When the drop hits and you levitate","This energy is UNMATCHED","Warning: This will make you run through walls","The beat said GO CRAZY","This song woke up and chose violence","My neighbors hate this song (I love it)","POV: The gym just got 10x harder","This is what confidence sounds like","When the song matches your adrenaline","This beat said NO CHILL MODE","The song that makes you walk faster","POV: Main character moment activated","This will be your new alarm sound","When music becomes your pre-workout","The bass drop changed my life","This song slaps at ANY tempo","POV: You just discovered pure energy","This beat goes too hard for no reason"],
-    chill:["This song is a whole VIBE","POV: Perfect sunset soundtrack found","When the song just... gets it","This is what peace sounds like","The vibe is immaculate fr","POV: You found your comfort song","This song = instant calm","When music becomes meditation","The perfect background for life","POV: All stress just left the chat","This song is a warm blanket","When the vibes are TOO smooth","This is what heaven sounds like","POV: Your safe space in audio form","The song for 3am thoughts","This vibe is EVERYTHING","When music slows down time","POV: You just discovered serenity","This song makes life better","The perfect coffee shop soundtrack"],
-    emotional:["This song BROKE me in the best way","POV: You're crying but make it aesthetic","When the lyrics hit TOO close","This song sees my soul","The song that made me FEEL everything","POV: Having a full breakdown (gorgeous)","When music validates your emotions","This song understands me too well","POV: Tears but make it cinematic","The song that opened my heart","When lyrics become therapy","This hit different at 2am","POV: You're the main character crying","The song I needed to hear","When music puts pain into words","This song is emotional damage","POV: Finally someone gets it","The song that broke the dam","When music heals old wounds","This made me feel SEEN"],
-    party:["This song OWNS the function","POV: The party just peaked","When THIS comes on everybody moves","The song that starts celebrations","POV: Club went INSANE","This is the party anthem we needed","When the DJ plays this = CHAOS","POV: The night just got started","This song makes strangers best friends","The perfect pregame soundtrack","When the beat drops the room ERUPTS","POV: Everyone knows the words","This is what celebration sounds like","The song that fills dance floors","When music becomes pure joy","POV: The party peaked RIGHT HERE","This makes EVERYONE move","The ultimate turn up anthem","When the song says LET'S GO","POV: The vibes are IMMACULATE"],
-    nostalgic:["This unlocked a CORE memory","POV: Transported back in time","When the song brings back EVERYTHING","This hit different than expected","POV: Feeling all the feels right now","The song I forgot I needed","When music becomes a time machine","This brought back the OLD me","POV: Nostalgia hitting HARD","The soundtrack to better days","When a song reopens closed chapters","This takes me BACK back","POV: Memory lane activated","The song from simpler times","When music resurrects moments","This unlocked forgotten feelings","POV: Teenage dreams resurfacing","The song that aged like wine","When nostalgia hits just right","This brought tears AND smiles"],
-    romantic:["This song IS the moment before the kiss","POV: Falling in love in real time","When the song describes THEM perfectly","This is what butterflies sound like","POV: Your love story got a soundtrack","The song that makes you text them","When music captures the feeling","This is romance in audio form","POV: Love at first listen","The perfect song for slow dancing","When the lyrics say everything","This made me believe in soulmates","POV: The universe is speaking","The song for confession moments","When music becomes cupid","This is what destiny sounds like","POV: Catching feelings via audio","The soundtrack to first dates","When a song writes your vows","This describes us TOO well"],
-    dark:["This song lives in the shadows","POV: Your villain origin story","When the vibe is DANGEROUSLY good","This is what midnight sounds like","POV: Dark side fully activated","The song for mysterious hours","When music embraces the darkness","This makes me feel DANGEROUS","POV: Walking alone at night energy","The perfect song for plotting","When the vibe turns sinister (tastefully)","This is hauntingly beautiful","POV: Anti-hero anthem found","The song that owns the night","When music goes to dark places","This is seductively twisted","POV: Embracing the shadow self","The soundtrack to beautiful chaos","When the song gets under your skin","This is deliciously dark"],
-    uplifting:["This song literally HEALS souls","POV: Everything's gonna be okay","When the song says KEEP GOING","This is pure sunshine in audio","POV: Hope restored instantly","The song that lifts spirits","When music becomes encouragement","This made me believe again","POV: Finding light in the sound","The perfect pick-me-up anthem","When the song says YOU GOT THIS","This is what joy sounds like","POV: Bad day officially cancelled","The song that changes moods","When music becomes motivation","This is instant happiness","POV: The sunshine I needed","The anthem for better days","When the song reminds you to smile","This is what hope sounds like"],
-    sensual:["This song is CRIMINALLY smooth","POV: The vibe just got intimate","When the song sets the mood PERFECTLY","This is dangerously seductive","POV: Temperature rising rapidly","The song that makes you feel something","When music becomes pure tension","This is what desire sounds like","POV: The vibe shifted to 100","The perfect late night soundtrack","When the song gets under your skin","This is intoxicatingly smooth","POV: Caught in the moment","The song for close encounters","When music creates chemistry","This is seduction in audio form","POV: The song knows exactly what to do","The anthem for intimate moments","When the vibe is TOO smooth","This makes you feel everything"],
-    dreamy:["This song feels like floating","POV: Lost in the soundscape","When the song becomes a journey","This is what clouds sound like","POV: Drifting away beautifully","The perfect song for daydreaming","When music creates another world","This is pure ethereal magic","POV: Ascending to new dimensions","The soundtrack to imagination","When the song feels weightless","This is what dreams sound like","POV: Reality who? I'm HERE now","The song for cosmic thoughts","When music becomes meditation","This is otherworldly beautiful","POV: Transcending through sound","The perfect escape anthem","When the song lifts your spirit","This is celestial perfection"],
-    relatable:["No because WHY is this so accurate","POV: Being perceived and it's uncomfortable","When the song calls you out personally","This is attacking me specifically","POV: Feeling seen (not in a good way)","The song that read my mind","When music becomes too relatable","This described my life TOO well","POV: Did we live the same life?","The song that gets it","When the lyrics are YOUR diary","This is literally about me fr","POV: Stop being so accurate challenge","The song that KNOWS","When music exposes you","This hit way too close to home","POV: Feeling attacked by a song","The anthem for overthinkers","When the song reads you","This is my Roman Empire"],
-    savage:["This song said VIOLENCE","POV: Choosing chaos today","When the vibe is UNHINGED","This is your villain moment","POV: Absolutely NO CHILL activated","The song for petty hours","When music becomes attitude","This is what savage sounds like","POV: Burnt all the bridges (deservedly)","The perfect clap back anthem","When the song says TRY ME","This is confidence weaponized","POV: Done being nice","The anthem for standing up","When music becomes power move","This said what I was thinking","POV: Energy switched to dangerous","The song for calling people out","When the vibe is BOLD","This is what audacity sounds like"],
-    aesthetic:["This is my entire AESTHETIC","POV: Finding your vibe in audio form","When the song matches your energy","This IS the mood board","POV: Your aesthetic got a soundtrack","The perfect song for your brand","When music becomes visual","This captures the VIBE perfectly","POV: Living in the aesthetic","The song that matches your style","When the sound IS the aesthetic","This is mood in audio form","POV: Your Pinterest board playing","The perfect vibe soundtrack","When music matches aesthetics","This is what style sounds like","POV: The aesthetic is IMMACULATE","The song for your energy","When the vibe is PERFECT","This matches my whole aesthetic"],
-    chaotic:["This song is UNHINGED energy","POV: Chaos chose me today","When the vibe is PURE CHAOS","This is what madness sounds like","POV: Absolutely losing it (lovingly)","The perfect song for wild energy","When music becomes disorder","This is organized chaos","POV: Sanity left the chat","The anthem for chaotic souls","When the song matches the chaos","This is what mayhem sounds like","POV: Embracing the madness","The perfect soundtrack to chaos","When music becomes anarchy","This is pure pandemonium","POV: Chaotic neutral energy","The song for wild moments","When the vibe is UNCONTROLLED","This is what chaos sounds like"],
-    main:["POV: You're the main character NOW","This is YOUR moment starting","When the song makes you THE ONE","This is main character energy","POV: Your movie montage playing","The perfect protagonist anthem","When music makes you legendary","This is what spotlight sounds like","POV: Everyone's watching YOU","The song for YOUR story","When the moment is YOURS","This is protagonist energy","POV: Life became a movie","The anthem for main characters","When music crowns you","This is what destiny sounds like","POV: Your era has begun","The perfect moment soundtrack","When the song chooses YOU","This is main character vibes"]
+    pov:[
+        "pov: stai guidando di notte e parte questa canzone",
+        "pov: è venerdì sera e finalmente sei libero",
+        "pov: ti svegli e fuori piove ma questa canzone ti salva",
+        "pov: sei in macchina con i tuoi amici e la vita è bella",
+        "pov: stai camminando come se fossi in un film",
+        "pov: hai messo gli auricolari e il mondo è sparito",
+        "pov: è l'ultima estate prima che tutto cambi",
+        "pov: stai tornando a casa alle 3 di notte",
+        "pov: hai trovato la canzone giusta al momento giusto",
+        "pov: stai guardando fuori dal finestrino del treno",
+        "pov: sei solo in casa e ti metti a ballare",
+        "pov: è domenica mattina e non devi fare niente",
+        "pov: stai correndo e questa canzone ti fa volare",
+        "pov: ti sei messo le cuffie e non vuoi più toglierle",
+        "pov: stai aspettando qualcuno e parte questa canzone",
+        "pov: è l'ultima notte prima di una nuova fase della tua vita",
+        "pov: stai bevendo il caffè da solo e sei finalmente in pace",
+        "pov: hai ritrovato questa canzone dopo anni",
+        "pov: stai preparando la valigia e non sai quando torni",
+        "pov: sei al tramonto con le persone giuste",
+        "pov: hai appena fatto qualcosa di coraggioso",
+        "pov: stai guidando senza una meta precisa",
+        "pov: è il tuo compleanno e ti senti invincibile",
+        "pov: finalmente ti stai mettendo al primo posto",
+        "pov: stai camminando da solo e ti senti libero",
+        "pov: è una di quelle serate che ricorderai per sempre",
+        "pov: hai lasciato andare qualcosa che non ti apparteneva più",
+        "pov: stai guardando il soffitto alle 2 di notte",
+        "pov: ti sei svegliato e per una volta tutto va bene",
+        "pov: stai aspettando che arrivi la tua canzone preferita",
+        "pov: sei nel posto sbagliato con le persone giuste",
+        "pov: stai ballando in cucina alle 11 di sera",
+        "pov: hai mandato il messaggio e ora aspetti",
+        "pov: stai guardando le foto di un anno fa",
+        "pov: è lunedì mattina ma tu ti senti di un sabato sera",
+        "pov: finalmente stai vivendo nel momento",
+        "pov: sei in aereo e guardi le nuvole",
+        "pov: hai smesso di spiegarti a chi non capisce",
+        "pov: stai camminando sotto la pioggia senza ombrello",
+        "pov: stai ascoltando questa canzone per la 47esima volta",
+        "pov: è la prima volta che ti senti davvero te stesso",
+        "pov: stai aspettando che cambi qualcosa",
+        "pov: sei finalmente arrivato dove volevi",
+        "pov: stai scrivendo un messaggio che non manderai mai",
+        "pov: hai trovato il tuo posto nel mondo",
+        "pov: stai guardando il mare e non pensi a niente",
+        "pov: è venerdì e hai sopravvissuto anche questa settimana",
+        "pov: stai cambiando e non sai ancora in cosa",
+        "pov: hai deciso di smetterla di aspettare",
+        "pov: sei esattamente dove dovevi essere"
+    ],
+    relatable:[
+        "questa canzone vive nella mia testa senza pagare l'affitto",
+        "non riesco a smettere di ascoltarla e non ho spiegazioni",
+        "qualcuno mi spieghi perché piango ogni volta che la sento",
+        "non chiedermi come sto, mettiti le cuffie e capito da solo",
+        "l'ho messa in loop da 3 giorni e non ho rimpianti",
+        "ogni volta che parte mi dimentico di tutto",
+        "se non hai sentito questa canzone hai perso tempo prezioso",
+        "non so che problema ho ma questa canzone mi sistema tutto",
+        "l'ho scoperta per caso e ora non posso più fare senza",
+        "questa è la canzone che mandi a qualcuno senza dire niente",
+        "ogni persona nella mia vita ha una canzone e questa è la tua",
+        "non capisco come facevo prima che esistesse questa canzone",
+        "la ascolto quando voglio sembrare che sto bene",
+        "questa canzone sa cose su di me che non ho detto a nessuno",
+        "qualcuno mi ha suggerito questa canzone e ora sono diverso",
+        "non so perché mi fa questo effetto ma non voglio smettere",
+        "la ascolto ogni giorno e ogni giorno colpisce diverso",
+        "non riesco a spiegare quanto mi piaccia questa canzone",
+        "ho trovato la canzone giusta per ogni mio umore sbagliato",
+        "questa è la canzone che metto quando ho bisogno di ritrovarmi",
+        "non ho parole. ascoltate solo.",
+        "l'algoritmo sapeva esattamente cosa mi serviva stasera",
+        "questa canzone descrive esattamente la sensazione che non riuscivo a spiegare",
+        "qualcuno mi ha cambiato la vita senza saperlo mettendomi questa canzone",
+        "non pensavo che una canzone potesse farmela così",
+        "questa canzone capisce me meglio di molte persone",
+        "ogni volta che la sento mi ricordo perché amo la musica",
+        "non so chi sei ma grazie per aver fatto questa canzone",
+        "la mia playlist del momento è praticamente questa in loop",
+        "questa è la canzone che mando quando non so come stare vicino a qualcuno",
+        "ho ascoltato questa canzone in ogni mood possibile e funziona sempre",
+        "non so spiegarti cosa mi fa ma devi sentirla",
+        "questa è diventata la colonna sonora della mia vita senza che me ne accorgessi",
+        "trovi questa canzone per caso e poi non è più un caso",
+        "non stavo cercando questa canzone ma era esattamente quello che cercavo",
+        "la ascolto e ogni volta trovo qualcosa di nuovo",
+        "questa è la canzone che salvo nella playlist senza nemmeno pensarci",
+        "non esiste un momento sbagliato per questa canzone",
+        "questa canzone era lì ad aspettarmi",
+        "l'ha messa il mio amico in macchina e ora è colpa sua",
+        "dovevo fare cose. invece ho ascoltato questa in loop per un'ora.",
+        "non ho ancora capito perché mi piace così tanto e va bene così",
+        "questa canzone è come quel posto che ti fa sentire a casa",
+        "la consiglio a tutti ma poi me la tengo per me",
+        "ci sono canzoni che ascolti e canzoni che senti. questa è del secondo tipo.",
+        "ogni volta che finisce la rimetto dall'inizio automaticamente",
+        "questa canzone esiste da prima che la scoprissi e questo mi spaventa",
+        "non so quante volte l'ho ascoltata ma spotify sì",
+        "questa la metto sempre quando non so cosa mettere",
+        "mi ha salvato la serata e non lo sapeva"
+    ],
+    hype:[
+        "nessuno è pronto per questa canzone",
+        "hanno fatto un capolavoro e basta",
+        "questa è la canzone dell'estate, punto.",
+        "non si può ascoltare piano. impossibile.",
+        "il drop mi spezza ogni volta, ogni singola volta",
+        "questa canzone dovrebbe essere illegale",
+        "ho bisogno che tutti la sentano adesso",
+        "non esiste una canzone più perfetta di questa in questo momento",
+        "questa mi dà una carica assurda non so spiegarlo",
+        "quando parte questa in discoteca il locale è finito",
+        "il ritornello è troppo forte non si può",
+        "non mi stanco mai di questa canzone. mai.",
+        "questa la metti e tutto ha senso",
+        "chi ha fatto questa canzone ha capito tutto",
+        "questa è la canzone per cui vale la pena avere le casse",
+        "volume al massimo o non vale",
+        "questa canzone mi fa venire voglia di fare cose",
+        "ogni volta che parte mi viene da saltare",
+        "non so dove stai ma metti questa canzone ora",
+        "questa mi rimette in piedi sempre",
+        "qualcuno dica all'artista che ha distrutto tutto con questa",
+        "non era previsto che fosse così brava",
+        "questa è la risposta a qualsiasi domanda",
+        "quando arriva il drop non mi controllo più",
+        "questa canzone non ha difetti. zero.",
+        "ho sentito questa in cuffia e ho quasi pianto di felicità",
+        "metti questa e dimmi che non ti fa venire voglia di correre",
+        "questa è la canzone che metterei al mio matrimonio senza pensarci",
+        "ogni secondo di questa canzone è perfetto",
+        "non ho ancora capito come una canzone può essere così buona",
+        "questa è la canzone che fa sembrare tutto possibile",
+        "chi non conosce questa canzone sta perdendo",
+        "non mi interessa il genere. questa è bella e basta.",
+        "questa canzone ti prende e non ti lascia più",
+        "finalmente una canzone che mi fa dimenticare tutto",
+        "hanno fatto uscire questo e pensavano che rimanessimo calmi?",
+        "questa la conosco da 3 giorni e mi sembra di conoscerla da sempre",
+        "non c'è niente di sbagliato in questa canzone",
+        "questa è già nella mia top 5 della vita",
+        "ogni volta che finisce mi manca",
+        "questa canzone ha troppa energia per le mie cuffie",
+        "non riesco ad ascoltarla senza muovermi",
+        "questa è la canzone che vuoi sempre sentire ma non ricordi mai il titolo",
+        "ho messo questa e improvvisamente ho voglia di vivere",
+        "questa è la canzone che ti fa credere in te stesso",
+        "non pensavo potesse piacermi così tanto e invece eccomi qui",
+        "questa è la mia canzone del momento e del prossimo mese",
+        "hanno fatto uscire questa canzone e io sto ancora qui a riprendermi",
+        "questa è la canzone che metti e subito cambia l'atmosfera",
+        "non esiste umore che questa canzone non riesca a sistemare"
+    ],
+    feelings:[
+        "non sapevo come stavo finché non ho sentito questa canzone",
+        "questa canzone è come parlare con qualcuno che ti capisce davvero",
+        "l'ho sentita e ho capito cosa stavo cercando di elaborare",
+        "alcune canzoni le ascolti, questa la senti nel petto",
+        "non piango, è solo che questa canzone è troppo onesta",
+        "questa mi ha trovata in un momento difficile e mi ha salvata",
+        "è strano quanto una canzone possa dirti quello che non riesci a dirti da solo",
+        "questa canzone sa esattamente cosa provo anche quando io non lo so",
+        "ho mandato questa canzone a qualcuno invece di spiegare come stavo",
+        "alcune canzoni esistono per farti stare meglio. questa è una di quelle.",
+        "non voglio spiegare il perché, voglio solo che tu la ascolti",
+        "questa è la canzone che metti quando le parole non bastano",
+        "ho ascoltato questa in macchina e ho quasi dovuto accostare",
+        "non pensavo che qualcuno potesse mettere in musica esattamente questo",
+        "questa canzone è come un abbraccio che non sai di volere",
+        "l'ho sentita e per un secondo tutto ha avuto senso",
+        "questa è la canzone per le sere in cui non sai cosa vuoi",
+        "quando non riesco a dormire questa canzone è lì",
+        "non so se sono io o la canzone ma ogni volta mi commuovo",
+        "questa è la canzone che mi ricorda che andrà meglio",
+        "l'ho trovata in un momento in cui ne avevo bisogno e non era un caso",
+        "questa canzone mi fa sentire meno sola",
+        "non si tratta solo della musica, si tratta di come ti fa sentire",
+        "questa è la canzone che ascolto quando ho bisogno di piangere ma non ci riesco",
+        "ogni volta che finisce ho voglia di ricominciare da capo",
+        "questa mi ha fatto capire cose che non riuscivo a vedere",
+        "l'ho dedicata a qualcuno senza dirgli niente",
+        "questa canzone parla di me in un periodo che pensavo nessuno capisse",
+        "non è solo bella. è necessaria.",
+        "questa è la canzone che ti fa venire voglia di chiamare qualcuno alle 2",
+        "ho ascoltato questa e ho pianto per cose che non sapevo di avere ancora dentro",
+        "questa canzone è come leggere una lettera scritta per te",
+        "l'ho sentita e ho pensato: finalmente qualcuno l'ha detto",
+        "questa è la canzone che ascolto quando voglio ricordarmi chi sono",
+        "non tutte le canzoni fanno questo. questa sì.",
+        "questa mi ha tolto qualcosa e dato qualcosa allo stesso tempo",
+        "l'ascolto quando ho bisogno di sentire che non sono l'unico",
+        "questa è la canzone per cui hai bisogno di stare in silenzio dopo",
+        "ha detto in 3 minuti quello che io non sono riuscito a dire in mesi",
+        "questa canzone arriva sempre nel momento esatto in cui ne hai bisogno",
+        "l'ho sentita per la prima volta e mi sono fermato tutto",
+        "questa è quella canzone che fa scendere una lacrima e non ti spieghi perché",
+        "non è triste, è onesta. c'è differenza.",
+        "questa canzone mi ricorda che anche i momenti difficili passano",
+        "l'ho condivisa senza aggiungere niente perché non serviva niente",
+        "questa è la canzone che ascolto quando voglio sentirmi capito",
+        "mi ha fatto piangere e poi stare meglio nello stesso minuto",
+        "non so chi ha scritto questa ma grazie dal profondo",
+        "questa canzone esiste per i momenti in cui non riesci a spiegare",
+        "l'ho ascoltata e mi sono ricordato perché vale la pena andare avanti"
+    ],
+    lifestyle:[
+        "questa è la colonna sonora della mia era migliore",
+        "niente rende una passeggiata migliore di questa canzone",
+        "questa è la canzone per i sabati in cui hai voglia di tutto",
+        "la mia routine del mattino non funziona senza questa",
+        "questa è la canzone per quando esci e ti senti al top",
+        "metto questa e automaticamente sono in modalità produttiva",
+        "questa canzone mi fa venire voglia di riordinare tutta la casa",
+        "per questa canzone vale la pena avere le casse bluetooth",
+        "questa è la colonna sonora perfetta per non pensare a niente",
+        "la metto mentre cucino e improvvisamente sono uno chef",
+        "questa è la canzone per i pomeriggi di sole senza impegni",
+        "niente aperitivo senza questa canzone in sottofondo",
+        "questa è la playlist del venerdì sera concentrata in una canzone",
+        "la metto mentre mi trucco e divento un'altra persona",
+        "questa è la canzone per i viaggi in macchina con il finestrino aperto",
+        "non c'è mood che non si sistemi con questa in cuffia",
+        "questa è la canzone per le domeniche pigre con il sole",
+        "la metto mentre lavoro e smetto di odiare quello che faccio",
+        "questa è la canzone che metti quando vuoi sentirti una persona diversa",
+        "perfetta per la palestra, per casa, per ovunque",
+        "questa è la canzone delle serate estive sul balcone",
+        "la ascolto mentre cammino e mi sento in un film",
+        "questa è la canzone per i giorni in cui ti vuoi bene",
+        "metto questa e automaticamente mi sento in vacanza",
+        "questa è la canzone per quando finalmente hai tempo per te",
+        "la metto di sabato mattina e la giornata è già salvata",
+        "questa è la colonna sonora delle mie migliori versioni",
+        "ogni estate ha la sua canzone. questa è quella giusta.",
+        "questa canzone trasforma qualsiasi posto in un posto bello",
+        "la metto mentre faccio la doccia e diventa un concerto",
+        "questa è la canzone per le serate con gli amici giusti",
+        "metto questa e smetto di stressarmi per 3 minuti almeno",
+        "questa è la canzone dei momenti che vuoi ricordare",
+        "la ascolto quando voglio sentirmi parte di qualcosa di più grande",
+        "questa è la canzone per le persone che vivono nel momento",
+        "metti questa ad alto volume e dimmi che non ti senti meglio",
+        "questa è la canzone delle sere d'estate senza pensieri",
+        "la ascolto mentre guido e divento un'altra versione di me",
+        "questa è la canzone per i compleanni che vuoi che siano speciali",
+        "metto questa mentre aspetto e l'attesa diventa piacevole",
+        "questa è la canzone per quando esci di casa e ti senti pronto",
+        "la metto in viaggio e le ore volano",
+        "questa è la canzone che metti ad un pre-serata e il tono è già impostato",
+        "niente spritz senza questa canzone, è una regola",
+        "questa è la canzone per le serate in cui non hai programmi ma tutto funziona",
+        "la ascolto di mattina e la giornata parte già diversa",
+        "questa è la canzone per i momenti in cui ti senti nel posto giusto",
+        "metto questa e smetto di guardare il telefono per un po'",
+        "questa è la colonna sonora del weekend che aspettavi da mesi",
+        "la ascolto quando ho bisogno di ricordarmi che la vita può essere bella"
+    ],
+    notturno:[
+        "questa canzone è fatta per le 2 di notte, punto.",
+        "nessuno capisce questa canzone se non l'ha sentita di notte",
+        "l'ho messa alle 3 di notte e ho pianto senza sapere il perché",
+        "questa è la canzone per quando non riesci a dormire e non vuoi neanche provarci",
+        "le notti in cui non sai cosa pensi, metti questa.",
+        "questa canzone esiste solo dopo la mezzanotte",
+        "l'ho sentita una notte e non sono più lo stesso",
+        "questa è la canzone per i pensieri che arrivano quando tutti dormono",
+        "non si ascolta di giorno. non funzionerebbe.",
+        "questa canzone suona diversa alle 3 di notte e non riesco a spiegarti perché",
+        "le cose che pensi di notte non le penseresti mai di giorno. questa canzone lo sa.",
+        "questa è la canzone per le notti in cui ti manchi",
+        "l'ho messa in cuffia stanotte e per un po' tutto si è fermato",
+        "di notte le canzoni fanno cose diverse. questa di più.",
+        "questa canzone è fatta per chi è sveglio quando non dovrebbe esserlo",
+        "l'ho sentita di notte e di giorno non è più la stessa",
+        "questa è la canzone per le notti lunghe che non sai come finiscono",
+        "alle 2 di notte tutto ha più senso con questa in cuffia",
+        "questa è la colonna sonora delle notti in cui pensi troppo",
+        "non so perché le canzoni belle sembrano sempre più belle di notte",
+        "questa l'ho scoperta in una notte che non dimenticherò",
+        "è il tipo di canzone che ascolti quando tutti dormono e tu no",
+        "questa canzone è per le notti in cui sei stanco ma non riesci a fermarti",
+        "l'ho messa stanotte e per un momento non esisteva nient'altro",
+        "questa è la canzone per chi pensa troppo quando fa buio",
+        "di notte le cuffie chiudono il mondo fuori. questa canzone lo riapre.",
+        "questa è fatta per chi guarda il soffitto invece di dormire",
+        "l'ho sentita stanotte e mi è rimasta dentro come non pensavo",
+        "alcune canzoni le capisci solo di notte. questa è una di quelle.",
+        "questa è la canzone delle notti in cui non sai se stai bene o no",
+        "l'ho messa mentre guardavo fuori dalla finestra e il tempo si è fermato",
+        "questa canzone e una notte tranquilla: combo perfetta",
+        "è strano quanto le cose sembrino più chiare con questa canzone alle 2",
+        "questa è la canzone per le notti in cui nessuno ti vede",
+        "l'ho sentita in cuffia di notte e mi sembrava di stare in un altro mondo",
+        "questa canzone capisce le notti meglio di me",
+        "la metto sempre quando non riesco a dormire e funziona sempre diversamente",
+        "di notte questa canzone ha un peso diverso. non so spiegarlo.",
+        "questa è la canzone per i pensieri delle 3 che non dici a nessuno",
+        "l'ho ascoltata stanotte e domani sarà un giorno diverso",
+        "questa canzone suona come sembrano le strade di notte quando sei solo",
+        "non esiste momento migliore per questa canzone di adesso, stanotte",
+        "l'ho messa di notte e mi sono ricordato di cose che avevo dimenticato",
+        "questa è la canzone per le notti in cui ti chiedi dove stai andando",
+        "di notte le emozioni sono più oneste. questa canzone lo sa.",
+        "l'ho sentita in cuffia mentre guardavo le luci della città di notte",
+        "questa è la canzone che ascolto quando voglio stare con i miei pensieri",
+        "non so quante notti ho passato con questa canzone ma ognuna valeva",
+        "questa canzone ha qualcosa di notturno anche quando la ascolti di giorno",
+        "l'ho messa stanotte e ho capito cose che aspettavano di essere capite"
+    ]
 };
-let selectedCategory='energy';
+let selectedCategory='pov';
 document.querySelectorAll('.caption-cat-btn').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('.caption-cat-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');selectedCategory=btn.dataset.category;};});
 document.getElementById('random-caption-btn').onclick=()=>{
     const arr=viralCaptions[selectedCategory],rnd=arr[Math.floor(Math.random()*arr.length)];
