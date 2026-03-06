@@ -20,7 +20,7 @@
             cursor: move;
             user-select: none;
             text-align: center;
-            width: 85%;
+            width: 62%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 30;
@@ -37,10 +37,30 @@
                 -1.5px 1.5px 0 var(--outline-color), 1.5px 1.5px 0 var(--outline-color),
                 0px 3px 8px rgba(0,0,0,0.6);
         }
-        .tiktok-ui-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 40; display: block; background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.2) 100%); }
-        .right-actions { position: absolute; right: 8px; bottom: 85px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
-        .action-text { font-size: 8px; font-weight: 600; }
-        .bottom-info { position: absolute; left: 12px; bottom: 20px; max-width: 190px; }
+        .tiktok-ui-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 40; display: block; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 25%, transparent 75%, rgba(0,0,0,0.2) 100%); }
+        /* Right sidebar icons — matches real TikTok layout */
+        .tk-sidebar { position: absolute; right: 6px; bottom: 70px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .tk-icon-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .tk-icon-circle { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.15); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(255,255,255,0.3); }
+        .tk-count { font-size: 7.5px; font-weight: 700; color: #fff; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        /* Avatar with follow + */
+        .tk-avatar-wrap { position: relative; margin-bottom: 2px; }
+        .tk-avatar { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #fff; overflow: hidden; background: #222; }
+        .tk-follow-dot { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: #fe2c55; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid #000; font-size: 9px; color: #fff; font-weight: 900; line-height: 1; }
+        /* Bottom info */
+        .tk-bottom { position: absolute; left: 10px; bottom: 16px; max-width: 58%; }
+        .tk-username { font-size: 11px; font-weight: 800; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+        .tk-desc { font-size: 9.5px; color: rgba(255,255,255,0.92); line-height: 1.35; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .tk-music { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+        .tk-music-note { font-size: 9px; }
+        .tk-music-text { font-size: 8.5px; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+        /* Spinning disc */
+        .tk-disc { position: absolute; right: 6px; bottom: 14px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; animation: spin 4s linear infinite; }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        /* Top bar hint */
+        .tk-topbar { position: absolute; top: 0; left: 0; right: 0; padding: 8px 10px 4px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 100%); }
+        .tk-tab { font-size: 8px; font-weight: 700; color: rgba(255,255,255,0.6); }
+        .tk-tab.active { color: #fff; border-bottom: 1.5px solid #fff; padding-bottom: 1px; }
         .trimmer-track { position: relative; width: 100%; background: #111; border-radius: 12px; border: 1px solid #333; overflow: hidden; cursor: pointer; }
         .thumbnail-track { position: absolute; inset: 0; display: flex; pointer-events: none; opacity: 0.4; }
         .thumbnail-track canvas { height: 100%; flex: 1; object-fit: cover; }
@@ -120,22 +140,65 @@
                     <video id="main-video" crossorigin="anonymous" playsinline loop muted></video>
                     <div id="caption-overlay" class="font-tiktok text-bold-outline" style="top:35%;font-size:12px;color:white;">Scrivi il tuo testo</div>
                     <div id="safe-guide" class="tiktok-ui-overlay">
-                        <div class="right-actions">
-                            <div class="action-item flex flex-col items-center">
-                                <div class="w-9 h-9 rounded-full border border-white bg-zinc-800 mb-1 overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=SV" alt="av"></div>
+                        <!-- Top bar -->
+                        <div class="tk-topbar">
+                            <span class="tk-tab">Following</span>
+                            <span class="tk-tab active">For You</span>
+                            <span class="tk-tab">Explore</span>
+                        </div>
+
+                        <!-- Right sidebar -->
+                        <div class="tk-sidebar">
+                            <!-- Avatar -->
+                            <div class="tk-icon-wrap">
+                                <div class="tk-avatar-wrap">
+                                    <div class="tk-avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=SV" alt="av" style="width:100%;height:100%;object-fit:cover;"></div>
+                                    <div class="tk-follow-dot">+</div>
+                                </div>
                             </div>
-                            <div class="action-item flex flex-col items-center">
-                                <i data-lucide="heart" class="text-white fill-white w-7 h-7"></i>
-                                <span class="action-text text-white">580K</span>
+                            <!-- Like -->
+                            <div class="tk-icon-wrap">
+                                <div class="tk-icon-circle">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                </div>
+                                <span class="tk-count">580K</span>
                             </div>
-                            <div class="action-item flex flex-col items-center">
-                                <i data-lucide="message-circle" class="text-white fill-white w-7 h-7"></i>
-                                <span class="action-text text-white">2.4K</span>
+                            <!-- Comment -->
+                            <div class="tk-icon-wrap">
+                                <div class="tk-icon-circle">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <span class="tk-count">2.4K</span>
+                            </div>
+                            <!-- Bookmark -->
+                            <div class="tk-icon-wrap">
+                                <div class="tk-icon-circle">
+                                    <svg width="14" height="16" viewBox="0 0 24 24" fill="white"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <span class="tk-count">841</span>
+                            </div>
+                            <!-- Share -->
+                            <div class="tk-icon-wrap">
+                                <div class="tk-icon-circle">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                </div>
+                                <span class="tk-count">Share</span>
                             </div>
                         </div>
-                        <div class="bottom-info space-y-0.5">
-                            <p class="font-bold text-[11px]">@soundvertise.co</p>
-                            <p class="text-[10px] opacity-90 leading-tight">Video creato con Soundvertise.</p>
+
+                        <!-- Spinning disc bottom right -->
+                        <div class="tk-disc">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=music" style="width:100%;height:100%;object-fit:cover;">
+                        </div>
+
+                        <!-- Bottom info -->
+                        <div class="tk-bottom">
+                            <div class="tk-username">@soundvertise.co</div>
+                            <div class="tk-desc">POV: you just found your new favorite track 🎵</div>
+                            <div class="tk-music">
+                                <span class="tk-music-note">♪</span>
+                                <span class="tk-music-text">Original sound - soundvertise</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -328,7 +391,7 @@ function snapshotCaption(){
     };
 }
 
-// ── Draw caption su canvas ──
+// ── Draw caption su canvas — centered ──
 function drawCaptionOnCanvas(ctx,snap,canvasW,canvasH){
     if(!snap||!snap.text||snap.text.trim()==='Scrivi il tuo testo')return;
     const fontSize=snap.fontSizeRatio*canvasH;
