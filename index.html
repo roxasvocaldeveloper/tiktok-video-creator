@@ -471,7 +471,15 @@ function loadAudioFromSelector(){
     if(isNaN(idx)||idx<0){currentAudioIndex=-1;audioFile=null;audio.src='';audioDuration=0;waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);updateTrimmers();return;}
     currentAudioIndex=idx;audioFile=audioLibrary[idx];
     audio.src=URL.createObjectURL(audioFile);
-    audio.onloadedmetadata=()=>{audioDuration=audio.duration;drawWaveform(audioFile);updateTrimmers();audio.currentTime=aStart;};
+    audio.onloadedmetadata=()=>{
+        audioDuration=audio.duration;
+        drawWaveform(audioFile).then(()=>{
+            const clipDur=vEnd-vStart||15;
+            aStart=findChorusStart(audioFile.name,clipDur);
+            audio.currentTime=aStart;
+            updateTrimmers();
+        });
+    };
 }
 document.getElementById('toggle-watermark').onclick=function(){
     removeWatermark=!removeWatermark;this.classList.toggle('active');
@@ -548,13 +556,48 @@ document.getElementById('play-btn').onclick=()=>{
 function syncPlayback(){video.currentTime=vStart;if(audio.src)audio.currentTime=aStart;if(!video.paused){video.play();if(audio.src)audio.play().catch(()=>{});}}
 function updatePlayIcon(p){document.getElementById('play-icon').setAttribute('data-lucide',p?'pause':'play');lucide.createIcons();}
 
+// ── Waveform amplitude data cache ──
+const waveformCache={};
+
 async function drawWaveform(file){
     const ac=new(window.AudioContext||window.webkitAudioContext)(),decoded=await ac.decodeAudioData(await file.arrayBuffer()),raw=decoded.getChannelData(0),samples=200,block=Math.floor(raw.length/samples);
     const data=Array.from({length:samples},(_,i)=>{let s=0;for(let j=0;j<block;j++)s+=Math.abs(raw[i*block+j]);return s/block;});
+    // Cache amplitude data for chorus detection
+    waveformCache[file.name]={data,duration:decoded.duration};
     const max=Math.max(...data);waveCanvas.width=waveCanvas.offsetWidth*2;waveCanvas.height=waveCanvas.offsetHeight*2;
     const step=waveCanvas.width/samples,grad=waveCtx.createLinearGradient(0,0,waveCanvas.width,0);
     grad.addColorStop(0,'#3B82F6');grad.addColorStop(1,'#8B5CF6');waveCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);waveCtx.fillStyle=grad;
     data.forEach((v,i)=>{const h=(v/max)*waveCanvas.height*0.85;waveCtx.beginPath();waveCtx.roundRect(i*step,(waveCanvas.height-h)/2,step-2,h,2);waveCtx.fill();});
+}
+
+// ── Find best chorus start: window of clipDuration with highest avg amplitude ──
+function findChorusStart(fileName, clipDuration){
+    const cache=waveformCache[fileName];
+    if(!cache)return 0;
+    const{data,duration}=cache;
+    const samples=data.length;
+    // How many samples correspond to clipDuration
+    const windowSamples=Math.round((clipDuration/duration)*samples);
+    if(windowSamples>=samples)return 0;
+    // Skip the first 15% and last 10% of the track (intros/outros rarely have chorus)
+    const skipStart=Math.floor(samples*0.15);
+    const skipEnd=Math.floor(samples*0.10);
+    const maxStart=samples-windowSamples-skipEnd;
+    let bestScore=-1,bestIdx=skipStart;
+    for(let i=skipStart;i<=maxStart;i++){
+        // Average amplitude over the window
+        let sum=0;
+        for(let j=i;j<i+windowSamples;j++)sum+=data[j];
+        const avg=sum/windowSamples;
+        // Bonus: prefer windows where the first few samples are already loud (drop hit)
+        const entryBonus=data[i]*0.3;
+        const score=avg+entryBonus;
+        if(score>bestScore){bestScore=score;bestIdx=i;}
+    }
+    // Convert sample index back to seconds
+    const bestTime=(bestIdx/samples)*duration;
+    // Make sure it fits within the track
+    return Math.max(0,Math.min(bestTime,duration-clipDuration));
 }
 async function generateThumbnails(file){
     const container=document.getElementById('v-thumbs');container.innerHTML='';
@@ -741,6 +784,11 @@ document.getElementById('auto-queue-btn').onclick=async()=>{
                 audio.onerror=r;
             });
             await drawWaveform(audioFile);
+            // Auto-detect chorus: find window with highest amplitude
+            const clipDur=vEnd-vStart;
+            aStart=findChorusStart(audioFile.name,clipDur);
+            audio.currentTime=aStart;
+            updateTrimmers();
         }else{audioFile=null;currentAudioIndex=-1;}
         const rnd=getShuffledNext(selectedCategory);
         caption.textContent=rnd;document.getElementById('caption-input').value=rnd;
