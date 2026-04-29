@@ -535,7 +535,18 @@ window.onmousemove=(e)=>{
 window.onmouseup=()=>{isDraggingV=null;isDraggingA=false;};
 
 document.getElementById('video-input').onchange=(e)=>{const f=Array.from(e.target.files);if(!f.length)return;videoLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();loadVideoFromLibrary(0);notify(`✓ ${videoLibrary.length} video`,'blue');};
-document.getElementById('audio-input').onchange=(e)=>{const f=Array.from(e.target.files);if(!f.length)return;audioLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();notify(`✓ ${audioLibrary.length} audio`,'violet');};
+document.getElementById('audio-input').onchange=(e)=>{
+    const f=Array.from(e.target.files);if(!f.length)return;
+    audioLibrary=f.slice(0,MAX_QUEUE_SIZE);updateFileLibraryUI();
+    notify(`✓ ${audioLibrary.length} audio — analisi in corso...`,'violet');
+    // Pre-cache all waveforms in background so Auto is instant
+    (async()=>{
+        for(const file of audioLibrary){
+            if(!waveformCache[file.name]) await drawWaveform(file);
+        }
+        notify(`✓ ${audioLibrary.length} audio pronti`,'violet');
+    })();
+};
 document.getElementById('audio-selector').onchange=()=>{loadAudioFromSelector();markChanged();};
 
 // ── PLAY — audio restarts from aStart on every play ──
@@ -773,20 +784,27 @@ document.getElementById('auto-queue-btn').onclick=async()=>{
     for(let i=0;i<videoLibrary.length&&videoQueue.length<MAX_QUEUE_SIZE;i++){
         currentVideoIndex=i;videoFile=videoLibrary[i];
         video.src=URL.createObjectURL(videoFile);
-        await new Promise(r=>video.onloadedmetadata=()=>{videoDuration=video.duration;vStart=0;vEnd=Math.min(videoDuration,15);updateTrimmers();r();});
+        await new Promise(r=>{video.onloadedmetadata=()=>{videoDuration=video.duration;vStart=0;vEnd=Math.min(videoDuration,15);updateTrimmers();r();};});
         // VEO always ON
         removeWatermark=true;video.style.transform='scale(1.1)';
         if(audioLibrary.length>0){
             const audioIdx=i%audioLibrary.length;
             audioFile=audioLibrary[audioIdx];currentAudioIndex=audioIdx;
             const sel=document.getElementById('audio-selector');sel.value=audioIdx;
-            await new Promise(r=>{
+            // Only decode audio if not already cached
+            if(!waveformCache[audioFile.name]){
+                await new Promise(r=>{
+                    audio.src=URL.createObjectURL(audioFile);
+                    audio.onloadedmetadata=()=>{audioDuration=audio.duration;r();};
+                    audio.onerror=r;
+                });
+                await drawWaveform(audioFile);
+            } else {
+                // Already cached — just set src and duration from cache
                 audio.src=URL.createObjectURL(audioFile);
-                audio.onloadedmetadata=()=>{audioDuration=audio.duration;aStart=0;updateTrimmers();r();};
-                audio.onerror=r;
-            });
-            await drawWaveform(audioFile);
-            // Auto-detect chorus: find window with highest amplitude
+                audioDuration=waveformCache[audioFile.name].duration;
+            }
+            // Auto-detect chorus from cached waveform
             const clipDur=vEnd-vStart;
             aStart=findChorusStart(audioFile.name,clipDur);
             audio.currentTime=aStart;
@@ -795,7 +813,8 @@ document.getElementById('auto-queue-btn').onclick=async()=>{
         const rnd=getShuffledNext(selectedCategory);
         caption.textContent=rnd;document.getElementById('caption-input').value=rnd;
         const state=captureCurrentState();if(state)videoQueue.push(state);
-        await new Promise(r=>setTimeout(r,100));
+        // Update progress indicator
+        btn.innerHTML=`<i data-lucide="loader" class="w-3 h-3 animate-spin"></i>${videoQueue.length}/${Math.min(videoLibrary.length,MAX_QUEUE_SIZE)}`;lucide.createIcons();
     }
     currentQueueIndex=videoQueue.length-1;clearChanged();updateQueueUI();
     btn.disabled=false;btn.innerHTML='<i data-lucide="zap" class="w-3 h-3"></i>Auto';lucide.createIcons();
